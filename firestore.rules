@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can read and update their own profile
+    match /users/{userId} {
+      allow read: if true; // public profiles readable
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Prompt submissions are moderatable; authenticated users can create
+    // Only admins may create submissions marked as 'bulk' (server/admin uploads)
+    // LOCKED prompts only readable by admins
+    match /promptSubmissions/{submissionId} {
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && (
+          // If no submissionSource or it's 'form', allow for any authenticated user
+          !(request.resource.data.submissionSource == 'bulk')
+          || request.auth.token.admin == true
+        );
+      allow read: if 
+        // Admins can always read
+        request.auth.token.admin == true
+        || (
+          // Non-admins can read only if not locked
+          !resource.data.isLocked
+        );
+      allow update, delete: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
