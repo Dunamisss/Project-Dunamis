@@ -9,6 +9,7 @@ export interface Message {
 export function useWebLLM() {
   const [engine, setEngine] = useState<MLCEngine | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [systemPrompt, setSystemPrompt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<string>("");
   const [currentModel, setCurrentModel] = useState<string | null>(null);
@@ -52,8 +53,11 @@ export function useWebLLM() {
     setIsGenerating(true);
 
     try {
+      const apiMessages = systemPrompt
+        ? [{ role: "system", content: systemPrompt }, ...newMessages]
+        : newMessages;
       const chunks = await engine.chat.completions.create({
-        messages: newMessages,
+        messages: apiMessages,
         stream: true,
       });
 
@@ -80,6 +84,7 @@ export function useWebLLM() {
   
   const clearChat = useCallback(async () => {
     setMessages([]);
+    setSystemPrompt(null);
     if (engine) {
         await engine.resetChat();
     }
@@ -89,6 +94,7 @@ export function useWebLLM() {
     loadModel,
     sendMessage,
     clearChat,
+    setSystemPrompt,
     messages,
     isLoading,
     progress,

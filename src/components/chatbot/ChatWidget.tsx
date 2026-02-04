@@ -20,15 +20,15 @@ export function ChatWidget() {
     progress, 
     currentModel, 
     isGenerating,
-    isModelLoaded 
+    isModelLoaded,
+    setSystemPrompt
   } = useWebLLM();
-  const { promptToLoad, clearPromptToLoad } = useChat();
-  // new: accept model load requests and chat open requests from context
-  const { modelToLoad, clearModelToLoad, chatOpen } = useChat();
+  const { promptToLoad, clearPromptToLoad, modelToLoad, clearModelToLoad } = useChat();
   
   const [input, setInput] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const pendingAutoMessageRef = useRef<string | null>(null);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -55,17 +55,31 @@ export function ChatWidget() {
     }
   }, [isModelLoaded]);
 
-  // Load prompt from context when user clicks "Try Me"
+  // Load prompt into system context when user clicks "Try Me"
   useEffect(() => {
-    if (promptToLoad) {
-      setInput(promptToLoad);
-      clearPromptToLoad();
-      // Scroll input into view
-      setTimeout(() => {
-        inputRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }, 100);
-    }
-  }, [promptToLoad, clearPromptToLoad]);
+    if (!promptToLoad) return;
+    setSystemPrompt(promptToLoad);
+    setInput("");
+    clearPromptToLoad();
+    // Queue a starter message so the model responds without showing the prompt.
+    pendingAutoMessageRef.current = "Begin.";
+    // Scroll input into view
+    setTimeout(() => {
+      inputRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 100);
+  }, [promptToLoad, clearPromptToLoad, setSystemPrompt]);
+
+  // Auto-send starter message once the model is loaded and system prompt is set.
+  useEffect(() => {
+    if (!isModelLoaded) return;
+    const pending = pendingAutoMessageRef.current;
+    if (!pending) return;
+    // Send after system prompt is available in state.
+    setTimeout(() => {
+      sendMessage(pending);
+      pendingAutoMessageRef.current = null;
+    }, 0);
+  }, [isModelLoaded, sendMessage]);
 
   // Load model when requested from context
   useEffect(() => {
@@ -83,13 +97,6 @@ export function ChatWidget() {
       inputRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [messages.length, isGenerating]);
-
-  // Prevent body scroll when fullscreen
-  useEffect(() => {
-    // If context requests the chat to open fullscreen, toggle local state
-    if (chatOpen && !isFullscreen) setIsFullscreen(true);
-    if (!chatOpen && isFullscreen) setIsFullscreen(false);
-  }, [chatOpen, isFullscreen]);
 
   useEffect(() => {
     document.body.style.overflow = isFullscreen ? "hidden" : "unset";

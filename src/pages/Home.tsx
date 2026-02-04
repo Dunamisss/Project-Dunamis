@@ -1,22 +1,98 @@
-import { motion } from "framer-motion";
-import { Search, ArrowRight, ArrowDown } from "lucide-react";
-import { useState, useMemo } from "react";
-import { Link } from "wouter";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import React from "react";
+import { Textarea } from "@/components/ui/textarea";
 import TubesEffect from "@/components/TubesEffect";
-import { ChatWidget } from "@/components/chatbot/ChatWidget";
-import { AVAILABLE_MODELS } from "@/lib/models";
-import { useChat } from "@/contexts/ChatContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthModal } from "@/components/AuthModal";
 import ContactSection from "@/components/ContactSection";
+import { Maximize2, Minimize2, Trash2 } from "lucide-react";
+
+const OPTIMIZER_SYSTEM_PROMPT =
+  "PERSONA: You are the Chief Prompt Architect, an expert in Large Language Model logic and instruction design.\n\n" +
+  "CONTEXT: A user will provide a raw, unstructured idea or request. They require a rigorous, production-ready prompt that can be pasted directly into an AI model (like ChatGPT, Claude, or Gemini) to achieve a specific result.\n\n" +
+  "TASK:\n" +
+  "1. Analyze: Deeply evaluate the user's raw input to understand their core intent, desired tone, and end goal.\n" +
+  "2. Fill Gaps: Identify logical holes or missing context in the user's request and intelligently fill them to ensure the prompt is robust.\n" +
+  "3. Draft: Construct a high-fidelity prompt using the specific structure outlined below.\n\n" +
+  "REQUIRED OUTPUT STRUCTURE:\n" +
+  "The output must be a single, copy-pasteable prompt containing these headers:\n" +
+  "* ### ROLE: (Define who the AI should act as).\n" +
+  "* ### OBJECTIVE: (A clear, active-voice summary of what needs to be done).\n" +
+  "* ### CONTEXT: (Background info derived from the user's input).\n" +
+  "* ### STEPS: (A numbered, step-by-step logical process for the AI to follow).\n" +
+  "* ### CONSTRAINTS: (Negative constraints, e.g., \"Do not use code,\" \"No moralizing\").\n\n" +
+  "CONSTRAINTS FOR YOU (THE ARCHITECT):\n" +
+  "* Zero Fluff: Do not provide an introduction (e.g., \"Here is your prompt\"). Output *only* the prompt text.\n" +
+  "* Variables: If the user's input requires specific data they haven't provided yet, use bracketed placeholders (e.g., \"[INSERT TEXT HERE]\") in your final output.\n" +
+  "* Clarity: Use imperative, direct language (e.g., \"Analyze this,\" \"Write that\") rather than polite suggestions.";
 
 export default function Home() {
-  const { loadModelById, openChat } = useChat();
+  const { user, logout } = useAuth();
+  const [promptInput, setPromptInput] = useState("");
+  const [extraContext, setExtraContext] = useState("");
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [optimizedOutput, setOptimizedOutput] = useState("");
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizerError, setOptimizerError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const optimizerRef = useRef<HTMLDivElement>(null);
 
-  const handleModelClick = (id: string) => {
-    loadModelById(id);
-    openChat();
+  const apiBase = (import.meta as any).env?.VITE_API_BASE ?? "";
+  const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
+
+  const handleOptimize = async () => {
+    if (!promptInput.trim()) return;
+    setOptimizerError(null);
+    setIsOptimizing(true);
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemPrompt: OPTIMIZER_SYSTEM_PROMPT,
+          prompt: promptInput.trim(),
+          context: extraContext.trim(),
+          images: attachedImages,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error || "Optimization failed.");
+      }
+
+      const data = await response.json();
+      setOptimizedOutput(data?.output ?? "");
+    } catch (error) {
+      setOptimizerError((error as Error).message);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const handleTxtUpload = async (file: File | null) => {
+    if (!file) return;
+    const text = await file.text();
+    setExtraContext((prev) => {
+      const next = prev ? `${prev}\n\n${text}` : text;
+      return next.trim();
+    });
+  };
+
+  const handleImageUpload = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const names = Array.from(files).map((file) => file.name);
+    setAttachedImages((prev) => Array.from(new Set([...prev, ...names])));
+  };
+
+  const handleClear = () => {
+    setPromptInput("");
+    setExtraContext("");
+    setAttachedImages([]);
+    setOptimizedOutput("");
+    setOptimizerError(null);
   };
 
   return (
@@ -42,8 +118,22 @@ export default function Home() {
       {/* Content Layer */}
       <div className="relative z-20">
         {/* Hero Header Section - Full Screen Height */}
-        <header className="min-h-screen flex flex-col items-center justify-center px-4 text-center">
-          <div className="max-w-4xl mx-auto space-y-8">
+        <header className="min-h-screen relative flex flex-col items-center justify-center px-4 text-center overflow-hidden">
+          <div
+            className="absolute inset-0 z-0 bg-center bg-no-repeat bg-cover opacity-40"
+            style={{ backgroundImage: "url(/cyber_hacker.png)" }}
+          />
+          <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
+          <div className="absolute top-6 right-6 z-20">
+            {user ? (
+              <Button variant="ghost" onClick={logout} className="text-white hover:text-white">
+                Sign Out
+              </Button>
+            ) : (
+              <AuthModal />
+            )}
+          </div>
+          <div className="relative z-10 max-w-4xl mx-auto space-y-8">
             <h1 className="font-display text-7xl md:text-9xl font-light text-white drop-shadow-2xl tracking-widest leading-tight">
               DUNAMIS
             </h1>
@@ -67,34 +157,137 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Content Sections */}
         <main className="w-full max-w-5xl mx-auto px-4 space-y-16 pb-20 bg-gradient-to-b from-black/80 to-black">
-          <section className="pt-12">
-            <h2 className="text-3xl font-semibold text-white drop-shadow-md mb-6 text-center">Select Model</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {AVAILABLE_MODELS.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => handleModelClick(m.id)}
-                  className="text-left p-6 rounded-lg bg-black/60 backdrop-blur border border-yellow-500/30 hover:border-yellow-400 hover:bg-black/70 transition-all transform hover:scale-105 shadow-lg"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-lg text-white">{m.name}</div>
-                      <div className="text-sm text-gray-300">{m.description}</div>
-                    </div>
-                    <div className="text-xs text-yellow-400 font-bold">{m.vram}</div>
-                  </div>
-                </button>
-              ))}
+          <div className="pt-10">
+            <div className="rounded-lg border border-yellow-500/40 bg-black/70 px-5 py-4 text-center text-base md:text-lg font-semibold text-yellow-200 shadow-lg">
+              Prompt Optimizer: describe what you want, and we’ll craft a production-ready prompt for you.
             </div>
-          </section>
+          </div>
+          <section ref={optimizerRef} className="pt-12 space-y-6">
+            {!user && (
+              <div className="rounded-lg border border-yellow-500/40 bg-black/80 p-6 text-center shadow-lg">
+                <h2 className="text-xl md:text-2xl font-semibold text-white">Sign in to use the Prompt Optimizer</h2>
+                <p className="mt-2 text-sm md:text-base text-gray-300">
+                  Create a free account to access the optimizer and save your results.
+                </p>
+                <div className="mt-4 flex items-center justify-center">
+                  <AuthModal />
+                </div>
+              </div>
+            )}
+            {user && (
+            <div
+              className={[
+                "rounded-lg border border-yellow-500/30 bg-black/70 p-6 shadow-lg space-y-6",
+                isFullscreen ? "fixed inset-4 z-50 overflow-y-auto" : ""
+              ].join(" ")}
+            >
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-semibold">Prompt Optimizer</h2>
+                  <p className="text-xs text-gray-300">
+                    Paste a rough prompt and get a clean, production-ready version.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 justify-center md:justify-end">
+                  <Button
+                    variant="outline"
+                    className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                    onClick={handleClear}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                    onClick={() => setIsFullscreen((prev) => !prev)}
+                  >
+                    {isFullscreen ? <Minimize2 className="h-4 w-4 mr-2" /> : <Maximize2 className="h-4 w-4 mr-2" />}
+                    {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  </Button>
+                </div>
+              </div>
 
-          <section>
-            <h2 className="text-3xl font-semibold text-white drop-shadow-md mb-6 text-center">Chat</h2>
-            <div className="bg-black/60 backdrop-blur rounded-lg p-6 border border-yellow-500/30 shadow-lg">
-              <ChatWidget />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold">Your Prompt</h3>
+                    <p className="text-xs text-gray-300">Paste your rough prompt here.</p>
+                  </div>
+                  <Textarea
+                    value={promptInput}
+                    onChange={(event) => setPromptInput(event.target.value)}
+                    className="min-h-[200px] bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-400"
+                    placeholder="Write or paste your prompt here..."
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className="flex flex-col gap-2 text-xs text-gray-300">
+                      Upload .txt context
+                      <Input
+                        type="file"
+                        accept=".txt"
+                        onChange={(event) => handleTxtUpload(event.target.files?.[0] ?? null)}
+                        className="bg-black/40 border-yellow-500/30 text-white"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-2 text-xs text-gray-300">
+                      Upload images
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(event) => handleImageUpload(event.target.files)}
+                        className="bg-black/40 border-yellow-500/30 text-white"
+                      />
+                    </label>
+                  </div>
+                  <Textarea
+                    value={extraContext}
+                    onChange={(event) => setExtraContext(event.target.value)}
+                    className="min-h-[140px] bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-400"
+                    placeholder="Optional extra context (notes, constraints, goals)..."
+                  />
+                  {attachedImages.length > 0 && (
+                    <div className="text-xs text-yellow-200/80">
+                      Attached images: {attachedImages.join(", ")}
+                    </div>
+                  )}
+                  <Button
+                    className="w-full bg-yellow-400 text-black hover:bg-yellow-300"
+                    onClick={handleOptimize}
+                    disabled={isOptimizing || !promptInput.trim()}
+                  >
+                    {isOptimizing ? "Sending..." : "Send"}
+                  </Button>
+                  {optimizerError && (
+                    <div className="text-xs text-red-300">{optimizerError}</div>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold">Optimized Output</h3>
+                    <p className="text-xs text-gray-300">Your improved prompt appears here.</p>
+                  </div>
+                  <Textarea
+                    value={optimizedOutput}
+                    readOnly
+                    className="min-h-[420px] bg-black/30 border-yellow-500/20 text-white placeholder:text-gray-500"
+                    placeholder="Click Send to generate an improved version."
+                  />
+                  <Button
+                    variant="outline"
+                    className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                    onClick={() => optimizedOutput && navigator.clipboard.writeText(optimizedOutput)}
+                    disabled={!optimizedOutput}
+                  >
+                    Copy Optimized Prompt
+                  </Button>
+                </div>
+              </div>
             </div>
+            )}
           </section>
 
           <section>
@@ -107,4 +300,3 @@ export default function Home() {
     </div>
   );
 }
-
