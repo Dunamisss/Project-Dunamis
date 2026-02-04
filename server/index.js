@@ -7,6 +7,7 @@ const app = express();
 const port = process.env.PORT || 8787;
 
 app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
 
 const DAILY_LIMIT = Number.parseInt(process.env.DAILY_LIMIT || "3", 10);
 const allowList = (process.env.ALLOWLIST_EMAILS || "")
@@ -113,6 +114,37 @@ app.post("/api/optimize", async (req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ error: message });
+  }
+});
+
+app.post("/api/kofi-webhook", (req, res) => {
+  const token = process.env.KOFI_WEBHOOK_TOKEN;
+  if (!token) {
+    return res.status(500).send("Missing KOFI_WEBHOOK_TOKEN");
+  }
+
+  const payload = req.body?.data;
+  if (!payload) {
+    return res.status(400).send("Missing data payload");
+  }
+
+  try {
+    const data = JSON.parse(payload);
+    if (data?.verification_token !== token) {
+      return res.status(403).send("Invalid token");
+    }
+
+    const email = (data?.email || "").toString().trim().toLowerCase();
+    const isDonation = data?.type === "Donation";
+    if (email && isDonation) {
+      if (!allowList.includes(email)) {
+        allowList.push(email);
+      }
+    }
+
+    return res.status(200).send("OK");
+  } catch (error) {
+    return res.status(400).send("Invalid payload");
   }
 });
 
