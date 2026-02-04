@@ -37,6 +37,9 @@ export default function Home() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizerError, setOptimizerError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [remainingUses, setRemainingUses] = useState<number | null>(null);
+  const [dailyLimit, setDailyLimit] = useState<number | null>(null);
+  const [isUnlimited, setIsUnlimited] = useState(false);
   const optimizerRef = useRef<HTMLDivElement>(null);
 
   const apiBase = (import.meta as any).env?.VITE_API_BASE ?? "";
@@ -56,16 +59,35 @@ export default function Home() {
           prompt: promptInput.trim(),
           context: extraContext.trim(),
           images: attachedImages,
+          userEmail: user?.email || ""
         }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
+        if (typeof data?.remaining === "number") {
+          setRemainingUses(data.remaining);
+        }
+        if (typeof data?.limit === "number") {
+          setDailyLimit(data.limit);
+        }
+        if (typeof data?.unlimited === "boolean") {
+          setIsUnlimited(data.unlimited);
+        }
         throw new Error(data?.error || "Optimization failed.");
       }
 
       const data = await response.json();
       setOptimizedOutput(data?.output ?? "");
+      if (typeof data?.remaining === "number") {
+        setRemainingUses(data.remaining);
+      }
+      if (typeof data?.limit === "number") {
+        setDailyLimit(data.limit);
+      }
+      if (typeof data?.unlimited === "boolean") {
+        setIsUnlimited(data.unlimited);
+      }
     } catch (error) {
       setOptimizerError((error as Error).message);
     } finally {
@@ -261,6 +283,13 @@ export default function Home() {
                   >
                     {isOptimizing ? "Sending..." : "Send"}
                   </Button>
+                  <div className="text-xs text-yellow-200/80 text-center">
+                    {isUnlimited
+                      ? "Unlimited access enabled."
+                      : dailyLimit !== null && remainingUses !== null
+                        ? `${remainingUses} of ${dailyLimit} uses left today`
+                        : "You have 3 free uses per day."}
+                  </div>
                   {optimizerError && (
                     <div className="text-xs text-red-300">{optimizerError}</div>
                   )}

@@ -8,6 +8,30 @@ const port = process.env.PORT || 8787;
 
 app.use(express.json({ limit: "2mb" }));
 
+const DAILY_LIMIT = Number.parseInt(process.env.DAILY_LIMIT || "3", 10);
+const allowList = (process.env.ALLOWLIST_EMAILS || "")
+  .split(",")
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
+
+const usageByKey = new Map();
+
+function todayKey() {
+  const now = new Date();
+  return now.toISOString().slice(0, 10);
+}
+
+function getUsageRecord(key) {
+  const today = todayKey();
+  const existing = usageByKey.get(key);
+  if (!existing || existing.date !== today) {
+    const record = { date: today, count: 0 };
+    usageByKey.set(key, record);
+    return record;
+  }
+  return existing;
+}
+
 app.use((req, res, next) => {
   const origin = req.headers.origin || "";
   const allowed = (process.env.CORS_ORIGIN || "*")
@@ -35,9 +59,23 @@ app.post("/api/optimize", async (req, res) => {
     return res.status(500).json({ error: "Missing GROQ_API_KEY in server environment." });
   }
 
-  const { systemPrompt, prompt, context, images } = req.body ?? {};
+  const { systemPrompt, prompt, context, images, userEmail } = req.body ?? {};
   if (!prompt || typeof prompt !== "string") {
     return res.status(400).json({ error: "Prompt is required." });
+  }
+
+  const normalizedEmail = typeof userEmail === "string" ? userEmail.trim().toLowerCase() : "";
+  const isAllowlisted = normalizedEmail && allowList.includes(normalizedEmail);
+  let remaining = null;
+  let limit = DAILY_LIMIT;
+  if (!isAllowlisted) {
+    const key = normalizedEmail || req.ip || "anonymous";
+    const record = getUsageRecord(key);
+    if (record.count >= DAILY_LIMIT) {
+      return res.status(429).json({ error: "Daily limit reached. Please donate for unlimited access.", remaining: 0, limit });
+    }
+    record.count += 1;
+    remaining = Math.max(DAILY_LIMIT - record.count, 0);
   }
 
   const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
@@ -71,7 +109,7 @@ app.post("/api/optimize", async (req, res) => {
 
     const data = await response.json();
     const output = data?.choices?.[0]?.message?.content ?? "";
-    return res.json({ output });
+    return res.json({ output, remaining, limit, unlimited: isAllowlisted });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ error: message });
