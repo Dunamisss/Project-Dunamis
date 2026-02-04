@@ -1,4 +1,4 @@
-import { Route, Switch } from "wouter";
+import { Route, Switch, Router } from "wouter";
 import { Toaster } from "@/components/ui/sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -11,10 +11,12 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <ChatProvider>
           <Toaster />
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/prompts" component={Home} />
-          </Switch>
+          <Router base={(import.meta as any).env?.BASE_URL || "/"}>
+            <Switch>
+              <Route path="/" component={Home} />
+              <Route path="/prompts" component={Home} />
+            </Switch>
+          </Router>
         </ChatProvider>
       </ThemeProvider>
     </ErrorBoundary>

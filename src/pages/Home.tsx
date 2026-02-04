@@ -29,6 +29,7 @@ const OPTIMIZER_SYSTEM_PROMPT =
 
 export default function Home() {
   const { user, logout } = useAuth();
+  const baseUrl = (import.meta as any).env?.BASE_URL || "/";
   const [promptInput, setPromptInput] = useState("");
   const [extraContext, setExtraContext] = useState("");
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
@@ -101,7 +102,7 @@ export default function Home() {
       <div 
         className="fixed inset-0 z-0 w-full h-screen"
         style={{
-          backgroundImage: "url(/dunamis-hero.webp)",
+          backgroundImage: `url(${baseUrl}dunamis-hero.webp)`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
@@ -121,7 +122,7 @@ export default function Home() {
         <header className="min-h-screen relative flex flex-col items-center justify-center px-4 text-center overflow-hidden">
           <div
             className="absolute inset-0 z-0 bg-center bg-no-repeat bg-cover opacity-40"
-            style={{ backgroundImage: "url(/cyber_hacker.png)" }}
+            style={{ backgroundImage: `url(${baseUrl}cyber_hacker.png)` }}
           />
           <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
           <div className="absolute top-6 right-6 z-20">
