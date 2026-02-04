@@ -25,18 +25,22 @@ export default function ContactSection() {
             </p>
             
             <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
+              <div className="rounded-xl border border-pink-500/30 bg-pink-500/5 p-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
                   <Heart className="h-5 w-5 text-pink-500" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">Support Us</p>
                   <p className="text-sm text-muted-foreground">If you enjoy using these prompts, consider a small donation on Ko-fi to help us continue creating amazing prompts!</p>
-                  <a href="https://ko-fi.com" target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" size="sm" className="mt-2 border-pink-500/50 hover:bg-pink-500/10 text-pink-500">
+                  <a href="https://ko-fi.com/dunamis_site" target="_blank" rel="noopener noreferrer">
+                    <Button
+                      className="mt-3 bg-pink-500 text-white hover:bg-pink-400 shadow-lg shadow-pink-500/30"
+                    >
                       Support on Ko-fi
                     </Button>
                   </a>
+                </div>
                 </div>
               </div>
             </div>
