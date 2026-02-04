@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VITE_BASE: "/${{ github.event.repository.name }}/"
+      VITE_BASE: "/"
       VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
     steps:
       - name: Checkout
