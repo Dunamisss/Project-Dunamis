@@ -290,6 +290,9 @@ export default function Home() {
                         ? `${remainingUses} of ${dailyLimit} uses left today`
                         : "You have 3 free uses per day."}
                   </div>
+                  <div className="text-[11px] text-gray-300 text-center">
+                    Supporters can be upgraded to unlimited daily uses.
+                  </div>
                   {optimizerError && (
                     <div className="text-xs text-red-300">{optimizerError}</div>
                   )}
