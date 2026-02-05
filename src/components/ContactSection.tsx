@@ -46,6 +46,20 @@ export default function ContactSection() {
                 </div>
                 </div>
               </div>
+              <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Quick Access</p>
+                    <p className="text-sm text-muted-foreground">Scan to open Dunamis on your phone.</p>
+                  </div>
+                  <img
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://dunamiss.xyz/"
+                    alt="QR code to open dunamiss.xyz"
+                    className="h-20 w-20 rounded-md border border-yellow-500/40 bg-black/60"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
