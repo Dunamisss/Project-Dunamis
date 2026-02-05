@@ -64,9 +64,14 @@ export default function Home() {
   const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
   const tryInProviders = [
     { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com/" },
-    { id: "grok", label: "Grok (xAI)", url: "https://x.com/" },
+    { id: "grok", label: "Grok (xAI)", url: "https://grok.com/" },
     { id: "gemini", label: "Gemini", url: "https://gemini.google.com/" },
     { id: "claude", label: "Claude", url: "https://claude.ai/" },
+    { id: "perplexity", label: "Perplexity", url: "https://www.perplexity.ai/" },
+    { id: "poe", label: "Poe", url: "https://poe.com/" },
+    { id: "qwen", label: "Qwen", url: "https://chat.qwen.ai/" },
+    { id: "arena", label: "Arena", url: "https://arena.ai/" },
+    { id: "deepseek", label: "DeepSeek", url: "https://chat.deepseek.com/" },
   ];
 
   const handleOptimize = async () => {
@@ -432,7 +437,13 @@ export default function Home() {
                             <ChevronDown className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-black/90 text-white border-yellow-500/30">
+                        <DropdownMenuContent
+                          align="end"
+                          side="bottom"
+                          sideOffset={8}
+                          collisionPadding={12}
+                          className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
+                        >
                           {tryInProviders.map((provider) => (
                             <DropdownMenuItem
                               key={provider.id}
