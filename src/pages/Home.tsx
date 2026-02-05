@@ -266,13 +266,13 @@ export default function Home() {
             )}
           </div>
           <div className="relative z-10 max-w-4xl mx-auto space-y-8">
-            <h1 className="font-display text-7xl md:text-9xl font-light text-white drop-shadow-2xl tracking-widest leading-tight">
+            <h1 className="font-display text-7xl md:text-9xl font-light text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-300 to-orange-200 tracking-widest leading-tight drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]">
               DUNAMIS
             </h1>
             
             <div className="space-y-6">
               <p className="text-2xl md:text-3xl text-yellow-300 drop-shadow-lg italic font-light">
-                "In-browser AI — private, fast, and offline-capable"
+                "Precision prompts, zero noise — built for creators who ship."
               </p>
               
               <p className="text-base md:text-lg text-gray-100 drop-shadow-md leading-relaxed">
@@ -286,6 +286,12 @@ export default function Home() {
                 </p>
               </div>
             </div>
+          </div>
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-yellow-200/80">
+            <div className="h-12 w-7 rounded-full border border-yellow-400/60 flex items-start justify-center">
+              <span className="mt-2 h-2 w-2 rounded-full bg-yellow-300 animate-bounce" />
+            </div>
+            <span className="text-[11px] tracking-[0.35em] uppercase">Scroll</span>
           </div>
         </header>
 
