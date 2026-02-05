@@ -6,7 +6,14 @@ import TubesEffect from "@/components/TubesEffect";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
 import ContactSection from "@/components/ContactSection";
-import { Maximize2, Minimize2, Trash2 } from "lucide-react";
+import { ButtonGroup } from "@/components/ui/button-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, Maximize2, Minimize2, Trash2 } from "lucide-react";
 
 const OPTIMIZER_SYSTEM_PROMPT =
   "PERSONA: You are the Chief Prompt Architect, an expert in Large Language Model logic and instruction design.\n\n" +
@@ -40,10 +47,27 @@ export default function Home() {
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [dailyLimit, setDailyLimit] = useState<number | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [tryInProvider, setTryInProvider] = useState<{
+    id: string;
+    label: string;
+    url: string;
+  }>({
+    id: "chatgpt",
+    label: "ChatGPT",
+    url: "https://chatgpt.com/",
+  });
   const optimizerRef = useRef<HTMLDivElement>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
 
   const apiBase = (import.meta as any).env?.VITE_API_BASE ?? "";
   const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
+  const tryInProviders = [
+    { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com/" },
+    { id: "grok", label: "Grok (xAI)", url: "https://x.com/" },
+    { id: "gemini", label: "Gemini", url: "https://gemini.google.com/" },
+    { id: "claude", label: "Claude", url: "https://claude.ai/" },
+  ];
 
   const handleOptimize = async () => {
     if (!promptInput.trim()) return;
@@ -116,6 +140,73 @@ export default function Home() {
     setAttachedImages([]);
     setOptimizedOutput("");
     setOptimizerError(null);
+  };
+
+  const showCopyFeedback = (message: string) => {
+    setCopyFeedback(message);
+    if (copyTimeoutRef.current) {
+      window.clearTimeout(copyTimeoutRef.current);
+    }
+    copyTimeoutRef.current = window.setTimeout(() => {
+      setCopyFeedback(null);
+      copyTimeoutRef.current = null;
+    }, 2500);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    if (!text.trim()) return false;
+
+    let wrote = false;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      wrote = true;
+    } catch {
+      wrote = false;
+    }
+
+    if (!wrote) {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const fallbackSuccess = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      wrote = fallbackSuccess;
+    }
+
+    if (!wrote) {
+      showCopyFeedback("Copy failed. Please select and copy manually.");
+      return false;
+    }
+
+    let verified = false;
+    try {
+      const readText = await navigator.clipboard.readText();
+      verified = readText === text;
+    } catch {
+      verified = false;
+    }
+
+    showCopyFeedback(verified ? "Copied and verified." : "Copied to clipboard.");
+    return true;
+  };
+
+  const handleCopy = async () => {
+    if (!optimizedOutput) return;
+    await copyToClipboard(optimizedOutput);
+  };
+
+  const handleTryIn = async (provider = tryInProvider) => {
+    if (!optimizedOutput) return;
+    const copied = await copyToClipboard(optimizedOutput);
+    if (!copied) return;
+    showCopyFeedback(`Copied. Opening ${provider.label}...`);
+    window.open(provider.url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -312,14 +403,57 @@ export default function Home() {
                     className="min-h-[420px] bg-black/30 border-yellow-500/20 text-white placeholder:text-gray-500"
                     placeholder="Click Send to generate an improved version."
                   />
-                  <Button
-                    variant="outline"
-                    className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                    onClick={() => optimizedOutput && navigator.clipboard.writeText(optimizedOutput)}
-                    disabled={!optimizedOutput}
-                  >
-                    Copy Optimized Prompt
-                  </Button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                      onClick={handleCopy}
+                      disabled={!optimizedOutput}
+                    >
+                      Copy Optimized Prompt
+                    </Button>
+                    <ButtonGroup className="w-full">
+                      <Button
+                        variant="outline"
+                        className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                        onClick={() => handleTryIn()}
+                        disabled={!optimizedOutput}
+                      >
+                        Try in {tryInProvider.label}
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
+                            disabled={!optimizedOutput}
+                            aria-label="Choose a provider"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-black/90 text-white border-yellow-500/30">
+                          {tryInProviders.map((provider) => (
+                            <DropdownMenuItem
+                              key={provider.id}
+                              className="cursor-pointer focus:bg-yellow-500/20"
+                              onClick={() => {
+                                setTryInProvider(provider);
+                                handleTryIn(provider);
+                              }}
+                            >
+                              Try in {provider.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </ButtonGroup>
+                  </div>
+                  <div className="text-[11px] text-gray-300">
+                    {copyFeedback
+                      ? copyFeedback
+                      : "We copy the prompt and open your provider in a new tab. Browsers don’t allow auto‑pasting into other sites."}
+                  </div>
                 </div>
               </div>
             </div>
