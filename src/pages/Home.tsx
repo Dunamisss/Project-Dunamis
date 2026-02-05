@@ -234,10 +234,13 @@ export default function Home() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-semibold">Your Prompt</h3>
-                    <p className="text-xs text-gray-300">Paste your rough prompt here.</p>
-                  </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold">Your Prompt</h3>
+                  <p className="text-xs text-gray-300">Paste your rough prompt here.</p>
+                  <p className="text-[11px] text-gray-400">
+                    Even a few words is enough — we’ll craft a perfect, production-ready prompt. More features coming soon.
+                  </p>
+                </div>
                   <Textarea
                     value={promptInput}
                     onChange={(event) => setPromptInput(event.target.value)}
