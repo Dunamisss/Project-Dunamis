@@ -10,6 +10,9 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const USAGE_LIMIT = Number.parseInt(process.env.DAILY_LIMIT || "3", 10);
+const SUPABASE_URL = process.env.SUPABASE_URL || "";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const allowList = (process.env.ALLOWLIST_EMAILS || "")
   .split(",")
   .map((value) => value.trim().toLowerCase())
@@ -32,11 +35,100 @@ let vpnIpv4Cidrs = [];
 function getUsageRecord(key) {
   const existing = usageByKey.get(key);
   if (!existing) {
-    const record = { count: 0 };
+    const record = { count: 0, is_banned: false };
     usageByKey.set(key, record);
     return record;
   }
   return existing;
+}
+
+function getSupabaseHeaders(extra = {}) {
+  return {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    "Content-Type": "application/json",
+    ...extra,
+  };
+}
+
+async function supabaseRequest(path, options = {}) {
+  if (!SUPABASE_ENABLED) return null;
+  const base = SUPABASE_URL.replace(/\/+$/, "");
+  const url = `${base}/rest/v1/${path}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: getSupabaseHeaders(options.headers || {}),
+  });
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new Error(`Supabase error ${response.status}: ${errorText || "Request failed."}`);
+  }
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+async function supabaseSelectSingle(table, filters) {
+  const params = new URLSearchParams({ select: "*" });
+  for (const [key, value] of Object.entries(filters)) {
+    params.set(key, `eq.${value}`);
+  }
+  params.set("limit", "1");
+  const path = `${table}?${params.toString()}`;
+  const rows = await supabaseRequest(path, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (Array.isArray(rows) && rows.length > 0) return rows[0];
+  return null;
+}
+
+async function supabaseUpsert(table, payload) {
+  return supabaseRequest(table, {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify(payload),
+  });
+}
+
+async function supabaseUpdate(table, filters, payload) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    params.set(key, `eq.${value}`);
+  }
+  const path = `${table}?${params.toString()}`;
+  return supabaseRequest(path, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  });
+}
+
+async function supabaseDomainBlocked(domain) {
+  if (!SUPABASE_ENABLED || !domain) return false;
+  const parts = domain.split(".").filter(Boolean);
+  if (parts.length < 2) return false;
+  const candidates = [];
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    candidates.push(parts.slice(i).join("."));
+  }
+  const params = new URLSearchParams({ select: "domain", limit: "1" });
+  params.set("domain", `in.(${candidates.join(",")})`);
+  const path = `blocked_domains?${params.toString()}`;
+  try {
+    const rows = await supabaseRequest(path, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (error) {
+    console.warn("Supabase blocked domain lookup failed.", error);
+    return false;
+  }
 }
 
 function parseDomainList(text) {
@@ -169,20 +261,88 @@ app.post("/api/optimize", async (req, res) => {
   }
 
   const normalizedEmail = typeof userEmail === "string" ? userEmail.trim().toLowerCase() : "";
-  const isAllowlisted = normalizedEmail && allowList.includes(normalizedEmail);
+  const clientIp = getClientIp(req);
+  const usageKey = normalizedEmail || (clientIp ? `ip:${clientIp}` : "anonymous");
+  let isAllowlisted = Boolean(normalizedEmail && allowList.includes(normalizedEmail));
+
   if (!isAllowlisted && normalizedEmail && isDisposableEmail(normalizedEmail)) {
     return res.status(400).json({ error: "Disposable email addresses are not allowed." });
   }
+
+  if (SUPABASE_ENABLED && normalizedEmail) {
+    try {
+      const allowRow = await supabaseSelectSingle("optimizer_allowlist", { email: normalizedEmail });
+      if (allowRow?.unlimited) {
+        isAllowlisted = true;
+      }
+    } catch (error) {
+      console.warn("Supabase allowlist lookup failed.", error);
+    }
+  }
+
+  if (SUPABASE_ENABLED && normalizedEmail) {
+    const domain = normalizedEmail.split("@").pop()?.trim().toLowerCase();
+    if (domain) {
+      const blocked = await supabaseDomainBlocked(domain);
+      if (blocked) {
+        return res.status(400).json({ error: "Email domain is blocked. Please use a different address." });
+      }
+    }
+  }
+
+  let usageRecord = null;
+  if (SUPABASE_ENABLED) {
+    try {
+      usageRecord = await supabaseSelectSingle("optimizer_usage", { email: usageKey });
+      if (usageRecord?.is_banned) {
+        return res.status(403).json({ error: "Account banned. Please contact support." });
+      }
+    } catch (error) {
+      console.warn("Supabase usage lookup failed.", error);
+      usageRecord = null;
+    }
+  } else {
+    usageRecord = getUsageRecord(usageKey);
+    if (usageRecord?.is_banned) {
+      return res.status(403).json({ error: "Account banned. Please contact support." });
+    }
+  }
+
   let remaining = null;
   let limit = USAGE_LIMIT;
   if (!isAllowlisted) {
-    const key = normalizedEmail || req.ip || "anonymous";
-    const record = getUsageRecord(key);
-    if (record.count >= USAGE_LIMIT) {
+    const currentCount = usageRecord?.count || 0;
+    if (currentCount >= USAGE_LIMIT) {
       return res.status(429).json({ error: "Usage limit reached. Please donate for unlimited access.", remaining: 0, limit });
     }
-    record.count += 1;
-    remaining = Math.max(USAGE_LIMIT - record.count, 0);
+    const nextCount = currentCount + 1;
+    remaining = Math.max(USAGE_LIMIT - nextCount, 0);
+
+    if (SUPABASE_ENABLED) {
+      try {
+        const now = new Date().toISOString();
+        if (usageRecord) {
+          await supabaseUpdate(
+            "optimizer_usage",
+            { email: usageKey },
+            { count: nextCount, last_used_at: now }
+          );
+        } else {
+          await supabaseUpsert("optimizer_usage", {
+            email: usageKey,
+            count: nextCount,
+            first_used_at: now,
+            last_used_at: now,
+            is_banned: false,
+          });
+        }
+      } catch (error) {
+        console.warn("Supabase usage update failed.", error);
+      }
+    } else {
+      const record = getUsageRecord(usageKey);
+      record.count = nextCount;
+    }
   }
 
   const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
@@ -190,7 +350,6 @@ app.post("/api/optimize", async (req, res) => {
   const imageBlock = Array.isArray(images) && images.length
     ? `\n\nImages attached (names only):\n${images.join(", ")}` 
     : "";
-  const clientIp = getClientIp(req);
   const vpnWarning = isLikelyVpnIp(clientIp);
   const warningMessage = vpnWarning
     ? "We detected a VPN/proxy IP. Access is allowed, but this may trigger review."
@@ -250,6 +409,13 @@ app.post("/api/kofi-webhook", (req, res) => {
     if (email && isDonation) {
       if (!allowList.includes(email)) {
         allowList.push(email);
+      }
+      if (SUPABASE_ENABLED) {
+        try {
+          await supabaseUpsert("optimizer_allowlist", { email, unlimited: true });
+        } catch (error) {
+          console.warn("Supabase allowlist update failed.", error);
+        }
       }
     }
 
