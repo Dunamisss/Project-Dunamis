@@ -6,7 +6,6 @@ import TubesEffect from "@/components/TubesEffect";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
 import ContactSection from "@/components/ContactSection";
-import { ButtonGroup } from "@/components/ui/button-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -417,20 +416,20 @@ export default function Home() {
                     >
                       Copy Optimized Prompt
                     </Button>
-                    <ButtonGroup className="w-full">
+                    <div className="w-full overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
                       <Button
                         variant="outline"
-                        className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                        className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
                         onClick={() => handleTryIn()}
                         disabled={!optimizedOutput}
                       >
-                        Try in {tryInProvider.label}
+                        <span className="truncate">Try in {tryInProvider.label}</span>
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="outline"
-                            className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
+                            className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
                             disabled={!optimizedOutput}
                             aria-label="Choose a provider"
                           >
@@ -458,7 +457,7 @@ export default function Home() {
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </ButtonGroup>
+                    </div>
                   </div>
                   <div className="text-[11px] text-gray-300">
                     {copyFeedback
