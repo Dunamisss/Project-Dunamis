@@ -46,6 +46,8 @@ export default function Home() {
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [dailyLimit, setDailyLimit] = useState<number | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
+  const [vpnWarning, setVpnWarning] = useState(false);
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [tryInProvider, setTryInProvider] = useState<{
     id: string;
@@ -76,6 +78,8 @@ export default function Home() {
   const handleOptimize = async () => {
     if (!promptInput.trim()) return;
     setOptimizerError(null);
+    setVpnWarning(false);
+    setWarningMessage(null);
     setIsOptimizing(true);
 
     try {
@@ -102,6 +106,10 @@ export default function Home() {
         if (typeof data?.unlimited === "boolean") {
           setIsUnlimited(data.unlimited);
         }
+        if (typeof data?.vpnWarning === "boolean") {
+          setVpnWarning(data.vpnWarning);
+          setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
+        }
         throw new Error(data?.error || "Optimization failed.");
       }
 
@@ -115,6 +123,10 @@ export default function Home() {
       }
       if (typeof data?.unlimited === "boolean") {
         setIsUnlimited(data.unlimited);
+      }
+      if (typeof data?.vpnWarning === "boolean") {
+        setVpnWarning(data.vpnWarning);
+        setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
       }
     } catch (error) {
       setOptimizerError((error as Error).message);
@@ -144,6 +156,8 @@ export default function Home() {
     setAttachedImages([]);
     setOptimizedOutput("");
     setOptimizerError(null);
+    setVpnWarning(false);
+    setWarningMessage(null);
   };
 
   const showCopyFeedback = (message: string) => {
@@ -385,12 +399,17 @@ export default function Home() {
                     {isUnlimited
                       ? "Unlimited access enabled."
                       : dailyLimit !== null && remainingUses !== null
-                        ? `${remainingUses} of ${dailyLimit} uses left today`
-                        : "You have 3 free uses per day."}
+                        ? `${remainingUses} of ${dailyLimit} uses remaining`
+                        : "You have 3 free uses total."}
                   </div>
                   <div className="text-[11px] text-gray-300 text-center">
-                    Supporters can be upgraded to unlimited daily uses.
+                    Supporters can be upgraded to unlimited uses.
                   </div>
+                  {vpnWarning && (
+                    <div className="text-[11px] text-yellow-200/90 text-center">
+                      {warningMessage ?? "VPN/proxy detected. Access allowed, but this may trigger review."}
+                    </div>
+                  )}
                   {optimizerError && (
                     <div className="text-xs text-red-300">{optimizerError}</div>
                   )}

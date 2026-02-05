@@ -34,7 +34,7 @@ export default function ContactSection() {
                   <p className="text-sm font-medium text-foreground">Support Us</p>
                   <p className="text-sm text-muted-foreground">If you enjoy using these prompts, consider a small donation on Ko-fi to help us continue creating amazing prompts!</p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Tip supporters can be upgraded to unlimited daily uses — just donate and we’ll unlock your account.
+                    Tip supporters can be upgraded to unlimited uses — just donate and we’ll unlock your account.
                   </p>
                   <a href="https://ko-fi.com/dunamis_site" target="_blank" rel="noopener noreferrer">
                     <Button
