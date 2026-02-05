@@ -12,7 +12,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Maximize2, Minimize2, Trash2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChevronDown, Info, Maximize2, Minimize2, Trash2 } from "lucide-react";
 
 const OPTIMIZER_SYSTEM_PROMPT =
   "PERSONA: You are the Chief Prompt Architect, an expert in Large Language Model logic and instruction design.\n\n" +
@@ -33,6 +41,51 @@ const OPTIMIZER_SYSTEM_PROMPT =
   "* Variables: If the user's input requires specific data they haven't provided yet, use bracketed placeholders (e.g., \"[INSERT TEXT HERE]\") in your final output.\n" +
   "* Clarity: Use imperative, direct language (e.g., \"Analyze this,\" \"Write that\") rather than polite suggestions.";
 
+const AUDITOR_SYSTEM_PROMPT =
+  "ROLE:\n" +
+  "You are a Lead Prompt Engineer and LLM Optimization Specialist.\n\n" +
+  "OBJECTIVE:\n" +
+  "Evaluate a user-submitted prompt, score it, critique it with zero fluff, and (only if the user agrees) rewrite it to professional standards.\n\n" +
+  "INPUT:\n" +
+  "The user’s prompt is provided in the user message. Do NOT ask for it again.\n\n" +
+  "OUTPUT FORMAT (STRICT):\n" +
+  "1. Score: <integer 0-100>\n" +
+  "2. Verdict: <one short sentence>\n" +
+  "3. Flaws:\n" +
+  "- 🎯 Clarity: <issue>\n" +
+  "- 🧱 Constraints: <issue>\n" +
+  "- 🧭 Context: <issue>\n" +
+  "(Use 2 or 3 lines only.)\n" +
+  "4. Ask:\n" +
+  "\"Shall I reconstruct this using advanced engineering techniques to maximize performance?\"\n\n" +
+  "SCORING CRITERIA:\n" +
+  "Clarity, constraints, context completeness, logical flow, output schema, and robustness.\n\n" +
+  "RULES:\n" +
+  "- If Score < 80, Verdict must be: \"This prompt requires optimization to meet professional standards.\"\n" +
+  "- List exactly 2 or 3 flaws using the emoji labels above.\n" +
+  "- No praise or filler. Be direct.\n" +
+  "- Do not rewrite unless the user explicitly says yes.";
+
+const AUDITOR_REWRITE_PROMPT =
+  "ROLE:\n" +
+  "You are a Lead Prompt Engineer and LLM Optimization Specialist.\n\n" +
+  "OBJECTIVE:\n" +
+  "Rewrite the user-submitted prompt to professional standards.\n\n" +
+  "INPUT:\n" +
+  "The user’s prompt is provided in the user message. Do NOT ask for it again.\n\n" +
+  "OUTPUT FORMAT (STRICT):\n" +
+  "A) Technique: <single sentence, no jargon>\n" +
+  "B) Reason: <1–2 sentences>\n" +
+  "C) Final Draft:\n" +
+  "```prompt\n" +
+  "<rewritten prompt>\n" +
+  "```\n\n" +
+  "FINAL DRAFT REQUIREMENTS:\n" +
+  "- Professional, precise, and concise.\n" +
+  "- Explicit role, objective, constraints, and output format.\n" +
+  "- Use clear delimiters (e.g., ### sections).\n" +
+  "- No hidden reasoning or internal analysis.";
+
 export default function Home() {
   const { user, logout } = useAuth();
   const baseUrl = (import.meta as any).env?.BASE_URL || "/";
@@ -46,6 +99,9 @@ export default function Home() {
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [dailyLimit, setDailyLimit] = useState<number | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
+  const [mode, setMode] = useState<"optimize" | "audit">("optimize");
+  const [outputKind, setOutputKind] = useState<"optimize" | "audit" | "fix" | null>(null);
+  const [lastAuditInput, setLastAuditInput] = useState("");
   const [vpnWarning, setVpnWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -83,11 +139,13 @@ export default function Home() {
     setIsOptimizing(true);
 
     try {
+      const systemPrompt =
+        mode === "audit" ? AUDITOR_SYSTEM_PROMPT : OPTIMIZER_SYSTEM_PROMPT;
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          systemPrompt: OPTIMIZER_SYSTEM_PROMPT,
+          systemPrompt,
           prompt: promptInput.trim(),
           context: extraContext.trim(),
           images: attachedImages,
@@ -115,6 +173,12 @@ export default function Home() {
 
       const data = await response.json();
       setOptimizedOutput(data?.output ?? "");
+      if (mode === "audit") {
+        setLastAuditInput(promptInput.trim());
+        setOutputKind("audit");
+      } else {
+        setOutputKind("optimize");
+      }
       if (typeof data?.remaining === "number") {
         setRemainingUses(data.remaining);
       }
@@ -158,6 +222,69 @@ export default function Home() {
     setOptimizerError(null);
     setVpnWarning(false);
     setWarningMessage(null);
+    setOutputKind(null);
+    setLastAuditInput("");
+  };
+
+  const handleAuditFix = async () => {
+    if (!lastAuditInput.trim()) return;
+    setOptimizerError(null);
+    setVpnWarning(false);
+    setWarningMessage(null);
+    setIsOptimizing(true);
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemPrompt: AUDITOR_REWRITE_PROMPT,
+          prompt: lastAuditInput.trim(),
+          context: extraContext.trim(),
+          images: attachedImages,
+          userEmail: user?.email || ""
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (typeof data?.remaining === "number") {
+          setRemainingUses(data.remaining);
+        }
+        if (typeof data?.limit === "number") {
+          setDailyLimit(data.limit);
+        }
+        if (typeof data?.unlimited === "boolean") {
+          setIsUnlimited(data.unlimited);
+        }
+        if (typeof data?.vpnWarning === "boolean") {
+          setVpnWarning(data.vpnWarning);
+          setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
+        }
+        throw new Error(data?.error || "Optimization failed.");
+      }
+
+      const data = await response.json();
+      setOptimizedOutput(data?.output ?? "");
+      setOutputKind("fix");
+      if (typeof data?.remaining === "number") {
+        setRemainingUses(data.remaining);
+      }
+      if (typeof data?.limit === "number") {
+        setDailyLimit(data.limit);
+      }
+      if (typeof data?.unlimited === "boolean") {
+        setIsUnlimited(data.unlimited);
+      }
+      if (typeof data?.vpnWarning === "boolean") {
+        setVpnWarning(data.vpnWarning);
+        setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
+      }
+    } catch (error) {
+      setOptimizerError((error as Error).message);
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   const showCopyFeedback = (message: string) => {
@@ -322,12 +449,40 @@ export default function Home() {
             >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="space-y-1">
-                  <h2 className="text-2xl font-semibold">Prompt Optimizer</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-semibold">Prompt Optimizer</h2>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                          aria-label="Read me first"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs">
+                        New: Prompt Auditor mode scores your prompt (0–100), calls out flaws, and can rebuild it on request.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <p className="text-xs text-gray-300">
-                    Paste a rough prompt and get a clean, production-ready version.
+                    Choose Optimize to rebuild, or Audit to score and critique before fixing.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 justify-center md:justify-end">
+                  <Select
+                    value={mode}
+                    onValueChange={(value) => setMode(value as "optimize" | "audit")}
+                  >
+                    <SelectTrigger className="w-[180px] border-yellow-500/40 bg-black/30 text-yellow-200">
+                      <SelectValue placeholder="Select mode" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black/90 text-white border-yellow-500/30">
+                      <SelectItem value="optimize">Optimize</SelectItem>
+                      <SelectItem value="audit">Audit</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="outline"
                     className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
@@ -399,7 +554,7 @@ export default function Home() {
                     onClick={handleOptimize}
                     disabled={isOptimizing || !promptInput.trim()}
                   >
-                    {isOptimizing ? "Sending..." : "Send"}
+                    {isOptimizing ? "Sending..." : mode === "audit" ? "Score It" : "Send"}
                   </Button>
                   <div className="text-xs text-yellow-200/80 text-center">
                     {isUnlimited
@@ -423,71 +578,103 @@ export default function Home() {
 
                 <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4">
                   <div className="space-y-1">
-                    <h3 className="text-lg font-semibold">Optimized Output</h3>
-                    <p className="text-xs text-gray-300">Your improved prompt appears here.</p>
+                    <h3 className="text-lg font-semibold">
+                      {outputKind === "audit" ? "Audit Output" : "Optimized Output"}
+                    </h3>
+                    <p className="text-xs text-gray-300">
+                      {outputKind === "audit"
+                        ? "Brutal score and critique appears here."
+                        : "Your improved prompt appears here."}
+                    </p>
                   </div>
                   <Textarea
                     value={optimizedOutput}
                     readOnly
                     className="min-h-[420px] bg-black/30 border-yellow-500/20 text-white placeholder:text-gray-500"
-                    placeholder="Click Send to generate an improved version."
+                    placeholder={
+                      mode === "audit"
+                        ? "Click Score It to get a brutal audit."
+                        : "Click Send to generate an improved version."
+                    }
                   />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Button
-                      variant="outline"
-                      className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                      onClick={handleCopy}
-                      disabled={!optimizedOutput}
-                    >
-                      Copy Optimized Prompt
-                    </Button>
-                    <div className="w-full overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
+                  {outputKind === "audit" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <Button
                         variant="outline"
-                        className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
-                        onClick={() => handleTryIn()}
+                        className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                        onClick={handleCopy}
                         disabled={!optimizedOutput}
                       >
-                        <span className="truncate">Try in {tryInProvider.label}</span>
+                        Copy Audit Result
                       </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
-                            disabled={!optimizedOutput}
-                            aria-label="Choose a provider"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          side="bottom"
-                          sideOffset={8}
-                          collisionPadding={12}
-                          className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
-                        >
-                          {tryInProviders.map((provider) => (
-                            <DropdownMenuItem
-                              key={provider.id}
-                              className="cursor-pointer focus:bg-yellow-500/20"
-                              onClick={() => {
-                                setTryInProvider(provider);
-                                handleTryIn(provider);
-                              }}
-                            >
-                              Try in {provider.label}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button
+                        className="w-full bg-yellow-400 text-black hover:bg-yellow-300"
+                        onClick={handleAuditFix}
+                        disabled={!optimizedOutput || isOptimizing}
+                      >
+                        Fix It
+                      </Button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Button
+                        variant="outline"
+                        className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                        onClick={handleCopy}
+                        disabled={!optimizedOutput}
+                      >
+                        Copy Optimized Prompt
+                      </Button>
+                      <div className="w-full overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
+                        <Button
+                          variant="outline"
+                          className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
+                          onClick={() => handleTryIn()}
+                          disabled={!optimizedOutput}
+                        >
+                          <span className="truncate">Try in {tryInProvider.label}</span>
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
+                              disabled={!optimizedOutput}
+                              aria-label="Choose a provider"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            side="bottom"
+                            sideOffset={8}
+                            collisionPadding={12}
+                            className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
+                          >
+                            {tryInProviders.map((provider) => (
+                              <DropdownMenuItem
+                                key={provider.id}
+                                className="cursor-pointer focus:bg-yellow-500/20"
+                                onClick={() => {
+                                  setTryInProvider(provider);
+                                  handleTryIn(provider);
+                                }}
+                              >
+                                Try in {provider.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  )}
                   <div className="text-[11px] text-gray-300">
                     {copyFeedback
                       ? copyFeedback
-                      : "We copy the prompt and open your provider in a new tab. Browsers don’t allow auto‑pasting into other sites."}
+                      : outputKind === "audit"
+                        ? "Audit mode is for scoring and critique. Use Fix It to generate a rewritten prompt."
+                        : "We copy the prompt and open your provider in a new tab. Browsers don’t allow auto‑pasting into other sites."}
                   </div>
                 </div>
               </div>
