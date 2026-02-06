@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import TubesEffect from "@/components/TubesEffect";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChat } from "@/contexts/ChatContext";
 import { AuthModal } from "@/components/AuthModal";
 import ContactSection from "@/components/ContactSection";
 import {
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronDown, Info, Maximize2, Minimize2, Trash2 } from "lucide-react";
+import { Link } from "wouter";
 
 const SHOW_TIMING = false;
 
@@ -149,6 +151,7 @@ const AUDITOR_REWRITE_PROMPT =
 
 export default function Home() {
   const { user, logout } = useAuth();
+  const { promptToLoad, clearPromptToLoad } = useChat();
   const baseUrl = (import.meta as any).env?.BASE_URL || "/";
   const [promptInput, setPromptInput] = useState("");
   const [extraContext, setExtraContext] = useState("");
@@ -270,6 +273,24 @@ export default function Home() {
       setIsOptimizing(false);
     }
   };
+
+  useEffect(() => {
+    if (!promptToLoad) return;
+    setPromptInput(promptToLoad);
+    setExtraContext("");
+    setAttachedImages([]);
+    setOptimizedOutput("");
+    setOutputKind(null);
+    setMode("optimize");
+    setOptimizerError(null);
+    setVpnWarning(false);
+    setWarningMessage(null);
+    setFrameworkId("");
+    clearPromptToLoad();
+    if (optimizerRef.current) {
+      optimizerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [promptToLoad, clearPromptToLoad]);
 
   const handleTxtUpload = async (file: File | null) => {
     if (!file) return;
@@ -474,13 +495,20 @@ export default function Home() {
           />
           <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
           <div className="absolute top-6 right-6 z-20">
-            {user ? (
-              <Button variant="ghost" onClick={logout} className="text-white hover:text-white">
-                Sign Out
-              </Button>
-            ) : (
-              <AuthModal />
-            )}
+            <div className="flex items-center gap-2">
+              <Link href="/prompts">
+                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
+                  Prompt Library
+                </Button>
+              </Link>
+              {user ? (
+                <Button variant="ghost" onClick={logout} className="text-white hover:text-white">
+                  Sign Out
+                </Button>
+              ) : (
+                <AuthModal />
+              )}
+            </div>
           </div>
           <div className="relative z-10 max-w-4xl mx-auto space-y-8">
             <h1 className="font-display text-7xl md:text-9xl font-light text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-300 to-orange-200 tracking-widest leading-tight drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]">
