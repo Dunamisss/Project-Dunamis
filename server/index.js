@@ -250,6 +250,7 @@ app.use((req, res, next) => {
 });
 
 app.post("/api/optimize", async (req, res) => {
+  const requestStartedAt = Date.now();
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: "Missing GROQ_API_KEY in server environment." });
@@ -356,6 +357,7 @@ app.post("/api/optimize", async (req, res) => {
     : null;
 
   try {
+    const groqStartedAt = Date.now();
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -372,15 +374,38 @@ app.post("/api/optimize", async (req, res) => {
         ],
       }),
     });
+    const groqFinishedAt = Date.now();
 
     if (!response.ok) {
       const errText = await response.text();
+      const totalMs = Date.now() - requestStartedAt;
+      const groqMs = groqFinishedAt - groqStartedAt;
+      console.warn("Groq error", {
+        status: response.status,
+        totalMs,
+        groqMs,
+        model,
+      });
       return res.status(response.status).json({ error: errText || "Groq API error." });
     }
 
     const data = await response.json();
     const output = data?.choices?.[0]?.message?.content ?? "";
-    return res.json({ output, remaining, limit, unlimited: isAllowlisted, vpnWarning, warningMessage });
+    const totalMs = Date.now() - requestStartedAt;
+    const groqMs = groqFinishedAt - groqStartedAt;
+    return res.json({
+      output,
+      remaining,
+      limit,
+      unlimited: isAllowlisted,
+      vpnWarning,
+      warningMessage,
+      timing: {
+        totalMs,
+        groqMs,
+        model,
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ error: message });

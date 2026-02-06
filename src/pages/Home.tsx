@@ -165,6 +165,11 @@ export default function Home() {
   const [vpnWarning, setVpnWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [timingInfo, setTimingInfo] = useState<{
+    totalMs: number;
+    groqMs: number;
+    model?: string;
+  } | null>(null);
   const [tryInProvider, setTryInProvider] = useState<{
     id: string;
     label: string;
@@ -233,6 +238,11 @@ export default function Home() {
 
       const data = await response.json();
       setOptimizedOutput(data?.output ?? "");
+      if (data?.timing) {
+        setTimingInfo(data.timing);
+      } else {
+        setTimingInfo(null);
+      }
       if (mode === "audit") {
         setLastAuditInput(promptInput.trim());
         setOutputKind("audit");
@@ -285,6 +295,7 @@ export default function Home() {
     setOutputKind(null);
     setLastAuditInput("");
     setFrameworkId("");
+    setTimingInfo(null);
   };
 
   const handleAuditFix = async () => {
@@ -327,6 +338,11 @@ export default function Home() {
 
       const data = await response.json();
       setOptimizedOutput(data?.output ?? "");
+      if (data?.timing) {
+        setTimingInfo(data.timing);
+      } else {
+        setTimingInfo(null);
+      }
       setOutputKind("fix");
       if (typeof data?.remaining === "number") {
         setRemainingUses(data.remaining);
@@ -812,6 +828,12 @@ export default function Home() {
                         ? "Audit mode is for scoring and critique. Use Fix It to generate a rewritten prompt."
                         : "We copy the prompt and open your provider in a new tab. Browsers don’t allow auto‑pasting into other sites."}
                   </div>
+                  {timingInfo && (
+                    <div className="text-[11px] text-gray-400">
+                      LLM time: {(timingInfo.groqMs / 1000).toFixed(2)}s · Total: {(timingInfo.totalMs / 1000).toFixed(2)}s
+                      {timingInfo.model ? ` · ${timingInfo.model}` : ""}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
