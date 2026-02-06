@@ -718,6 +718,9 @@ export default function Home() {
                   <div className="text-[11px] text-gray-300 text-center">
                     Supporters can be upgraded to unlimited uses.
                   </div>
+                  <div className="text-[11px] text-gray-400 text-center">
+                    Performance tip: disable browser scripts/extensions (e.g., Tampermonkey) if the optimizer feels slow.
+                  </div>
                   {vpnWarning && (
                     <div className="text-[11px] text-yellow-200/90 text-center">
                       {warningMessage ?? "VPN/proxy detected. Access allowed, but this may trigger review."}
