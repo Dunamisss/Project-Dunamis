@@ -170,6 +170,7 @@ export default function Home() {
     groqMs: number;
     model?: string;
   } | null>(null);
+  const [timingMissing, setTimingMissing] = useState(false);
   const [tryInProvider, setTryInProvider] = useState<{
     id: string;
     label: string;
@@ -240,8 +241,10 @@ export default function Home() {
       setOptimizedOutput(data?.output ?? "");
       if (data?.timing) {
         setTimingInfo(data.timing);
+        setTimingMissing(false);
       } else {
         setTimingInfo(null);
+        setTimingMissing(true);
       }
       if (mode === "audit") {
         setLastAuditInput(promptInput.trim());
@@ -296,6 +299,7 @@ export default function Home() {
     setLastAuditInput("");
     setFrameworkId("");
     setTimingInfo(null);
+    setTimingMissing(false);
   };
 
   const handleAuditFix = async () => {
@@ -340,8 +344,10 @@ export default function Home() {
       setOptimizedOutput(data?.output ?? "");
       if (data?.timing) {
         setTimingInfo(data.timing);
+        setTimingMissing(false);
       } else {
         setTimingInfo(null);
+        setTimingMissing(true);
       }
       setOutputKind("fix");
       if (typeof data?.remaining === "number") {
@@ -835,6 +841,11 @@ export default function Home() {
                     <div className="text-[11px] text-gray-400">
                       LLM time: {(timingInfo.groqMs / 1000).toFixed(2)}s · Total: {(timingInfo.totalMs / 1000).toFixed(2)}s
                       {timingInfo.model ? ` · ${timingInfo.model}` : ""}
+                    </div>
+                  )}
+                  {timingMissing && (
+                    <div className="text-[11px] text-red-300">
+                      Timing not available from API. Current API: {apiUrl}
                     </div>
                   )}
                 </div>
