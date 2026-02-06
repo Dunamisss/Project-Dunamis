@@ -24,10 +24,29 @@ const GoogleIcon = () => (
 export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
   const { login, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const handleLogin = (provider: "google" | "github" | "email") => {
-    login(provider);
-    setTimeout(() => setOpen(false), 1000);
+  const handleLogin = async (provider: "google" | "github" | "email") => {
+    if (isAuthenticating) return;
+    setIsAuthenticating(true);
+    try {
+      await login(provider);
+      setOpen(false);
+    } catch (error: any) {
+      const code = typeof error?.code === "string" ? error.code : "";
+      if (
+        code === "auth/cancelled-popup-request" ||
+        code === "auth/popup-closed-by-user" ||
+        code === "auth/popup-blocked"
+      ) {
+        // Silent: user cancelled/blocked popup or double-clicked sign-in.
+      } else {
+        // Surface unexpected issues in console for now.
+        console.error("Auth error:", error);
+      }
+    } finally {
+      setIsAuthenticating(false);
+    }
   };
 
   return (
@@ -44,12 +63,12 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <Button variant="outline" className="border-white/10 hover:bg-white/5 hover:text-white" onClick={() => handleLogin("google")} disabled={isLoading}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+          <Button variant="outline" className="border-white/10 hover:bg-white/5 hover:text-white" onClick={() => handleLogin("google")} disabled={isLoading || isAuthenticating}>
+            {isLoading || isAuthenticating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
             Continue with Google
           </Button>
-          <Button variant="outline" className="border-white/10 hover:bg-white/5 hover:text-white" onClick={() => handleLogin("github")} disabled={isLoading}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Github className="mr-2 h-4 w-4" />}
+          <Button variant="outline" className="border-white/10 hover:bg-white/5 hover:text-white" onClick={() => handleLogin("github")} disabled={isLoading || isAuthenticating}>
+            {isLoading || isAuthenticating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Github className="mr-2 h-4 w-4" />}
             Continue with GitHub
           </Button>
           
@@ -66,8 +85,8 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" placeholder="m@example.com" className="bg-black/20 border-white/10" />
           </div>
-          <Button onClick={() => handleLogin("email")} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button onClick={() => handleLogin("email")} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading || isAuthenticating}>
+            {(isLoading || isAuthenticating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign In with Email
           </Button>
         </div>
