@@ -22,6 +22,65 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronDown, Info, Maximize2, Minimize2, Trash2 } from "lucide-react";
 
+const FRAMEWORK_TEMPLATES = [
+  {
+    id: "role",
+    label: "Role Prompting",
+    description: "Tell the AI who it is before the task.",
+    template:
+      "Role:\nObjective:\nContext:\nConstraints:\nOutput format:",
+  },
+  {
+    id: "5w1h",
+    label: "5W1H",
+    description: "Who, What, When, Where, Why, How.",
+    template:
+      "Goal:\nWho:\nWhat:\nWhen:\nWhere:\nWhy:\nHow:\nConstraints:\nOutput format:",
+  },
+  {
+    id: "star",
+    label: "STAR",
+    description: "Situation, Task, Action, Result.",
+    template:
+      "Situation:\nTask:\nAction:\nResult:\nConstraints:\nOutput format:",
+  },
+  {
+    id: "bab",
+    label: "Before-After-Bridge",
+    description: "Current state, desired state, and the bridge.",
+    template:
+      "Before (current state):\nAfter (desired state):\nBridge (steps to get there):\nConstraints:\nOutput format:",
+  },
+  {
+    id: "ipo",
+    label: "Input-Process-Output",
+    description: "Define inputs, steps, and output format.",
+    template:
+      "Input:\nProcess:\nOutput:\nConstraints:\nOutput format:",
+  },
+  {
+    id: "zero",
+    label: "Zero-Shot",
+    description: "No examples, just clear instructions.",
+    template:
+      "Task:\nContext:\nConstraints:\nOutput format:",
+  },
+  {
+    id: "few",
+    label: "Few-Shot",
+    description: "Provide 1–2 examples to lock the style.",
+    template:
+      "Task:\nContext:\nExamples:\n- Example 1:\n- Example 2:\nConstraints:\nOutput format:",
+  },
+  {
+    id: "steps",
+    label: "Step-by-Step",
+    description: "Ask for structured steps and checkpoints.",
+    template:
+      "Task:\nSteps:\n1.\n2.\n3.\nConstraints:\nOutput format:",
+  },
+];
+
 const OPTIMIZER_SYSTEM_PROMPT =
   "PERSONA: You are the Chief Prompt Architect, an expert in Large Language Model logic and instruction design.\n\n" +
   "CONTEXT: A user will provide a raw, unstructured idea or request. They require a rigorous, production-ready prompt that can be pasted directly into an AI model (like ChatGPT, Claude, or Gemini) to achieve a specific result.\n\n" +
@@ -99,6 +158,7 @@ export default function Home() {
   const [remainingUses, setRemainingUses] = useState<number | null>(null);
   const [dailyLimit, setDailyLimit] = useState<number | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
+  const [frameworkId, setFrameworkId] = useState<string>("");
   const [mode, setMode] = useState<"optimize" | "audit">("optimize");
   const [outputKind, setOutputKind] = useState<"optimize" | "audit" | "fix" | null>(null);
   const [lastAuditInput, setLastAuditInput] = useState("");
@@ -224,6 +284,7 @@ export default function Home() {
     setWarningMessage(null);
     setOutputKind(null);
     setLastAuditInput("");
+    setFrameworkId("");
   };
 
   const handleAuditFix = async () => {
@@ -354,6 +415,17 @@ export default function Home() {
     window.open(provider.url, "_blank", "noopener,noreferrer");
   };
 
+  const selectedFramework = FRAMEWORK_TEMPLATES.find((item) => item.id === frameworkId);
+
+  const handleApplyFramework = () => {
+    if (!selectedFramework) return;
+    setPromptInput((prev) => {
+      const trimmed = prev.trim();
+      if (!trimmed) return selectedFramework.template;
+      return `${trimmed}\n\n---\n${selectedFramework.template}`;
+    });
+  };
+
   return (
     <div className="min-h-screen relative selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
       {/* Full Hero Background Image */}
@@ -447,6 +519,9 @@ export default function Home() {
                 isFullscreen ? "fixed inset-4 z-50 overflow-y-auto" : ""
               ].join(" ")}
             >
+              <div className="rounded-lg border border-yellow-500/30 bg-black/60 px-4 py-3 text-xs text-yellow-100/90">
+                What’s new: Use Frameworks to drop a proven template into your prompt box in one click.
+              </div>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -511,6 +586,63 @@ export default function Home() {
                     Even a few words is enough — we’ll craft a perfect, production-ready prompt. More features coming soon.
                   </p>
                 </div>
+                  <div className="rounded-md border border-yellow-500/30 bg-black/40 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">Frameworks</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                            aria-label="Frameworks help"
+                          >
+                            <Info className="h-3 w-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs">
+                          Pick a framework to drop a proven prompt structure into your box. Edit any line.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Select
+                      value={frameworkId}
+                      onValueChange={(value) => setFrameworkId(value)}
+                    >
+                      <SelectTrigger className="w-full border-yellow-500/40 bg-black/30 text-yellow-200">
+                        <SelectValue placeholder="Choose a framework (optional)" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black/90 text-white border-yellow-500/30">
+                        {FRAMEWORK_TEMPLATES.map((framework) => (
+                          <SelectItem key={framework.id} value={framework.id}>
+                            {framework.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-gray-400">
+                      {selectedFramework
+                        ? selectedFramework.description
+                        : "Frameworks give your prompt a clean structure."}
+                    </p>
+                    <div className="rounded-md border border-yellow-500/20 bg-black/30 p-3 text-[11px] text-gray-300 whitespace-pre-wrap">
+                      {selectedFramework ? selectedFramework.template : "Template preview will appear here."}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                        onClick={handleApplyFramework}
+                        disabled={!selectedFramework}
+                      >
+                        Use Template
+                      </Button>
+                      {promptInput.trim() && (
+                        <span className="text-[11px] text-yellow-200/70">
+                          Template will be appended below your current prompt.
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <Textarea
                     value={promptInput}
                     onChange={(event) => setPromptInput(event.target.value)}
@@ -542,8 +674,12 @@ export default function Home() {
                     value={extraContext}
                     onChange={(event) => setExtraContext(event.target.value)}
                     className="min-h-[140px] bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-400"
-                    placeholder="Optional extra context (notes, constraints, goals)..."
+                    placeholder="Extra context: goals, constraints, audience, tone, or examples..."
                   />
+                  <p className="text-[11px] text-gray-400">
+                    This box is for details that help the optimizer (audience, tone, must-have points).
+                    Example: “Audience is SaaS founders. Keep it punchy. Include a CTA.”
+                  </p>
                   {attachedImages.length > 0 && (
                     <div className="text-xs text-yellow-200/80">
                       Attached images: {attachedImages.join(", ")}
