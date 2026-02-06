@@ -56,7 +56,7 @@ export default function PromptLibrary() {
   return (
     <div className="min-h-screen relative overflow-x-hidden">
       <div className="fixed inset-0 z-0 w-full h-screen bg-gradient-to-b from-black via-black/90 to-black" />
-      <div className="relative z-10 px-4 py-10 max-w-6xl mx-auto space-y-8">
+      <div className="relative z-10 px-4 py-10 max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis</p>
@@ -98,7 +98,7 @@ export default function PromptLibrary() {
           {copyFeedback && <div className="text-[11px] text-yellow-200/80">{copyFeedback}</div>}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredPrompts.map((prompt) => (
             <div
               key={prompt.id}
