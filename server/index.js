@@ -412,7 +412,7 @@ app.post("/api/optimize", async (req, res) => {
   }
 });
 
-app.post("/api/kofi-webhook", (req, res) => {
+app.post("/api/kofi-webhook", async (req, res) => {
   const token = process.env.KOFI_WEBHOOK_TOKEN;
   if (!token) {
     return res.status(500).send("Missing KOFI_WEBHOOK_TOKEN");
