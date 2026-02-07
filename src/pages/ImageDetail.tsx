@@ -82,7 +82,17 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
 
   const handleShare = async () => {
     const url = window.location.href;
+    if (navigator.share && image) {
+      try {
+        await navigator.share({ title: image.title, url });
+        showCopyFeedback("Share sheet opened.");
+        return;
+      } catch {
+        // fall back to copy
+      }
+    }
     await handleCopy(url);
+    showCopyFeedback("Link copied to clipboard.");
   };
 
   const handleReverseEngineer = () => {
@@ -143,7 +153,11 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
               className="w-full max-h-[720px] object-contain rounded-md border border-yellow-500/20 bg-black/60"
             />
           </a>
-          {copyFeedback && <div className="text-[11px] text-yellow-200/80">{copyFeedback}</div>}
+          {copyFeedback && (
+            <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-yellow-500/40 bg-black/90 px-4 py-2 text-[12px] text-yellow-200 shadow-lg">
+              {copyFeedback}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={() => handleCopy(image.full)}>
               Copy Link

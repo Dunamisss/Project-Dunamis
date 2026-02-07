@@ -69,9 +69,19 @@ export default function ImageLibrary() {
     setLocation("/");
   };
 
-  const handleShare = async (id: string) => {
+  const handleShare = async (id: string, title: string) => {
     const url = `${window.location.origin}/image/${encodeURIComponent(id)}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+        showCopyFeedback("Share sheet opened.");
+        return;
+      } catch {
+        // fall back to copy
+      }
+    }
     await handleCopy(url);
+    showCopyFeedback("Link copied to clipboard.");
   };
 
   useEffect(() => {
@@ -144,7 +154,11 @@ export default function ImageLibrary() {
               Reverse-Engineer Prompt
             </Button>
           </div>
-          {copyFeedback && <div className="text-[11px] text-yellow-200/80">{copyFeedback}</div>}
+          {copyFeedback && (
+            <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-yellow-500/40 bg-black/90 px-4 py-2 text-[12px] text-yellow-200 shadow-lg">
+              {copyFeedback}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -197,7 +211,7 @@ export default function ImageLibrary() {
                 <Button
                   variant="outline"
                   className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                  onClick={() => handleShare(image.id)}
+                  onClick={() => handleShare(image.id, image.title)}
                 >
                   Share
                 </Button>
