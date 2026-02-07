@@ -3,10 +3,28 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
+import { ChevronDown } from "lucide-react";
 
 const categories = ["All", "Art", "Marketing", "Development", "Business", "Creative Writing", "Productivity", "SEO", "Other"] as const;
+const tryInProviders = [
+  { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com/" },
+  { id: "grok", label: "Grok (xAI)", url: "https://grok.com/" },
+  { id: "gemini", label: "Gemini", url: "https://gemini.google.com/" },
+  { id: "claude", label: "Claude", url: "https://claude.ai/" },
+  { id: "perplexity", label: "Perplexity", url: "https://www.perplexity.ai/" },
+  { id: "poe", label: "Poe", url: "https://poe.com/" },
+  { id: "qwen", label: "Qwen", url: "https://chat.qwen.ai/" },
+  { id: "arena", label: "Arena", url: "https://arena.ai/" },
+  { id: "deepseek", label: "DeepSeek", url: "https://chat.deepseek.com/" },
+];
 
 export default function PromptLibrary() {
   const [, setLocation] = useLocation();
@@ -48,6 +66,17 @@ export default function PromptLibrary() {
     try {
       await navigator.clipboard.writeText(content);
       showCopyFeedback("Copied to clipboard.");
+    } catch {
+      showCopyFeedback("Copy failed. Please select and copy manually.");
+    }
+  };
+
+  const handleTryIn = async (content: string, provider: { label: string; url: string }) => {
+    if (!content.trim()) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      showCopyFeedback(`Copied. Opening ${provider.label}...`);
+      window.open(provider.url, "_blank", "noopener,noreferrer");
     } catch {
       showCopyFeedback("Copy failed. Please select and copy manually.");
     }
@@ -133,6 +162,44 @@ export default function PromptLibrary() {
                 >
                   Copy
                 </Button>
+                <div className="flex-1 min-w-0" />
+                <div className="overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
+                  <Button
+                    variant="outline"
+                    className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
+                    onClick={() => handleTryIn(prompt.content, tryInProviders[0])}
+                  >
+                    <span className="truncate">Try in {tryInProviders[0].label}</span>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
+                        aria-label="Choose a provider"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      side="bottom"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
+                    >
+                      {tryInProviders.map((provider) => (
+                        <DropdownMenuItem
+                          key={provider.id}
+                          className="cursor-pointer focus:bg-yellow-500/20"
+                          onClick={() => handleTryIn(prompt.content, provider)}
+                        >
+                          Try in {provider.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
           ))}
