@@ -94,14 +94,53 @@ def read_prompt_files(src_dir: Path) -> list[dict]:
     return prompts
 
 
+def _extract_json_array(text: str, marker: str) -> list[dict]:
+    idx = text.find(marker)
+    if idx == -1:
+        return []
+    start = text.find("[", idx)
+    if start == -1:
+        return []
+
+    depth = 0
+    in_string = False
+    escape = False
+    end = None
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == "\"":
+                in_string = False
+            continue
+        else:
+            if ch == "\"":
+                in_string = True
+                continue
+            if ch == "[":
+                depth += 1
+            elif ch == "]":
+                depth -= 1
+                if depth == 0:
+                    end = i + 1
+                    break
+    if end is None:
+        return []
+    payload = text[start:end]
+    return json.loads(payload)
+
+
 def load_existing_prompts(out_path: Path) -> list[dict]:
     if not out_path.exists():
         return []
     text = out_path.read_text(encoding="utf-8")
-    match = re.search(r"PROMPT_LIBRARY: PromptLibraryItem\[] = (.*);\s*$", text, re.S | re.M)
-    if not match:
+    try:
+        return _extract_json_array(text, "export const PROMPT_LIBRARY")
+    except Exception:
         return []
-    return json.loads(match.group(1))
 
 
 def write_prompts(prompts: list[dict], out_path: Path) -> None:
@@ -176,10 +215,10 @@ def load_existing_images(out_path: Path) -> list[dict]:
     if not out_path.exists():
         return []
     text = out_path.read_text(encoding="utf-8")
-    match = re.search(r"IMAGE_LIBRARY: ImageLibraryItem\[] = (.*);\s*$", text, re.S | re.M)
-    if not match:
+    try:
+        return _extract_json_array(text, "export const IMAGE_LIBRARY")
+    except Exception:
         return []
-    return json.loads(match.group(1))
 
 
 def write_images(items: list[dict], out_path: Path) -> None:
