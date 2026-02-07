@@ -94,68 +94,27 @@ def read_prompt_files(src_dir: Path) -> list[dict]:
     return prompts
 
 
-def _extract_json_array(text: str, marker: str) -> list[dict]:
-    idx = text.find(marker)
-    if idx == -1:
-        return []
-    start = text.find("[", idx)
-    if start == -1:
-        return []
-
-    depth = 0
-    in_string = False
-    escape = False
-    end = None
-    for i in range(start, len(text)):
-        ch = text[i]
-        if in_string:
-            if escape:
-                escape = False
-            elif ch == "\\":
-                escape = True
-            elif ch == "\"":
-                in_string = False
-            continue
-        else:
-            if ch == "\"":
-                in_string = True
-                continue
-            if ch == "[":
-                depth += 1
-            elif ch == "]":
-                depth -= 1
-                if depth == 0:
-                    end = i + 1
-                    break
-    if end is None:
-        return []
-    payload = text[start:end]
-    return json.loads(payload)
-
-
-def load_existing_prompts(out_path: Path) -> list[dict]:
+def load_existing_prompts(out_path: Path) -> tuple[str, set[str]]:
     if not out_path.exists():
-        return []
+        return "", set()
     text = out_path.read_text(encoding="utf-8")
-    try:
-        return _extract_json_array(text, "export const PROMPT_LIBRARY")
-    except Exception:
-        return []
+    titles = set(re.findall(r'title:\s*"([^"]+)"', text))
+    return text, {t.strip().lower() for t in titles}
 
 
-def write_prompts(prompts: list[dict], out_path: Path) -> None:
-    header = (
-        "export interface PromptLibraryItem {\n"
-        "  id: string;\n"
-        "  title: string;\n"
-        "  category: \"Art\" | \"Marketing\" | \"Development\" | \"Business\" | \"Creative Writing\" | \"Productivity\" | \"SEO\" | \"Other\";\n"
-        "  description: string;\n"
-        "  tags: string[];\n"
-        "  content: string;\n"
-        "}\n\n"
-        "export const PROMPT_LIBRARY: PromptLibraryItem[] = "
+def _to_ts_object(entry: dict) -> str:
+    content = entry["content"].replace("`", "\\`").replace("${", "\\${")
+    tags = ", ".join([f"\"{t}\"" for t in entry["tags"]])
+    return (
+        "  {\n"
+        f"    id: \"{entry['id']}\",\n"
+        f"    title: \"{entry['title']}\",\n"
+        f"    category: \"{entry['category']}\",\n"
+        f"    description: \"{entry['description']}\",\n"
+        f"    tags: [{tags}],\n"
+        f"    content: `{content}`,\n"
+        "  },\n"
     )
-    out_path.write_text(header + json.dumps(prompts, ensure_ascii=True, indent=2) + ";\n", encoding="utf-8")
 
 
 def sync_prompts(args: argparse.Namespace) -> None:
@@ -164,11 +123,24 @@ def sync_prompts(args: argparse.Namespace) -> None:
         print(f"Prompt folder not found: {src_dir}")
         sys.exit(1)
 
-    existing = load_existing_prompts(PROMPT_OUT)
-    by_title = {p["title"].strip().lower(): p for p in existing}
-    updated = existing[:]
+    text, existing_titles = load_existing_prompts(PROMPT_OUT)
+    if not text:
+        print("promptLibrary.ts not found or empty. Aborting to avoid overwrite.")
+        sys.exit(1)
+
+    array_start = text.find("export const PROMPT_LIBRARY")
+    if array_start == -1:
+        print("PROMPT_LIBRARY not found. Aborting to avoid overwrite.")
+        sys.exit(1)
+    open_bracket = text.find("[", array_start)
+    close_bracket = text.rfind("];")
+    if open_bracket == -1 or close_bracket == -1:
+        print("Could not locate prompt array boundaries. Aborting.")
+        sys.exit(1)
 
     incoming = read_prompt_files(src_dir)
+    new_blocks = []
+    added = 0
     for item in incoming:
         key = item["title"].strip().lower()
         slug = slugify(item["title"])
@@ -181,20 +153,15 @@ def sync_prompts(args: argparse.Namespace) -> None:
             "content": item["content"],
         }
 
-        if key in by_title:
-            existing_entry = by_title[key]
+        if key in existing_titles:
             if args.on_duplicate == "skip":
                 continue
             if args.on_duplicate == "overwrite":
-                existing_entry.update(new_entry)
+                print(f"Duplicate '{item['title']}' found. Overwrite not supported in TS mode. Skipping.")
                 continue
-            # prompt user
             print(f"Duplicate title found: {item['title']}")
-            choice = input("Choose: [s]kip, [o]verwrite, [r]ename: ").strip().lower()
+            choice = input("Choose: [s]kip or [r]ename: ").strip().lower()
             if choice.startswith("s"):
-                continue
-            if choice.startswith("o"):
-                existing_entry.update(new_entry)
                 continue
             if choice.startswith("r"):
                 new_title = input("New title: ").strip()
@@ -202,13 +169,23 @@ def sync_prompts(args: argparse.Namespace) -> None:
                     new_entry["title"] = new_title
                     new_entry["id"] = slugify(new_title)
                     new_entry["tags"] = build_tags(new_title)
-                updated.append(new_entry)
-            continue
+                else:
+                    continue
+            else:
+                continue
 
-        updated.append(new_entry)
+        new_blocks.append(_to_ts_object(new_entry))
+        existing_titles.add(new_entry["title"].strip().lower())
+        added += 1
 
-    write_prompts(updated, PROMPT_OUT)
-    print(f"Synced {len(incoming)} prompt files. Total prompts: {len(updated)}")
+    if not new_blocks:
+        print("No new prompts to add.")
+        return
+
+    insert_pos = close_bracket
+    updated_text = text[:insert_pos] + "".join(new_blocks) + text[insert_pos:]
+    PROMPT_OUT.write_text(updated_text, encoding="utf-8")
+    print(f"Added {added} prompt(s).")
 
 
 def load_existing_images(out_path: Path) -> list[dict]:
