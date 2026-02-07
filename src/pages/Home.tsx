@@ -501,6 +501,11 @@ export default function Home() {
                   Prompt Library
                 </Button>
               </Link>
+              <Link href="/images">
+                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
+                  Image Library
+                </Button>
+              </Link>
               {user ? (
                 <Button variant="ghost" onClick={logout} className="text-white hover:text-white">
                   Sign Out
@@ -545,10 +550,15 @@ export default function Home() {
             <div className="rounded-lg border border-yellow-500/40 bg-black/70 px-5 py-4 text-center text-base md:text-lg font-semibold text-yellow-200 shadow-lg">
               Prompt Optimizer: describe what you want, and we’ll craft a production-ready prompt for you.
             </div>
-            <div className="mt-4 flex justify-center">
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/prompts">
                 <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                   Browse Prompt Library
+                </Button>
+              </Link>
+              <Link href="/images">
+                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                  Browse Image Library
                 </Button>
               </Link>
             </div>
