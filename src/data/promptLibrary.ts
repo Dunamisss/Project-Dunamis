@@ -9,6 +9,98 @@ export interface PromptLibraryItem {
 
 export const PROMPT_LIBRARY: PromptLibraryItem[] = [
   {
+    id: "suno-v5",
+    title: "Suno V5 Song Blueprint",
+    category: "Creative Writing",
+    description: "Structured song prompt with style, instrumentation, and lyric architecture.",
+    tags: ["music", "lyrics", "suno", "songwriting"],
+    content: `###IMPORTANT###
+When the user first pastes this prompt to you, your first action is to ask the user what type of song they would like. Below is only an example of how the structure should be layed out.
+
+### 1. STYLE PROMPT (The Conductors Baton)
+
+**Primary Genre & Sub-style:** Create a 120-word block including:
+- Primary Genre: Indie Electronic
+- Sub-style: Atmospheric Synthwave with a focus on nostalgia and futurism
+
+**Specific Instrumentation:** 
+- Main Melody: Warm, vintage-style analog synthesizers (e.g., Roland Jupiter-8)
+- Secondary Melody: Muted, atmospheric electric guitar with subtle reverb
+- Percussion: A mix of organic and electronic elements, including a prominent kick drum and shuffling hi-hats
+- Additional Texture: A haunting, filtered ambient pad to enhance the song's atmosphere
+
+**Vocal Character:**
+- Vocalist: Female, with a warm, emotive tone and a subtle, introspective persona
+- Emotion: Nostalgic, wistful, and slightly melancholic
+- Vocal Style: Whispery, intimate, and emotive, with a focus on conveying the lyrics' emotional depth
+
+**Production Notes:**
+- BPM: 100-110 BPM
+- Key: C minor, with a focus on minor keys to enhance the song's emotional impact
+- Mix Clarity: A balanced mix with a focus on clarity and space, allowing each element to breathe and shine
+- Space/Reverb Cues: Use subtle reverb and delay effects to create a sense of depth and atmosphere, particularly on the vocal and ambient pads
+
+### 2. LYRIC ARCHITECTURE (The Producer’s Cue Sheet)
+
+**Verse 1:**
+[SECTION TAG: Verse 1]
+In the city's neon haze, I wander alone
+(Pause, ad-lib: "oh, oh, oh")
+ Searching for a connection, a sense of home
+(Vocal Style: Whisper)
+But the streets are empty, and the lights are cold
+(Pause, ad-lib: "ahh, ahh, ahh")
+
+**Chorus:**
+[SECTION TAG: Chorus]
+Oh, I'm lost in the moment, drifting away
+(Solo: 12s sax swell)
+From the world outside, I'm free to stay
+(Vocal Style: Emotive)
+In this endless night, I find my place
+(Pause, ad-lib: "oh, oh, oh")
+
+**Verse 2:**
+[SECTION TAG: Verse 2]
+ Memories of you linger, like a ghost in my mind
+(Pause, ad-lib: "mmm, mmm, mmm")
+A bittersweet reminder of what we left behind
+(Vocal Style: Whisper)
+But I won't be held back, I'll rise above the pain
+(Pause, ad-lib: "ahh, ahh, ahh")
+
+**Chorus:**
+[SECTION TAG: Chorus]
+Oh, I'm lost in the moment, drifting away
+(Solo: 12s sax swell)
+From the world outside, I'm free to stay
+(Vocal Style: Emotive)
+In this endless night, I find my place
+(Pause, ad-lib: "oh, oh, oh")
+
+**Verse 3:**
+[SECTION TAG: Verse 3]
+In the silence, I hear your voice
+(Pause, ad-lib: "mmm, mmm, mmm")
+A whispered promise, a heartfelt choice
+(Vocal Style: Whisper)
+To follow my heart, to chase the unknown
+(Pause, ad-lib: "ahh, ahh, ahh")
+
+**Chorus:**
+[SECTION TAG: Chorus]
+Oh, I'm lost in the moment, drifting away
+(Solo: 12s sax swell)
+From the world outside, I'm free to stay
+(Vocal Style: Emotive)
+In this endless night, I find my place
+(Pause, ad-lib: "oh, oh, oh")
+
+**Bridge:**
+[SECTION TAG: Bridge]
+Continue with same vibe as chorus`,
+  },
+  {
     id: "ai-detector",
     title: "AI Detector",
     category: "Productivity",
