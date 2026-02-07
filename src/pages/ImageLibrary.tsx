@@ -70,7 +70,7 @@ export default function ImageLibrary() {
   };
 
   const handleShare = async (id: string) => {
-    const url = `${window.location.origin}/images?image=${encodeURIComponent(id)}`;
+    const url = `${window.location.origin}/image/${encodeURIComponent(id)}`;
     await handleCopy(url);
   };
 
@@ -166,7 +166,11 @@ export default function ImageLibrary() {
                 />
               </a>
               <div className="space-y-2">
-                <h2 className="text-lg font-semibold text-yellow-100">{image.title}</h2>
+                <Link href={`/image/${image.id}`}>
+                  <h2 className="text-lg font-semibold text-yellow-100 hover:text-yellow-200 transition">
+                    {image.title}
+                  </h2>
+                </Link>
                 <p className="text-sm text-gray-300">{image.description}</p>
                 <div className="flex flex-wrap gap-2 text-[11px] text-gray-400">
                   {image.tags.map((tag) => (

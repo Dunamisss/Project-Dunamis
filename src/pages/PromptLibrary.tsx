@@ -84,7 +84,7 @@ export default function PromptLibrary() {
   };
 
   const handleShare = async (id: string) => {
-    const url = `${window.location.origin}/prompts?prompt=${encodeURIComponent(id)}`;
+    const url = `${window.location.origin}/prompt/${encodeURIComponent(id)}`;
     await handleCopy(url);
   };
 
@@ -156,7 +156,11 @@ export default function PromptLibrary() {
             >
               <div className="space-y-2">
                 <p className="text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">{prompt.category}</p>
-                <h2 className="text-xl font-semibold text-yellow-100">{prompt.title}</h2>
+                <Link href={`/prompt/${prompt.id}`}>
+                  <h2 className="text-xl font-semibold text-yellow-100 hover:text-yellow-200 transition">
+                    {prompt.title}
+                  </h2>
+                </Link>
                 <p className="text-sm text-gray-300">{prompt.description}</p>
                 <div className="flex flex-wrap gap-2 text-[11px] text-gray-400">
                   {prompt.tags.map((tag) => (

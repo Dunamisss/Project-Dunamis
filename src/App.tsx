@@ -6,6 +6,8 @@ import { ChatProvider } from "@/contexts/ChatContext";
 import Home from "@/pages/Home";
 import PromptLibrary from "@/pages/PromptLibrary";
 import ImageLibrary from "@/pages/ImageLibrary";
+import PromptDetail from "@/pages/PromptDetail";
+import ImageDetail from "@/pages/ImageDetail";
 
 function App() {
   return (
@@ -18,8 +20,10 @@ function App() {
               <Route path="/" component={Home} />
               <Route path="/prompts" component={PromptLibrary} />
               <Route path="/library" component={PromptLibrary} />
+              <Route path="/prompt/:id" component={PromptDetail} />
               <Route path="/images" component={ImageLibrary} />
               <Route path="/gallery" component={ImageLibrary} />
+              <Route path="/image/:id" component={ImageDetail} />
             </Switch>
           </Router>
         </ChatProvider>
