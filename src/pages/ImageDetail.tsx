@@ -7,6 +7,28 @@ import { useChat } from "@/contexts/ChatContext";
 
 const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-image");
 
+const DEFAULT_META = {
+  title: "DUNAMIS — Precision Prompt Engineering",
+  description: "Build, score, and refine prompts with a production-grade optimizer and auditor built for creators who ship.",
+  image: "https://dunamiss.xyz/dunamis-hero.webp",
+  url: "https://dunamiss.xyz/",
+};
+
+const setMeta = (name: string, content: string) => {
+  const selector = name.startsWith("og:") ? `meta[property="${name}"]` : `meta[name="${name}"]`;
+  let tag = document.querySelector(selector) as HTMLMetaElement | null;
+  if (!tag) {
+    tag = document.createElement("meta");
+    if (name.startsWith("og:")) {
+      tag.setAttribute("property", name);
+    } else {
+      tag.setAttribute("name", name);
+    }
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute("content", content);
+};
+
 export default function ImageDetail({ params }: { params: { id: string } }) {
   const [, setLocation] = useLocation();
   const { loadPrompt } = useChat();
@@ -21,9 +43,26 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (!image) {
       document.title = "Image Not Found — DUNAMIS";
+      setMeta("og:title", "Image Not Found — DUNAMIS");
+      setMeta("og:description", DEFAULT_META.description);
+      setMeta("og:image", DEFAULT_META.image);
+      setMeta("og:url", window.location.href);
+      setMeta("twitter:title", "Image Not Found — DUNAMIS");
+      setMeta("twitter:description", DEFAULT_META.description);
+      setMeta("twitter:image", DEFAULT_META.image);
       return;
     }
     document.title = `${image.title} — DUNAMIS`;
+    const description = image.description || DEFAULT_META.description;
+    const url = window.location.href;
+    const imageUrl = `${window.location.origin}${image.full}`;
+    setMeta("og:title", `${image.title} — DUNAMIS`);
+    setMeta("og:description", description);
+    setMeta("og:image", imageUrl);
+    setMeta("og:url", url);
+    setMeta("twitter:title", `${image.title} — DUNAMIS`);
+    setMeta("twitter:description", description);
+    setMeta("twitter:image", imageUrl);
   }, [image]);
 
   const showCopyFeedback = (message: string) => {

@@ -23,6 +23,28 @@ const tryInProviders = [
   { id: "deepseek", label: "DeepSeek", url: "https://chat.deepseek.com/" },
 ];
 
+const DEFAULT_META = {
+  title: "DUNAMIS — Precision Prompt Engineering",
+  description: "Build, score, and refine prompts with a production-grade optimizer and auditor built for creators who ship.",
+  image: "https://dunamiss.xyz/dunamis-hero.webp",
+  url: "https://dunamiss.xyz/",
+};
+
+const setMeta = (name: string, content: string) => {
+  const selector = name.startsWith("og:") ? `meta[property="${name}"]` : `meta[name="${name}"]`;
+  let tag = document.querySelector(selector) as HTMLMetaElement | null;
+  if (!tag) {
+    tag = document.createElement("meta");
+    if (name.startsWith("og:")) {
+      tag.setAttribute("property", name);
+    } else {
+      tag.setAttribute("name", name);
+    }
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute("content", content);
+};
+
 export default function PromptDetail({ params }: { params: { id: string } }) {
   const [, setLocation] = useLocation();
   const { loadPrompt } = useChat();
@@ -37,9 +59,25 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (!prompt) {
       document.title = "Prompt Not Found — DUNAMIS";
+      setMeta("og:title", "Prompt Not Found — DUNAMIS");
+      setMeta("og:description", DEFAULT_META.description);
+      setMeta("og:image", DEFAULT_META.image);
+      setMeta("og:url", window.location.href);
+      setMeta("twitter:title", "Prompt Not Found — DUNAMIS");
+      setMeta("twitter:description", DEFAULT_META.description);
+      setMeta("twitter:image", DEFAULT_META.image);
       return;
     }
     document.title = `${prompt.title} — DUNAMIS`;
+    const description = prompt.description || DEFAULT_META.description;
+    const url = window.location.href;
+    setMeta("og:title", `${prompt.title} — DUNAMIS`);
+    setMeta("og:description", description);
+    setMeta("og:image", DEFAULT_META.image);
+    setMeta("og:url", url);
+    setMeta("twitter:title", `${prompt.title} — DUNAMIS`);
+    setMeta("twitter:description", description);
+    setMeta("twitter:image", DEFAULT_META.image);
   }, [prompt]);
 
   const showCopyFeedback = (message: string) => {
