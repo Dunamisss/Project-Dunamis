@@ -142,7 +142,8 @@ export default function ImageLibrary() {
             <p className="mt-2 text-xs text-gray-300">
               We don’t generate images on this site. Download the image first, then click <strong>Try Me</strong>.
               The reverse‑engineer prompt will preload. Upload the image you just downloaded in the optimizer
-              and click Send — you’ll receive the prompt needed to replicate it.
+              and click Send — you’ll receive the prompt needed to replicate it. Once you have the prompt,
+              experiment and tweak it to build something similar in your own style.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_auto_auto] gap-3">
