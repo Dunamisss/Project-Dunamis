@@ -6,7 +6,7 @@ import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
 import ShareMenu from "@/components/ShareMenu";
 
-const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-image");
+const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-simple");
 
 const DEFAULT_META = {
   title: "DUNAMIS — Precision Prompt Engineering",
@@ -145,8 +145,12 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
             </div>
           )}
           <div className="flex flex-wrap items-center gap-3">
-            <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={() => handleCopy(image.full)}>
-              Copy Link
+            <Button
+              className="bg-yellow-400 text-black hover:bg-yellow-300"
+              onClick={handleReverseEngineer}
+              disabled={!reverseEngineerPrompt}
+            >
+              Try Me
             </Button>
             <Button
               variant="outline"
@@ -154,14 +158,6 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
               onClick={() => window.open(image.full, "_blank", "noopener,noreferrer")}
             >
               View Full
-            </Button>
-            <Button
-              variant="outline"
-              className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-              onClick={handleReverseEngineer}
-              disabled={!reverseEngineerPrompt}
-            >
-              Reverse-Engineer Prompt
             </Button>
             <ShareMenu
               title={image.title}

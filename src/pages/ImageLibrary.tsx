@@ -8,7 +8,7 @@ import { IMAGE_LIBRARY } from "@/data/imageLibrary";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
 
-const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-image");
+const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-simple");
 const PAGE_SIZE = 24;
 
 export default function ImageLibrary() {
@@ -138,11 +138,11 @@ export default function ImageLibrary() {
 
         <div className="rounded-lg border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
           <div className="rounded-md border border-yellow-500/20 bg-black/50 p-4 text-sm text-gray-300">
-            <p className="font-semibold text-yellow-200">How to recreate a prompt</p>
+            <p className="font-semibold text-yellow-200">How to recreate an image</p>
             <p className="mt-2 text-xs text-gray-300">
-              We don’t generate images here. Use <strong>Reverse-Engineer Prompt</strong> to load the prompt,
-              then upload your image in the optimizer to get a detailed prompt. Paste that prompt into your
-              image model of choice to recreate or remix the artwork.
+              We don’t generate images on this site. Download the image first, then click <strong>Try Me</strong>.
+              The reverse‑engineer prompt will preload. Upload the image you just downloaded in the optimizer
+              and click Send — you’ll receive the prompt needed to replicate it.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_auto_auto] gap-3">
@@ -179,7 +179,7 @@ export default function ImageLibrary() {
               onClick={handleReverseEngineer}
               disabled={!reverseEngineerPrompt}
             >
-              Reverse-Engineer Prompt
+              Try Me
             </Button>
             <Button
               variant="outline"
@@ -232,9 +232,10 @@ export default function ImageLibrary() {
               <div className="flex items-center gap-3">
                 <Button
                   className="bg-yellow-400 text-black hover:bg-yellow-300"
-                  onClick={() => handleCopy(image.full)}
+                  onClick={handleReverseEngineer}
+                  disabled={!reverseEngineerPrompt}
                 >
-                  Copy Link
+                  Try Me
                 </Button>
                 <Button
                   variant="outline"
