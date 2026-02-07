@@ -14,6 +14,8 @@ except Exception:  # pragma: no cover
 ROOT = Path(__file__).resolve().parents[1]
 PROMPT_SRC_DIR = ROOT / "prompts"
 IMAGE_SRC_DIR = ROOT / "Images"
+PROMPT_ARCHIVE_DIR = PROMPT_SRC_DIR / "_archive"
+IMAGE_ARCHIVE_DIR = IMAGE_SRC_DIR / "_archive"
 PROMPT_OUT = ROOT / "src" / "data" / "promptLibrary.ts"
 IMAGE_OUT = ROOT / "src" / "data" / "imageLibrary.ts"
 IMAGE_FULL_DIR = ROOT / "public" / "images" / "library" / "full"
@@ -93,6 +95,19 @@ def read_prompt_files(src_dir: Path) -> list[dict]:
             "createdAt": int(path.stat().st_mtime),
         })
     return prompts
+
+
+def archive_file(src: Path, archive_dir: Path) -> None:
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    target = archive_dir / src.name
+    if target.exists():
+        stem = src.stem
+        suffix = src.suffix
+        counter = 2
+        while (archive_dir / f"{stem}-{counter}{suffix}").exists():
+            counter += 1
+        target = archive_dir / f"{stem}-{counter}{suffix}"
+    src.rename(target)
 
 
 def load_existing_prompts(out_path: Path) -> tuple[str, set[str]]:
@@ -190,6 +205,11 @@ def sync_prompts(args: argparse.Namespace) -> None:
     PROMPT_OUT.write_text(updated_text, encoding="utf-8")
     print(f"Added {added} prompt(s).")
 
+    # Archive processed prompt files
+    for path in sorted(src_dir.glob("*.txt")):
+        archive_file(path, PROMPT_ARCHIVE_DIR)
+    print(f"Archived {len(incoming)} prompt file(s) to {PROMPT_ARCHIVE_DIR}")
+
 
 def load_existing_images(out_path: Path) -> list[dict]:
     if not out_path.exists():
@@ -226,6 +246,7 @@ def convert_images(src_dir: Path) -> list[dict]:
     ensure_pillow()
     IMAGE_FULL_DIR.mkdir(parents=True, exist_ok=True)
     IMAGE_THUMB_DIR.mkdir(parents=True, exist_ok=True)
+    IMAGE_ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
 
     items = []
     for path in sorted(src_dir.iterdir()):
@@ -267,6 +288,8 @@ def convert_images(src_dir: Path) -> list[dict]:
             "full": f"/images/library/full/{slug}.webp",
             "thumb": f"/images/library/thumbs/{slug}.webp",
         })
+
+        archive_file(path, IMAGE_ARCHIVE_DIR)
 
     return items
 
