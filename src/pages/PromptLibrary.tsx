@@ -3,15 +3,16 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ShareMenu from "@/components/ShareMenu";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
-import { ChevronDown } from "lucide-react";
 
 const categories = ["All", "Art", "Marketing", "Development", "Business", "Creative Writing", "Productivity", "SEO", "Other"] as const;
 const tryInProviders = [
@@ -81,21 +82,6 @@ export default function PromptLibrary() {
     } catch {
       showCopyFeedback("Copy failed. Please select and copy manually.");
     }
-  };
-
-  const handleShare = async (id: string, title: string) => {
-    const url = `${window.location.origin}/prompt/${encodeURIComponent(id)}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, url });
-        showCopyFeedback("Share sheet opened.");
-        return;
-      } catch {
-        // fall back to copy
-      }
-    }
-    await handleCopy(url);
-    showCopyFeedback("Link copied to clipboard.");
   };
 
   useEffect(() => {
@@ -201,13 +187,11 @@ export default function PromptLibrary() {
                 >
                   Copy
                 </Button>
-                <Button
-                  variant="outline"
-                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                  onClick={() => handleShare(prompt.id, prompt.title)}
-                >
-                  Share
-                </Button>
+                <ShareMenu
+                  title={prompt.title}
+                  url={`${window.location.origin}/prompt/${prompt.id}`}
+                  onCopy={showCopyFeedback}
+                />
                 <div className="flex-1 min-w-0" />
                 <div className="overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
                   <Button

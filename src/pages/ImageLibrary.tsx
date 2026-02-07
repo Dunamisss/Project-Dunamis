@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ShareMenu from "@/components/ShareMenu";
 import { IMAGE_LIBRARY } from "@/data/imageLibrary";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
@@ -67,21 +68,6 @@ export default function ImageLibrary() {
     loadPrompt(reverseEngineerPrompt.content);
     showCopyFeedback("Reverse-engineer prompt loaded. Upload an image in the optimizer.");
     setLocation("/");
-  };
-
-  const handleShare = async (id: string, title: string) => {
-    const url = `${window.location.origin}/image/${encodeURIComponent(id)}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, url });
-        showCopyFeedback("Share sheet opened.");
-        return;
-      } catch {
-        // fall back to copy
-      }
-    }
-    await handleCopy(url);
-    showCopyFeedback("Link copied to clipboard.");
   };
 
   useEffect(() => {
@@ -208,13 +194,11 @@ export default function ImageLibrary() {
                 >
                   View Full
                 </Button>
-                <Button
-                  variant="outline"
-                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                  onClick={() => handleShare(image.id, image.title)}
-                >
-                  Share
-                </Button>
+                <ShareMenu
+                  title={image.title}
+                  url={`${window.location.origin}/image/${image.id}`}
+                  onCopy={showCopyFeedback}
+                />
               </div>
             </div>
           ))}

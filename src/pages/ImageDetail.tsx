@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { IMAGE_LIBRARY } from "@/data/imageLibrary";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
+import ShareMenu from "@/components/ShareMenu";
 
 const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-image");
 
@@ -78,21 +79,6 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
     } catch {
       showCopyFeedback("Copy failed. Please select and copy manually.");
     }
-  };
-
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share && image) {
-      try {
-        await navigator.share({ title: image.title, url });
-        showCopyFeedback("Share sheet opened.");
-        return;
-      } catch {
-        // fall back to copy
-      }
-    }
-    await handleCopy(url);
-    showCopyFeedback("Link copied to clipboard.");
   };
 
   const handleReverseEngineer = () => {
@@ -172,18 +158,16 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
             <Button
               variant="outline"
               className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-              onClick={handleShare}
-            >
-              Share
-            </Button>
-            <Button
-              variant="outline"
-              className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
               onClick={handleReverseEngineer}
               disabled={!reverseEngineerPrompt}
             >
               Reverse-Engineer Prompt
             </Button>
+            <ShareMenu
+              title={image.title}
+              url={`${window.location.origin}/image/${image.id}`}
+              onCopy={showCopyFeedback}
+            />
           </div>
         </div>
       </div>

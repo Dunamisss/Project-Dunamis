@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
+import ShareMenu from "@/components/ShareMenu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,21 +96,6 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share && prompt) {
-      try {
-        await navigator.share({ title: prompt.title, url });
-        showCopyFeedback("Share sheet opened.");
-        return;
-      } catch {
-        // fall back to copy
-      }
-    }
-    await handleCopy(url);
-    showCopyFeedback("Link copied to clipboard.");
-  };
-
   const handleTryMe = () => {
     if (!prompt) return;
     loadPrompt(prompt.content);
@@ -193,13 +179,11 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
             >
               Copy
             </Button>
-            <Button
-              variant="outline"
-              className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-              onClick={handleShare}
-            >
-              Share
-            </Button>
+            <ShareMenu
+              title={prompt.title}
+              url={`${window.location.origin}/prompt/${prompt.id}`}
+              onCopy={showCopyFeedback}
+            />
             <div className="overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
               <Button
                 variant="outline"
