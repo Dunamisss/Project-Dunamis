@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ export default function ImageLibrary() {
   const [tagFilter, setTagFilter] = useState("All");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const availableTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -67,6 +68,22 @@ export default function ImageLibrary() {
     showCopyFeedback("Reverse-engineer prompt loaded. Upload an image in the optimizer.");
     setLocation("/");
   };
+
+  const handleShare = async (id: string) => {
+    const url = `${window.location.origin}/images?image=${encodeURIComponent(id)}`;
+    await handleCopy(url);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const imageId = params.get("image");
+    if (!imageId) return;
+    setHighlightId(imageId);
+    const target = document.getElementById(`image-${imageId}`);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen relative overflow-x-hidden">
@@ -134,7 +151,11 @@ export default function ImageLibrary() {
           {visibleImages.map((image) => (
             <div
               key={image.id}
-              className="rounded-lg border border-yellow-500/20 bg-black/60 p-4 shadow-lg space-y-4"
+              id={`image-${image.id}`}
+              className={[
+                "rounded-lg border border-yellow-500/20 bg-black/60 p-4 shadow-lg space-y-4 transition",
+                highlightId === image.id ? "ring-2 ring-yellow-400/80" : ""
+              ].join(" ")}
             >
               <a href={image.full} target="_blank" rel="noopener noreferrer" className="block">
                 <img
@@ -168,6 +189,13 @@ export default function ImageLibrary() {
                   onClick={() => window.open(image.full, "_blank", "noopener,noreferrer")}
                 >
                   View Full
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                  onClick={() => handleShare(image.id)}
+                >
+                  Share
                 </Button>
               </div>
             </div>

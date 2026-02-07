@@ -2,7 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://dunamiss.xyz/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://dunamiss.xyz/prompts</loc>
+  </url>
+  <url>
+    <loc>https://dunamiss.xyz/library</loc>
+  </url>
+  <url>
+    <loc>https://dunamiss.xyz/images</loc>
+  </url>
+  <url>
+    <loc>https://dunamiss.xyz/gallery</loc>
   </url>
 </urlset>

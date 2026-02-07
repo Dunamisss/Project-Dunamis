@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ export default function PromptLibrary() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof categories)[number]>("All");
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const filteredPrompts = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -82,6 +83,22 @@ export default function PromptLibrary() {
     }
   };
 
+  const handleShare = async (id: string) => {
+    const url = `${window.location.origin}/prompts?prompt=${encodeURIComponent(id)}`;
+    await handleCopy(url);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const promptId = params.get("prompt");
+    if (!promptId) return;
+    setHighlightId(promptId);
+    const target = document.getElementById(`prompt-${promptId}`);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
+
   return (
     <div className="min-h-screen relative overflow-x-hidden">
       <div className="fixed inset-0 z-0 w-full h-screen bg-gradient-to-b from-black via-black/90 to-black" />
@@ -131,7 +148,11 @@ export default function PromptLibrary() {
           {filteredPrompts.map((prompt) => (
             <div
               key={prompt.id}
-              className="rounded-lg border border-yellow-500/20 bg-black/60 p-5 shadow-lg space-y-4"
+              id={`prompt-${prompt.id}`}
+              className={[
+                "rounded-lg border border-yellow-500/20 bg-black/60 p-5 shadow-lg space-y-4 transition",
+                highlightId === prompt.id ? "ring-2 ring-yellow-400/80" : ""
+              ].join(" ")}
             >
               <div className="space-y-2">
                 <p className="text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">{prompt.category}</p>
@@ -161,6 +182,13 @@ export default function PromptLibrary() {
                   onClick={() => handleCopy(prompt.content)}
                 >
                   Copy
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                  onClick={() => handleShare(prompt.id)}
+                >
+                  Share
                 </Button>
                 <div className="flex-1 min-w-0" />
                 <div className="overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
