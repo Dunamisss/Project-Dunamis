@@ -230,6 +230,7 @@ def write_images(items: list[dict], out_path: Path) -> None:
         "  tags: string[];\n"
         "  full: string;\n"
         "  thumb: string;\n"
+        "  createdAt: number;\n"
         "}\n\n"
         "export const IMAGE_LIBRARY: ImageLibraryItem[] = "
     )
@@ -248,7 +249,6 @@ def convert_images(src_dir: Path) -> list[dict]:
     IMAGE_THUMB_DIR.mkdir(parents=True, exist_ok=True)
     IMAGE_ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
 
-    items = []
     for path in sorted(src_dir.iterdir()):
         if not path.is_file():
             continue
@@ -280,17 +280,28 @@ def convert_images(src_dir: Path) -> list[dict]:
                 thumb_img = thumb_img.convert("RGB")
             thumb_img.save(thumb_path, "WEBP", quality=70, method=6)
 
+        archive_file(path, IMAGE_ARCHIVE_DIR)
+    return None
+
+
+def rebuild_images_from_webp() -> list[dict]:
+    items = []
+    for file in sorted(IMAGE_FULL_DIR.glob("*.webp")):
+        image_id = file.stem
+        title = titleize(image_id.replace("-", " "))
+        thumb = IMAGE_THUMB_DIR / f"{image_id}.webp"
+        if not thumb.exists():
+            continue
+        created_at = int(file.stat().st_mtime)
         items.append({
-            "id": slug,
+            "id": image_id,
             "title": title,
             "description": f"Original artwork: {title[:80]}.",
             "tags": build_tags(title),
-            "full": f"/images/library/full/{slug}.webp",
-            "thumb": f"/images/library/thumbs/{slug}.webp",
+            "full": f"/images/library/full/{image_id}.webp",
+            "thumb": f"/images/library/thumbs/{image_id}.webp",
+            "createdAt": created_at,
         })
-
-        archive_file(path, IMAGE_ARCHIVE_DIR)
-
     return items
 
 
@@ -299,7 +310,8 @@ def sync_images(args: argparse.Namespace) -> None:
     if not src_dir.exists():
         print(f"Image folder not found: {src_dir}")
         sys.exit(1)
-    items = convert_images(src_dir)
+    convert_images(src_dir)
+    items = rebuild_images_from_webp()
     write_images(items, IMAGE_OUT)
     print(f"Processed {len(items)} images")
 
