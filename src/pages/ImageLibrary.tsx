@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,12 @@ export default function ImageLibrary() {
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState("All");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [autoLoad, setAutoLoad] = useState(true);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const availableTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -81,6 +85,36 @@ export default function ImageLibrary() {
     }
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? Math.min(scrollTop / docHeight, 1) : 0;
+      setScrollProgress(progress);
+      setShowBackToTop(scrollTop > 400);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!autoLoad) return;
+    const target = loadMoreRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting) {
+          setVisibleCount((count) => Math.min(count + PAGE_SIZE, filteredByTag.length));
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [autoLoad, filteredByTag.length]);
+
   return (
     <div className="min-h-screen relative overflow-x-hidden">
       <div className="fixed inset-0 z-0 w-full h-screen bg-gradient-to-b from-black via-black/90 to-black" />
@@ -103,7 +137,15 @@ export default function ImageLibrary() {
         </div>
 
         <div className="rounded-lg border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_auto] gap-3">
+          <div className="rounded-md border border-yellow-500/20 bg-black/50 p-4 text-sm text-gray-300">
+            <p className="font-semibold text-yellow-200">How to recreate a prompt</p>
+            <p className="mt-2 text-xs text-gray-300">
+              We don’t generate images here. Use <strong>Reverse-Engineer Prompt</strong> to load the prompt,
+              then upload your image in the optimizer to get a detailed prompt. Paste that prompt into your
+              image model of choice to recreate or remix the artwork.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_auto_auto] gap-3">
             <Input
               value={query}
               onChange={(event) => {
@@ -138,6 +180,13 @@ export default function ImageLibrary() {
               disabled={!reverseEngineerPrompt}
             >
               Reverse-Engineer Prompt
+            </Button>
+            <Button
+              variant="outline"
+              className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+              onClick={() => setAutoLoad((prev) => !prev)}
+            >
+              Auto-load: {autoLoad ? "On" : "Off"}
             </Button>
           </div>
           {copyFeedback && (
@@ -218,7 +267,37 @@ export default function ImageLibrary() {
             </Button>
           </div>
         )}
+        <div ref={loadMoreRef} />
       </div>
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full border border-yellow-500/40 bg-black/90 text-yellow-200 shadow-lg hover:bg-yellow-500/10"
+          aria-label="Back to top"
+        >
+          <svg className="h-12 w-12 -rotate-90" viewBox="0 0 36 36">
+            <circle
+              cx="18"
+              cy="18"
+              r="16"
+              fill="none"
+              stroke="rgba(234,179,8,0.2)"
+              strokeWidth="2"
+            />
+            <circle
+              cx="18"
+              cy="18"
+              r="16"
+              fill="none"
+              stroke="rgba(234,179,8,0.9)"
+              strokeWidth="2"
+              strokeDasharray={`${Math.round(scrollProgress * 100)} 100`}
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold">↑</span>
+        </button>
+      )}
     </div>
   );
 }
