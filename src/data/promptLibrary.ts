@@ -9,17 +9,6 @@ export interface PromptLibraryItem {
 }
 
 export const PROMPT_LIBRARY: PromptLibraryItem[] = [
-{
-  id: string;
-  title: string;
-  category: "Art" | "Marketing" | "Development" | "Business" | "Creative Writing" | "Productivity" | "SEO" | "Other";
-  description: string;
-  tags: string[];
-  content: string;
-  createdAt: number;
-}
-
-export const PROMPT_LIBRARY: PromptLibraryItem[] = [
   {
     id: "suno-v5",
     title: "Suno V5 Song Blueprint",
