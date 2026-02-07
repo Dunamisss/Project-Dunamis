@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Facebook, Link2, Mail, MessageCircle, Twitter, ChevronDown } from "lucide-react";
+import { Facebook, Link2, Mail, MessageCircle, Twitter, Camera, ChevronDown } from "lucide-react";
 
 interface ShareMenuProps {
   title: string;
@@ -70,6 +70,16 @@ export default function ShareMenu({ title, url, onCopy }: ShareMenuProps) {
         >
           <MessageCircle className="mr-2 h-4 w-4" />
           Share on WhatsApp
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer focus:bg-yellow-500/20"
+          onClick={async () => {
+            await handleCopy();
+            openShare("https://www.instagram.com/");
+          }}
+        >
+          <Camera className="mr-2 h-4 w-4" />
+          Instagram (copy link)
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer focus:bg-yellow-500/20"
