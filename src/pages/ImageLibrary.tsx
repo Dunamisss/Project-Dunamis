@@ -16,6 +16,7 @@ export default function ImageLibrary() {
   const { loadPrompt } = useChat();
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [autoLoad, setAutoLoad] = useState(true);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -50,7 +51,12 @@ export default function ImageLibrary() {
     return filteredImages.filter((image) => image.tags.includes(tagFilter));
   }, [filteredImages, tagFilter]);
 
-  const visibleImages = useMemo(() => filteredByTag.slice(0, visibleCount), [filteredByTag, visibleCount]);
+  const sortedImages = useMemo(() => {
+    const dir = sortOrder === "newest" ? -1 : 1;
+    return [...filteredByTag].sort((a, b) => dir * ((a.createdAt ?? 0) - (b.createdAt ?? 0)));
+  }, [filteredByTag, sortOrder]);
+
+  const visibleImages = useMemo(() => sortedImages.slice(0, visibleCount), [sortedImages, visibleCount]);
 
   const showCopyFeedback = (message: string) => {
     setCopyFeedback(message);
@@ -146,7 +152,7 @@ export default function ImageLibrary() {
               experiment and tweak it to build something similar in your own style.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_auto_auto] gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_180px_auto_auto] gap-3">
             <Input
               value={query}
               onChange={(event) => {
@@ -164,7 +170,8 @@ export default function ImageLibrary() {
               }}
             >
               <SelectTrigger className="border-yellow-500/40 bg-black/30 text-yellow-200">
-                <SelectValue placeholder="All tags" />
+                <SelectValue placeholder="All tags" className="sr-only" />
+                <span className="truncate">{tagFilter === "All" ? "All tags" : tagFilter}</span>
               </SelectTrigger>
               <SelectContent className="bg-black/90 text-white border-yellow-500/30">
                 {availableTags.map((tag) => (
@@ -182,6 +189,16 @@ export default function ImageLibrary() {
             >
               Try Me
             </Button>
+            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "newest" | "oldest")}>
+              <SelectTrigger className="border-yellow-500/40 bg-black/30 text-yellow-200">
+                <SelectValue placeholder="Sort" className="sr-only" />
+                <span className="truncate">{sortOrder === "newest" ? "Newest" : "Oldest"}</span>
+              </SelectTrigger>
+              <SelectContent className="bg-black/90 text-white border-yellow-500/30">
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               variant="outline"
               className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"

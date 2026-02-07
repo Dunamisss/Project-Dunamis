@@ -90,6 +90,7 @@ def read_prompt_files(src_dir: Path) -> list[dict]:
             "description": desc or "Custom prompt.",
             "content": content,
             "source": path.name,
+            "createdAt": int(path.stat().st_mtime),
         })
     return prompts
 
@@ -113,6 +114,7 @@ def _to_ts_object(entry: dict) -> str:
         f"    description: \"{entry['description']}\",\n"
         f"    tags: [{tags}],\n"
         f"    content: `{content}`,\n"
+        f"    createdAt: {entry.get('createdAt', 0)},\n"
         "  },\n"
     )
 
@@ -151,6 +153,7 @@ def sync_prompts(args: argparse.Namespace) -> None:
             "description": item["description"],
             "tags": build_tags(item["title"]),
             "content": item["content"],
+            "createdAt": item.get("createdAt", 0),
         }
 
         if key in existing_titles:

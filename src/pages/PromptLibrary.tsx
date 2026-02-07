@@ -33,6 +33,7 @@ export default function PromptLibrary() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof categories)[number]>("All");
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const filteredPrompts = useMemo(() => {
@@ -52,6 +53,11 @@ export default function PromptLibrary() {
       return haystack.includes(q);
     });
   }, [category, query]);
+
+  const sortedPrompts = useMemo(() => {
+    const dir = sortOrder === "newest" ? -1 : 1;
+    return [...filteredPrompts].sort((a, b) => dir * ((a.createdAt ?? 0) - (b.createdAt ?? 0)));
+  }, [filteredPrompts, sortOrder]);
 
   const handleTryMe = (content: string) => {
     loadPrompt(content);
@@ -117,16 +123,20 @@ export default function PromptLibrary() {
         </div>
 
         <div className="rounded-lg border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_180px] gap-3">
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search prompts, tags, or categories..."
               className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
             />
-            <Select value={category} onValueChange={(value) => setCategory(value as (typeof categories)[number])}>
+            <Select
+              value={category}
+              onValueChange={(value) => setCategory(value as (typeof categories)[number])}
+            >
               <SelectTrigger className="border-yellow-500/40 bg-black/30 text-yellow-200">
-                <SelectValue placeholder="All categories" />
+                <SelectValue placeholder="All categories" className="sr-only" />
+                <span className="truncate">{category === "All" ? "All categories" : category}</span>
               </SelectTrigger>
               <SelectContent className="bg-black/90 text-white border-yellow-500/30">
                 {categories.map((item) => (
@@ -134,6 +144,16 @@ export default function PromptLibrary() {
                     {item}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "newest" | "oldest")}>
+              <SelectTrigger className="border-yellow-500/40 bg-black/30 text-yellow-200">
+                <SelectValue placeholder="Sort" className="sr-only" />
+                <span className="truncate">{sortOrder === "newest" ? "Newest" : "Oldest"}</span>
+              </SelectTrigger>
+              <SelectContent className="bg-black/90 text-white border-yellow-500/30">
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -145,7 +165,7 @@ export default function PromptLibrary() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredPrompts.map((prompt) => (
+          {sortedPrompts.map((prompt) => (
             <div
               key={prompt.id}
               id={`prompt-${prompt.id}`}
