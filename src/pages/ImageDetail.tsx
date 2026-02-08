@@ -16,18 +16,31 @@ const DEFAULT_META = {
 };
 
 const setMeta = (name: string, content: string) => {
-  const selector = name.startsWith("og:") ? `meta[property="${name}"]` : `meta[name="${name}"]`;
-  let tag = document.querySelector(selector) as HTMLMetaElement | null;
+  const selector = name === "canonical"
+    ? "link[rel=\"canonical\"]"
+    : name.startsWith("og:")
+      ? `meta[property="${name}"]`
+      : `meta[name="${name}"]`;
+  let tag = document.querySelector(selector) as HTMLMetaElement | HTMLLinkElement | null;
   if (!tag) {
-    tag = document.createElement("meta");
-    if (name.startsWith("og:")) {
-      tag.setAttribute("property", name);
+    if (name === "canonical") {
+      tag = document.createElement("link");
+      tag.setAttribute("rel", "canonical");
     } else {
-      tag.setAttribute("name", name);
+      tag = document.createElement("meta");
+      if (name.startsWith("og:")) {
+        tag.setAttribute("property", name);
+      } else {
+        tag.setAttribute("name", name);
+      }
     }
     document.head.appendChild(tag);
   }
-  tag.setAttribute("content", content);
+  if (name === "canonical") {
+    tag.setAttribute("href", content);
+  } else {
+    tag.setAttribute("content", content);
+  }
 };
 
 export default function ImageDetail({ params }: { params: { id: string } }) {
@@ -44,10 +57,12 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (!image) {
       document.title = "Image Not Found — DUNAMIS";
+      setMeta("description", DEFAULT_META.description);
+      setMeta("canonical", DEFAULT_META.url);
       setMeta("og:title", "Image Not Found — DUNAMIS");
       setMeta("og:description", DEFAULT_META.description);
       setMeta("og:image", DEFAULT_META.image);
-      setMeta("og:url", window.location.href);
+      setMeta("og:url", DEFAULT_META.url);
       setMeta("twitter:title", "Image Not Found — DUNAMIS");
       setMeta("twitter:description", DEFAULT_META.description);
       setMeta("twitter:image", DEFAULT_META.image);
@@ -57,6 +72,8 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
     const description = image.description || DEFAULT_META.description;
     const url = window.location.href;
     const imageUrl = `${window.location.origin}${image.full}`;
+    setMeta("description", description);
+    setMeta("canonical", url);
     setMeta("og:title", `${image.title} — DUNAMIS`);
     setMeta("og:description", description);
     setMeta("og:image", imageUrl);
