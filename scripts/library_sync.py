@@ -119,14 +119,17 @@ def load_existing_prompts(out_path: Path) -> tuple[str, set[str]]:
 
 
 def _to_ts_object(entry: dict) -> str:
+    def _escape_ts_string(value: str) -> str:
+        return value.replace("\\", "\\\\").replace("\"", "\\\"")
+
     content = entry["content"].replace("`", "\\`").replace("${", "\\${")
     tags = ", ".join([f"\"{t}\"" for t in entry["tags"]])
     return (
         "  {\n"
         f"    id: \"{entry['id']}\",\n"
-        f"    title: \"{entry['title']}\",\n"
+        f"    title: \"{_escape_ts_string(entry['title'])}\",\n"
         f"    category: \"{entry['category']}\",\n"
-        f"    description: \"{entry['description']}\",\n"
+        f"    description: \"{_escape_ts_string(entry['description'])}\",\n"
         f"    tags: [{tags}],\n"
         f"    content: `{content}`,\n"
         f"    createdAt: {entry.get('createdAt', 0)},\n"
@@ -157,10 +160,13 @@ def sync_prompts(args: argparse.Namespace) -> None:
 
     incoming = read_prompt_files(src_dir)
     new_blocks = []
+    archived_paths = []
     added = 0
     for item in incoming:
         key = item["title"].strip().lower()
         slug = slugify(item["title"])
+        source_name = item.get("source")
+        source_path = (src_dir / source_name) if source_name else None
         new_entry = {
             "id": slug,
             "title": item["title"],
@@ -193,6 +199,8 @@ def sync_prompts(args: argparse.Namespace) -> None:
                 continue
 
         new_blocks.append(_to_ts_object(new_entry))
+        if source_path and source_path.exists():
+            archived_paths.append(source_path)
         existing_titles.add(new_entry["title"].strip().lower())
         added += 1
 
@@ -205,10 +213,10 @@ def sync_prompts(args: argparse.Namespace) -> None:
     PROMPT_OUT.write_text(updated_text, encoding="utf-8")
     print(f"Added {added} prompt(s).")
 
-    # Archive processed prompt files
-    for path in sorted(src_dir.glob("*.txt")):
+    # Archive only files that were actually added
+    for path in archived_paths:
         archive_file(path, PROMPT_ARCHIVE_DIR)
-    print(f"Archived {len(incoming)} prompt file(s) to {PROMPT_ARCHIVE_DIR}")
+    print(f"Archived {len(archived_paths)} prompt file(s) to {PROMPT_ARCHIVE_DIR}")
 
 
 def load_existing_images(out_path: Path) -> list[dict]:
@@ -259,6 +267,19 @@ def convert_images(src_dir: Path) -> list[dict]:
         slug = short_slug(title)
         full_path = IMAGE_FULL_DIR / f"{slug}.webp"
         thumb_path = IMAGE_THUMB_DIR / f"{slug}.webp"
+
+        if full_path.exists() or thumb_path.exists():
+            counter = 2
+            while True:
+                candidate = f"{slug}-{counter}"
+                candidate_full = IMAGE_FULL_DIR / f"{candidate}.webp"
+                candidate_thumb = IMAGE_THUMB_DIR / f"{candidate}.webp"
+                if not candidate_full.exists() and not candidate_thumb.exists():
+                    slug = candidate
+                    full_path = candidate_full
+                    thumb_path = candidate_thumb
+                    break
+                counter += 1
 
         if not full_path.exists() or not thumb_path.exists():
             img = Image.open(path)
