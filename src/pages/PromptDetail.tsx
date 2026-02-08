@@ -59,6 +59,24 @@ const setMeta = (name: string, content: string) => {
   }
 };
 
+const setJsonLd = (id: string, data: Record<string, unknown>) => {
+  const scriptId = `ld-${id}`;
+  let tag = document.getElementById(scriptId) as HTMLScriptElement | null;
+  if (!tag) {
+    tag = document.createElement("script");
+    tag.type = "application/ld+json";
+    tag.id = scriptId;
+    document.head.appendChild(tag);
+  }
+  tag.textContent = JSON.stringify(data);
+};
+
+const toIsoDate = (value?: number) => {
+  if (!value || Number.isNaN(value) || value <= 0) return undefined;
+  const ms = value > 1e12 ? value : value * 1000;
+  return new Date(ms).toISOString();
+};
+
 export default function PromptDetail({ params }: { params: { id: string } }) {
   const [, setLocation] = useLocation();
   const { loadPrompt } = useChat();
@@ -82,6 +100,12 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
       setMeta("twitter:title", "Prompt Not Found — DUNAMIS");
       setMeta("twitter:description", DEFAULT_META.description);
       setMeta("twitter:image", DEFAULT_META.image);
+      setJsonLd("prompt", {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "Prompt Not Found — DUNAMIS",
+        url: DEFAULT_META.url,
+      });
       return;
     }
     document.title = `${prompt.title} — DUNAMIS`;
@@ -96,6 +120,19 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
     setMeta("twitter:title", `${prompt.title} — DUNAMIS`);
     setMeta("twitter:description", description);
     setMeta("twitter:image", DEFAULT_META.image);
+    setJsonLd("prompt", {
+      "@context": "https://schema.org",
+      "@type": "CreativeWork",
+      name: prompt.title,
+      description,
+      url,
+      datePublished: toIsoDate(prompt.createdAt),
+      publisher: {
+        "@type": "Organization",
+        name: "DUNAMIS",
+        url: DEFAULT_META.url,
+      },
+    });
   }, [prompt]);
 
   const showCopyFeedback = (message: string) => {

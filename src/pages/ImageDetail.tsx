@@ -43,6 +43,24 @@ const setMeta = (name: string, content: string) => {
   }
 };
 
+const setJsonLd = (id: string, data: Record<string, unknown>) => {
+  const scriptId = `ld-${id}`;
+  let tag = document.getElementById(scriptId) as HTMLScriptElement | null;
+  if (!tag) {
+    tag = document.createElement("script");
+    tag.type = "application/ld+json";
+    tag.id = scriptId;
+    document.head.appendChild(tag);
+  }
+  tag.textContent = JSON.stringify(data);
+};
+
+const toIsoDate = (value?: number) => {
+  if (!value || Number.isNaN(value) || value <= 0) return undefined;
+  const ms = value > 1e12 ? value : value * 1000;
+  return new Date(ms).toISOString();
+};
+
 export default function ImageDetail({ params }: { params: { id: string } }) {
   const [, setLocation] = useLocation();
   const { loadPrompt } = useChat();
@@ -66,6 +84,12 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
       setMeta("twitter:title", "Image Not Found — DUNAMIS");
       setMeta("twitter:description", DEFAULT_META.description);
       setMeta("twitter:image", DEFAULT_META.image);
+      setJsonLd("image", {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "Image Not Found — DUNAMIS",
+        url: DEFAULT_META.url,
+      });
       return;
     }
     document.title = `${image.title} — DUNAMIS`;
@@ -81,6 +105,20 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
     setMeta("twitter:title", `${image.title} — DUNAMIS`);
     setMeta("twitter:description", description);
     setMeta("twitter:image", imageUrl);
+    setJsonLd("image", {
+      "@context": "https://schema.org",
+      "@type": "ImageObject",
+      name: image.title,
+      description,
+      contentUrl: imageUrl,
+      url,
+      datePublished: toIsoDate(image.createdAt),
+      publisher: {
+        "@type": "Organization",
+        name: "DUNAMIS",
+        url: DEFAULT_META.url,
+      },
+    });
   }, [image]);
 
   const showCopyFeedback = (message: string) => {
