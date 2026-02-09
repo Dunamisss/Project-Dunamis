@@ -22,15 +22,21 @@ const GoogleIcon = () => (
 );
 
 export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
-  const { login, isLoading } = useAuth();
+  const { login, resetPassword, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const handleLogin = async (provider: "google" | "github" | "email") => {
     if (isAuthenticating) return;
     setIsAuthenticating(true);
+    setAuthError(null);
+    setNotice(null);
     try {
-      await login(provider);
+      await login(provider, email.trim(), password);
       setOpen(false);
     } catch (error: any) {
       const code = typeof error?.code === "string" ? error.code : "";
@@ -41,9 +47,49 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
       ) {
         // Silent: user cancelled/blocked popup or double-clicked sign-in.
       } else {
-        // Surface unexpected issues in console for now.
-        console.error("Auth error:", error);
+        const message =
+          typeof error?.message === "string"
+            ? error.message
+            : "Sign in failed. Please try again.";
+        setAuthError(message);
       }
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleSignup = async () => {
+    if (isAuthenticating) return;
+    setIsAuthenticating(true);
+    setAuthError(null);
+    setNotice(null);
+    try {
+      await login("signup", email.trim(), password);
+      setOpen(false);
+    } catch (error: any) {
+      const message =
+        typeof error?.message === "string"
+          ? error.message
+          : "Sign up failed. Please try again.";
+      setAuthError(message);
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!email.trim()) {
+      setAuthError("Enter your email to reset your password.");
+      return;
+    }
+    setIsAuthenticating(true);
+    setAuthError(null);
+    setNotice(null);
+    try {
+      await resetPassword(email.trim());
+      setNotice("Password reset email sent.");
+    } catch {
+      setAuthError("Could not send reset email. Try again.");
     } finally {
       setIsAuthenticating(false);
     }
@@ -83,12 +129,56 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
 
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="m@example.com" className="bg-black/20 border-white/10" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              className="bg-black/20 border-white/10"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              className="bg-black/20 border-white/10"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
           </div>
           <Button onClick={() => handleLogin("email")} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading || isAuthenticating}>
             {(isLoading || isAuthenticating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign In with Email
           </Button>
+          <Button
+            variant="outline"
+            className="border-white/10 hover:bg-white/5 hover:text-white"
+            onClick={handleSignup}
+            disabled={isLoading || isAuthenticating}
+          >
+            Create Account
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-xs text-muted-foreground hover:text-white"
+            onClick={handleReset}
+            disabled={isLoading || isAuthenticating}
+          >
+            Forgot password?
+          </Button>
+          {authError && (
+            <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+              {authError}
+            </div>
+          )}
+          {notice && (
+            <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">
+              {notice}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

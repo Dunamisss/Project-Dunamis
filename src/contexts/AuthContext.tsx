@@ -1,7 +1,14 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { User } from "firebase/auth";
-import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 
 interface AuthContextType {
@@ -10,7 +17,8 @@ interface AuthContextType {
   isLoading: boolean;
   isBanned: boolean;
   accessTier: "free";
-  login: (provider: string) => Promise<void>;
+  login: (provider: string, email?: string, password?: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -34,12 +42,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const login = async (provider: string) => {
+  const login = async (provider: string, email?: string, password?: string) => {
     if (!auth) return;
     if (provider !== "google") {
-      throw new Error("Only Google sign-in is enabled.");
+      if (provider === "email") {
+        if (!email || !password) {
+          throw new Error("Email and password are required.");
+        }
+        await signInWithEmailAndPassword(auth, email, password);
+        return;
+      }
+      if (provider === "signup") {
+        if (!email || !password) {
+          throw new Error("Email and password are required.");
+        }
+        await createUserWithEmailAndPassword(auth, email, password);
+        return;
+      }
+      throw new Error("Unsupported provider.");
     }
     await signInWithPopup(auth, googleProvider);
+  };
+
+  const resetPassword = async (email: string) => {
+    if (!auth) return;
+    await sendPasswordResetEmail(auth, email);
   };
 
   const logout = async () => {
@@ -54,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isBanned: false,
     accessTier: "free",
     login,
+    resetPassword,
     logout,
   };
 
