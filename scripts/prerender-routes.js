@@ -76,7 +76,8 @@ function extractImageIdDates(fileText) {
 }
 
 function extractImageMeta(fileText) {
-  const start = fileText.indexOf("[");
+  const anchor = fileText.indexOf("export const IMAGE_LIBRARY");
+  const start = anchor === -1 ? -1 : fileText.indexOf("[", anchor);
   const end = fileText.lastIndexOf("];");
   if (start === -1 || end === -1) return new Map();
   const jsonText = fileText.slice(start, end + 1);
