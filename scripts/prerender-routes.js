@@ -52,6 +52,19 @@ function extractPromptIdDates(fileText) {
   return records;
 }
 
+function extractPromptMeta(fileText) {
+  const records = new Map();
+  const recordRegex = /\bid\s*:\s*"([^"]+)"[\s\S]*?title\s*:\s*"((?:\\.|[^"\\])*)"[\s\S]*?description\s*:\s*"((?:\\.|[^"\\])*)"/g;
+  let match;
+  while ((match = recordRegex.exec(fileText))) {
+    records.set(match[1], {
+      title: match[2].replace(/\\"/g, "\""),
+      description: match[3].replace(/\\"/g, "\""),
+    });
+  }
+  return records;
+}
+
 function extractImageIdDates(fileText) {
   const records = [];
   const recordRegex = /"id"\s*:\s*"([^"]+)"[\s\S]*?"createdAt"\s*:\s*(\d+)/g;
@@ -60,6 +73,27 @@ function extractImageIdDates(fileText) {
     records.push({ id: match[1], createdAt: Number(match[2]) });
   }
   return records;
+}
+
+function extractImageMeta(fileText) {
+  const start = fileText.indexOf("[");
+  const end = fileText.lastIndexOf("];");
+  if (start === -1 || end === -1) return new Map();
+  const jsonText = fileText.slice(start, end + 1);
+  try {
+    const items = JSON.parse(jsonText);
+    const map = new Map();
+    for (const item of items) {
+      map.set(item.id, {
+        title: item.title,
+        description: item.description,
+        full: item.full,
+      });
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
 }
 
 function toDateString(timestamp) {
@@ -78,8 +112,10 @@ async function getDynamicRoutes() {
 
   const promptRecords = extractPromptIdDates(promptText);
   const promptIds = extractPromptIds(promptText);
+  const promptMeta = extractPromptMeta(promptText);
   const imageRecords = extractImageIdDates(imageText);
   const imageIds = extractImageIds(imageText);
+  const imageMeta = extractImageMeta(imageText);
 
   const promptRoutes = promptIds.map((id) => `/prompt/${id}`);
   const imageRoutes = imageIds.map((id) => `/image/${id}`);
@@ -88,6 +124,8 @@ async function getDynamicRoutes() {
     routes: uniqueSorted([...promptRoutes, ...imageRoutes]),
     promptRecords,
     imageRecords,
+    promptMeta,
+    imageMeta,
   };
 }
 
@@ -171,6 +209,176 @@ async function writeRobots(siteUrl) {
   await fs.writeFile(path.join(distDir, "robots.txt"), content, "utf8");
 }
 
+function escapeAttr(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function upsertTag(html, regex, replacement, insertBefore = "</head>") {
+  if (regex.test(html)) {
+    return html.replace(regex, replacement);
+  }
+  return html.replace(insertBefore, `${replacement}\n${insertBefore}`);
+}
+
+function injectRouteMeta(html, meta) {
+  const titleTag = `<title>${escapeAttr(meta.title)}</title>`;
+  html = upsertTag(html, /<title>[\s\S]*?<\/title>/i, titleTag);
+
+  html = upsertTag(
+    html,
+    /<link\s+rel="canonical"[^>]*>/i,
+    `<link rel="canonical" href="${escapeAttr(meta.url)}" />`,
+  );
+
+  html = upsertTag(
+    html,
+    /<meta\s+name="description"[^>]*>/i,
+    `<meta name="description" content="${escapeAttr(meta.description)}" />`,
+  );
+
+  html = upsertTag(
+    html,
+    /<meta\s+property="og:title"[^>]*>/i,
+    `<meta property="og:title" content="${escapeAttr(meta.title)}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+property="og:description"[^>]*>/i,
+    `<meta property="og:description" content="${escapeAttr(meta.description)}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+property="og:image"[^>]*>/i,
+    `<meta property="og:image" content="${escapeAttr(meta.image)}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+property="og:url"[^>]*>/i,
+    `<meta property="og:url" content="${escapeAttr(meta.url)}" />`,
+  );
+
+  html = upsertTag(
+    html,
+    /<meta\s+name="twitter:title"[^>]*>/i,
+    `<meta name="twitter:title" content="${escapeAttr(meta.title)}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+name="twitter:description"[^>]*>/i,
+    `<meta name="twitter:description" content="${escapeAttr(meta.description)}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+name="twitter:image"[^>]*>/i,
+    `<meta name="twitter:image" content="${escapeAttr(meta.image)}" />`,
+  );
+
+  if (meta.jsonLd) {
+    const jsonLd = `<script type="application/ld+json">${JSON.stringify(meta.jsonLd)}</script>`;
+    html = upsertTag(html, /<script\s+type="application\/ld\+json"[^>]*data-route="page"[^>]*>[\s\S]*?<\/script>/i, jsonLd.replace("<script", "<script data-route=\"page\""));
+  }
+
+  return html;
+}
+
+function buildRouteMeta({
+  route,
+  siteUrl,
+  defaultMeta,
+  promptMeta,
+  imageMeta,
+}) {
+  const base = {
+    title: defaultMeta.title,
+    description: defaultMeta.description,
+    image: defaultMeta.image,
+    url: route === "/" ? `${siteUrl}/` : `${siteUrl}${route}`,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "DUNAMIS",
+      url: siteUrl,
+      description: defaultMeta.description,
+      publisher: {
+        "@type": "Organization",
+        name: "DUNAMIS",
+      },
+    },
+  };
+
+  if (route === "/prompts" || route === "/library") {
+    return {
+      ...base,
+      title: "Prompt Library — DUNAMIS",
+      description: "Browse the Dunamis prompt library: curated prompts for creators who ship.",
+    };
+  }
+  if (route === "/images" || route === "/gallery") {
+    return {
+      ...base,
+      title: "Image Library — DUNAMIS",
+      description: "Explore the Dunamis image library and reverse-engineer prompts.",
+    };
+  }
+
+  if (route.startsWith("/prompt/")) {
+    const id = route.replace("/prompt/", "");
+    const data = promptMeta.get(id);
+    const title = data?.title || id.replace(/-/g, " ");
+    const description = data?.description || base.description;
+    return {
+      ...base,
+      title: `${title} — DUNAMIS`,
+      description,
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "CreativeWork",
+        name: title,
+        description,
+        url: base.url,
+        publisher: {
+          "@type": "Organization",
+          name: "DUNAMIS",
+          url: siteUrl,
+        },
+      },
+    };
+  }
+
+  if (route.startsWith("/image/")) {
+    const id = route.replace("/image/", "");
+    const data = imageMeta.get(id);
+    const title = data?.title || id.replace(/-/g, " ");
+    const description = data?.description || base.description;
+    const imageUrl = data?.full ? `${siteUrl}${data.full}` : base.image;
+    return {
+      ...base,
+      title: `${title} — DUNAMIS`,
+      description,
+      image: imageUrl,
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "ImageObject",
+        name: title,
+        description,
+        contentUrl: imageUrl,
+        url: base.url,
+        publisher: {
+          "@type": "Organization",
+          name: "DUNAMIS",
+          url: siteUrl,
+        },
+      },
+    };
+  }
+
+  return base;
+}
+
 async function main() {
   await ensureFileExists(indexPath);
   const html = await fs.readFile(indexPath, "utf8");
@@ -191,6 +399,35 @@ async function main() {
     dynamicResult.imageRecords,
   );
   await writeRobots(siteUrl);
+
+  const defaultMeta = {
+    title: "DUNAMIS — Precision Prompt Engineering",
+    description: "Build, score, and refine prompts with a production-grade optimizer and auditor built for creators who ship.",
+    image: "https://dunamiss.xyz/dunamis-hero.webp",
+  };
+
+  const updated = await Promise.all(
+    allRoutes.map(async (route) => {
+      const routeHtml = injectRouteMeta(
+        html,
+        buildRouteMeta({
+          route,
+          siteUrl,
+          defaultMeta,
+          promptMeta: dynamicResult.promptMeta,
+          imageMeta: dynamicResult.imageMeta,
+        }),
+      );
+      if (route === "/") {
+        await fs.writeFile(indexPath, routeHtml, "utf8");
+      } else {
+        const routeDir = path.join(distDir, route.replace(/^\//, ""));
+        const outPath = path.join(routeDir, "index.html");
+        await fs.writeFile(outPath, routeHtml, "utf8");
+      }
+      return route;
+    }),
+  );
 
   console.log(`Prerendered ${allRoutes.length - 1} routes into ${distDir}`);
   console.log(`Generated sitemap.xml and robots.txt for ${siteUrl}`);
