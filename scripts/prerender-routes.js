@@ -84,10 +84,11 @@ function extractImageMeta(fileText) {
     const items = JSON.parse(jsonText);
     const map = new Map();
     for (const item of items) {
+      if (!item || !item.id) continue;
       map.set(item.id, {
-        title: item.title,
-        description: item.description,
-        full: item.full,
+        title: item.title || item.id,
+        description: item.description || "",
+        full: item.full || "",
       });
     }
     return map;
