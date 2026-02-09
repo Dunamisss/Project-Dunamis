@@ -9,6 +9,7 @@ import ImageLibrary from "@/pages/ImageLibrary";
 import PromptDetail from "@/pages/PromptDetail";
 import ImageDetail from "@/pages/ImageDetail";
 import Frameworks from "@/pages/Frameworks";
+import Profile from "@/pages/Profile";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
               <Route path="/gallery" component={ImageLibrary} />
               <Route path="/image/:id" component={ImageDetail} />
               <Route path="/frameworks" component={Frameworks} />
+              <Route path="/profile" component={Profile} />
             </Switch>
           </Router>
         </ChatProvider>

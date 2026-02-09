@@ -512,9 +512,16 @@ export default function Home() {
                 </Button>
               </Link>
               {user ? (
-                <Button variant="ghost" onClick={logout} className="text-white hover:text-white">
-                  Sign Out
-                </Button>
+                <>
+                  <Link href="/profile">
+                    <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
+                      Profile
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" onClick={logout} className="text-white hover:text-white">
+                    Sign Out
+                  </Button>
+                </>
               ) : (
                 <AuthModal />
               )}
