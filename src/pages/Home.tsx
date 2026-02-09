@@ -694,6 +694,15 @@ export default function Home() {
                           Pick a framework to drop a proven prompt structure into your box. Edit any line.
                         </TooltipContent>
                       </Tooltip>
+                      <Link href="/frameworks">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded-full border border-yellow-500/40 bg-black/40 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-yellow-200 hover:bg-yellow-500/10"
+                          aria-label="Open frameworks guide"
+                        >
+                          Learn
+                        </button>
+                      </Link>
                     </div>
                     <Select
                       value={frameworkId}
