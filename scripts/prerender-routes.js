@@ -76,26 +76,17 @@ function extractImageIdDates(fileText) {
 }
 
 function extractImageMeta(fileText) {
-  const anchor = fileText.indexOf("export const IMAGE_LIBRARY");
-  const start = anchor === -1 ? -1 : fileText.indexOf("[", anchor);
-  const end = fileText.lastIndexOf("];");
-  if (start === -1 || end === -1) return new Map();
-  const jsonText = fileText.slice(start, end + 1);
-  try {
-    const items = JSON.parse(jsonText);
-    const map = new Map();
-    for (const item of items) {
-      if (!item || !item.id) continue;
-      map.set(item.id, {
-        title: item.title || item.id,
-        description: item.description || "",
-        full: item.full || "",
-      });
-    }
-    return map;
-  } catch {
-    return new Map();
+  const map = new Map();
+  const recordRegex = /"id"\s*:\s*"([^"]+)"[\s\S]*?"title"\s*:\s*"([^"]*)"[\s\S]*?"description"\s*:\s*"([^"]*)"[\s\S]*?"full"\s*:\s*"([^"]*)"/g;
+  let match;
+  while ((match = recordRegex.exec(fileText))) {
+    map.set(match[1], {
+      title: match[2],
+      description: match[3],
+      full: match[4],
+    });
   }
+  return map;
 }
 
 function toDateString(timestamp) {
