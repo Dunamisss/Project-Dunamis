@@ -506,6 +506,11 @@ export default function Home() {
                   Image Library
                 </Button>
               </Link>
+              <Link href="/frameworks">
+                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
+                  Frameworks
+                </Button>
+              </Link>
               {user ? (
                 <Button variant="ghost" onClick={logout} className="text-white hover:text-white">
                   Sign Out
@@ -561,8 +566,31 @@ export default function Home() {
                   Browse Image Library
                 </Button>
               </Link>
+              <Link href="/frameworks">
+                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                  View Frameworks
+                </Button>
+              </Link>
             </div>
           </div>
+          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 shadow-lg">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Frameworks</p>
+                <h2 className="text-2xl md:text-3xl font-semibold text-yellow-200">
+                  Practical Prompting Frameworks
+                </h2>
+                <p className="text-sm text-gray-300 max-w-2xl">
+                  Clear templates that explain what each structure does, when to use it, and how to apply it fast.
+                </p>
+              </div>
+              <Link href="/frameworks">
+                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                  Open Frameworks
+                </Button>
+              </Link>
+            </div>
+          </section>
           <section ref={optimizerRef} className="pt-12 space-y-6">
             {!user && (
               <div className="rounded-lg border border-yellow-500/40 bg-black/80 p-6 text-center shadow-lg">

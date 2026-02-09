@@ -8,7 +8,7 @@ const indexPath = path.join(distDir, "index.html");
 const promptLibraryPath = path.resolve(__dirname, "..", "src", "data", "promptLibrary.ts");
 const imageLibraryPath = path.resolve(__dirname, "..", "src", "data", "imageLibrary.ts");
 
-const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery"];
+const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks"];
 
 async function ensureFileExists(filePath) {
   try {
@@ -315,6 +315,13 @@ function buildRouteMeta({
       ...base,
       title: "Image Library — DUNAMIS",
       description: "Explore the Dunamis image library and reverse-engineer prompts.",
+    };
+  }
+  if (route === "/frameworks") {
+    return {
+      ...base,
+      title: "Prompting Frameworks — DUNAMIS",
+      description: "Practical prompting frameworks with clear structure, examples, and best-use guidance.",
     };
   }
 
