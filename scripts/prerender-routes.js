@@ -44,7 +44,7 @@ function extractImageIds(fileText) {
 
 function extractPromptIdDates(fileText) {
   const records = [];
-  const recordRegex = /\bid\s*:\s*"([^"]+)"[\s\S]{0,500}?createdAt\s*:\s*(\d+)/g;
+  const recordRegex = /\bid\s*:\s*"([^"]+)"[\s\S]*?createdAt\s*:\s*(\d+)/g;
   let match;
   while ((match = recordRegex.exec(fileText))) {
     records.push({ id: match[1], createdAt: Number(match[2]) });
@@ -54,7 +54,7 @@ function extractPromptIdDates(fileText) {
 
 function extractImageIdDates(fileText) {
   const records = [];
-  const recordRegex = /"id"\s*:\s*"([^"]+)"[\s\S]{0,300}?"createdAt"\s*:\s*(\d+)/g;
+  const recordRegex = /"id"\s*:\s*"([^"]+)"[\s\S]*?"createdAt"\s*:\s*(\d+)/g;
   let match;
   while ((match = recordRegex.exec(fileText))) {
     records.push({ id: match[1], createdAt: Number(match[2]) });
@@ -77,10 +77,12 @@ async function getDynamicRoutes() {
   ]);
 
   const promptRecords = extractPromptIdDates(promptText);
+  const promptIds = extractPromptIds(promptText);
   const imageRecords = extractImageIdDates(imageText);
+  const imageIds = extractImageIds(imageText);
 
-  const promptRoutes = promptRecords.map((item) => `/prompt/${item.id}`);
-  const imageRoutes = imageRecords.map((item) => `/image/${item.id}`);
+  const promptRoutes = promptIds.map((id) => `/prompt/${id}`);
+  const imageRoutes = imageIds.map((id) => `/image/${id}`);
 
   return {
     routes: uniqueSorted([...promptRoutes, ...imageRoutes]),
