@@ -24,7 +24,7 @@ function uniqueSorted(list) {
 
 function extractPromptIds(fileText) {
   const ids = [];
-  const idRegex = /\\bid\\s*:\\s*\"([^\"]+)\"/g;
+  const idRegex = /\bid\s*:\s*"([^"]+)"/g;
   let match;
   while ((match = idRegex.exec(fileText))) {
     ids.push(match[1]);
@@ -34,7 +34,7 @@ function extractPromptIds(fileText) {
 
 function extractImageIds(fileText) {
   const ids = [];
-  const idRegex = /\"id\"\\s*:\\s*\"([^\"]+)\"/g;
+  const idRegex = /"id"\s*:\s*"([^"]+)"/g;
   let match;
   while ((match = idRegex.exec(fileText))) {
     ids.push(match[1]);
@@ -44,7 +44,7 @@ function extractImageIds(fileText) {
 
 function extractPromptIdDates(fileText) {
   const records = [];
-  const recordRegex = /\\bid\\s*:\\s*\"([^\"]+)\"[\\s\\S]{0,500}?createdAt\\s*:\\s*(\\d+)/g;
+  const recordRegex = /\bid\s*:\s*"([^"]+)"[\s\S]{0,500}?createdAt\s*:\s*(\d+)/g;
   let match;
   while ((match = recordRegex.exec(fileText))) {
     records.push({ id: match[1], createdAt: Number(match[2]) });
@@ -54,7 +54,7 @@ function extractPromptIdDates(fileText) {
 
 function extractImageIdDates(fileText) {
   const records = [];
-  const recordRegex = /\"id\"\\s*:\\s*\"([^\"]+)\"[\\s\\S]{0,300}?\"createdAt\"\\s*:\\s*(\\d+)/g;
+  const recordRegex = /"id"\s*:\s*"([^"]+)"[\s\S]{0,300}?"createdAt"\s*:\s*(\d+)/g;
   let match;
   while ((match = recordRegex.exec(fileText))) {
     records.push({ id: match[1], createdAt: Number(match[2]) });
@@ -93,7 +93,7 @@ async function writeRoute(route, html) {
   if (route === "/") {
     return;
   }
-  const routeDir = path.join(distDir, route.replace(/^\\//, ""));
+  const routeDir = path.join(distDir, route.replace(/^\//, ""));
   await fs.mkdir(routeDir, { recursive: true });
   const outPath = path.join(routeDir, "index.html");
   await fs.writeFile(outPath, html, "utf8");
@@ -105,7 +105,7 @@ function normalizeSiteUrl(url) {
 }
 
 function extractCanonicalUrl(html) {
-  const match = html.match(/rel=\"canonical\"\\s+href=\"([^\"]+)\"/i);
+  const match = html.match(/rel="canonical"\s+href="([^"]+)"/i);
   return match ? match[1] : null;
 }
 
@@ -147,7 +147,7 @@ async function writeSitemap(siteUrl, routes, promptRecords, imageRecords) {
       (route === "/prompts" || route === "/library" ? latestPrompt : null) ||
       (route === "/images" || route === "/gallery" ? latestImage : null) ||
       today;
-    return `  <url>\\n    <loc>${loc}</loc>\\n    <lastmod>${lastmod}</lastmod>\\n  </url>`;
+    return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
   });
   const xml = [
     `<?xml version="1.0" encoding="UTF-8"?>`,
@@ -155,7 +155,7 @@ async function writeSitemap(siteUrl, routes, promptRecords, imageRecords) {
     ...entries,
     `</urlset>`,
     ``,
-  ].join("\\n");
+  ].join("\n");
   await fs.writeFile(path.join(distDir, "sitemap.xml"), xml, "utf8");
 }
 
