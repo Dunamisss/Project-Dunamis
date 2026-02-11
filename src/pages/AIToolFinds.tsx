@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 type ToolEntry = {
@@ -12,6 +13,7 @@ type ToolEntry = {
   dunamisTip: string;
   relatedPrompt: string;
   accent: string;
+  screenshot?: string;
 };
 
 const TOOL_ENTRIES: ToolEntry[] = [
@@ -26,6 +28,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use the optimizer first, then paste the improved prompt into Flux.",
     relatedPrompt: "reverse-engineer-image",
     accent: "from-orange-400/30 via-yellow-300/20 to-rose-400/30",
+    screenshot: "/images/tools/flux-kontext-pro.webp",
   },
   {
     id: "perplexity",
@@ -38,6 +41,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use a Dunamis prompt template to structure your research questions.",
     relatedPrompt: "80-20-method",
     accent: "from-cyan-400/30 via-sky-400/20 to-indigo-400/30",
+    screenshot: "/images/tools/perplexity.webp",
   },
   {
     id: "chatgpt",
@@ -50,6 +54,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Draft in Dunamis, then run final prompt in ChatGPT.",
     relatedPrompt: "suno-v5",
     accent: "from-emerald-400/30 via-teal-400/20 to-lime-400/30",
+    screenshot: "/images/tools/chatgpt.webp",
   },
   {
     id: "gemini",
@@ -62,6 +67,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use Dunamis framework templates before sending to Gemini.",
     relatedPrompt: "github-search-script",
     accent: "from-blue-400/30 via-violet-400/20 to-pink-400/30",
+    screenshot: "/images/tools/gemini.webp",
   },
   {
     id: "claude",
@@ -74,8 +80,40 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use an audit-style prompt from Dunamis to force clearer output.",
     relatedPrompt: "prompt-revealer",
     accent: "from-amber-400/30 via-orange-400/20 to-red-400/30",
+    screenshot: "/images/tools/claude.webp",
   },
 ];
+
+function ToolPreview({ tool }: { tool: ToolEntry }) {
+  const [broken, setBroken] = useState(false);
+  const canShowImage = Boolean(tool.screenshot) && !broken;
+
+  if (canShowImage) {
+    return (
+      <img
+        src={tool.screenshot}
+        alt={`${tool.name} screenshot`}
+        loading="lazy"
+        onError={() => setBroken(true)}
+        className="mt-3 h-[170px] w-full rounded-md border border-white/10 bg-black/40 object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-md border border-white/10 bg-black/40 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full bg-red-300/70" />
+        <span className="h-2 w-2 rounded-full bg-yellow-300/70" />
+        <span className="h-2 w-2 rounded-full bg-green-300/70" />
+        <span className="ml-2 text-[10px] text-gray-200/80">preview</span>
+      </div>
+      <div className="h-2 rounded bg-white/10" />
+      <div className="h-2 w-11/12 rounded bg-white/10" />
+      <div className="h-2 w-8/12 rounded bg-white/10" />
+    </div>
+  );
+}
 
 export default function AIToolFinds() {
   return (
@@ -88,6 +126,9 @@ export default function AIToolFinds() {
             <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">AI Tool Finds</h1>
             <p className="text-sm text-gray-300 max-w-3xl">
               Curated free/low-cost AI tools we test, plus how to pair each one with Dunamis prompts.
+            </p>
+            <p className="text-xs text-gray-400">
+              Screenshot paths: <code className="text-yellow-200">public/images/tools/*.webp</code>
             </p>
           </div>
           <Link href="/">
@@ -107,17 +148,7 @@ export default function AIToolFinds() {
                     Tool Find
                   </span>
                 </div>
-                <div className="mt-3 rounded-md border border-white/10 bg-black/40 p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-red-300/70" />
-                    <span className="h-2 w-2 rounded-full bg-yellow-300/70" />
-                    <span className="h-2 w-2 rounded-full bg-green-300/70" />
-                    <span className="ml-2 text-[10px] text-gray-200/80">preview</span>
-                  </div>
-                  <div className="h-2 rounded bg-white/10" />
-                  <div className="h-2 w-11/12 rounded bg-white/10" />
-                  <div className="h-2 w-8/12 rounded bg-white/10" />
-                </div>
+                <ToolPreview tool={tool} />
               </div>
               <div className="space-y-1">
                 <a
