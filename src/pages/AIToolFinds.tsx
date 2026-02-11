@@ -11,6 +11,7 @@ type ToolEntry = {
   watchOut: string;
   dunamisTip: string;
   relatedPrompt: string;
+  accent: string;
 };
 
 const TOOL_ENTRIES: ToolEntry[] = [
@@ -24,6 +25,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     watchOut: "Vague prompts produce inconsistent results.",
     dunamisTip: "Use the optimizer first, then paste the improved prompt into Flux.",
     relatedPrompt: "reverse-engineer-image",
+    accent: "from-orange-400/30 via-yellow-300/20 to-rose-400/30",
   },
   {
     id: "perplexity",
@@ -35,6 +37,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     watchOut: "Verify cited sources before publishing important claims.",
     dunamisTip: "Use a Dunamis prompt template to structure your research questions.",
     relatedPrompt: "80-20-method",
+    accent: "from-cyan-400/30 via-sky-400/20 to-indigo-400/30",
   },
   {
     id: "chatgpt",
@@ -46,6 +49,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     watchOut: "Outputs improve a lot with clear constraints and format requests.",
     dunamisTip: "Draft in Dunamis, then run final prompt in ChatGPT.",
     relatedPrompt: "suno-v5",
+    accent: "from-emerald-400/30 via-teal-400/20 to-lime-400/30",
   },
   {
     id: "gemini",
@@ -57,6 +61,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     watchOut: "Large tasks still need explicit output structure.",
     dunamisTip: "Use Dunamis framework templates before sending to Gemini.",
     relatedPrompt: "github-search-script",
+    accent: "from-blue-400/30 via-violet-400/20 to-pink-400/30",
   },
   {
     id: "claude",
@@ -68,6 +73,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     watchOut: "May stay too general unless you request strict output sections.",
     dunamisTip: "Use an audit-style prompt from Dunamis to force clearer output.",
     relatedPrompt: "prompt-revealer",
+    accent: "from-amber-400/30 via-orange-400/20 to-red-400/30",
   },
 ];
 
@@ -93,9 +99,27 @@ export default function AIToolFinds() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {TOOL_ENTRIES.map((tool) => (
-            <div key={tool.id} className="rounded-lg border border-yellow-500/20 bg-black/60 p-5 shadow-lg space-y-3">
+            <div key={tool.id} className="rounded-xl border border-yellow-500/20 bg-black/60 p-5 shadow-lg space-y-4">
+              <div className={`rounded-lg border border-white/10 bg-gradient-to-r ${tool.accent} p-4`}>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-xl font-semibold text-yellow-100">{tool.name}</h2>
+                  <span className="rounded-full border border-yellow-300/40 bg-black/40 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-yellow-200">
+                    Tool Find
+                  </span>
+                </div>
+                <div className="mt-3 rounded-md border border-white/10 bg-black/40 p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-red-300/70" />
+                    <span className="h-2 w-2 rounded-full bg-yellow-300/70" />
+                    <span className="h-2 w-2 rounded-full bg-green-300/70" />
+                    <span className="ml-2 text-[10px] text-gray-200/80">preview</span>
+                  </div>
+                  <div className="h-2 rounded bg-white/10" />
+                  <div className="h-2 w-11/12 rounded bg-white/10" />
+                  <div className="h-2 w-8/12 rounded bg-white/10" />
+                </div>
+              </div>
               <div className="space-y-1">
-                <h2 className="text-xl font-semibold text-yellow-100">{tool.name}</h2>
                 <a
                   href={tool.url}
                   target="_blank"
@@ -110,7 +134,12 @@ export default function AIToolFinds() {
               <p className="text-sm text-gray-300"><span className="text-yellow-200">Free limits:</span> {tool.freeLimits}</p>
               <p className="text-sm text-gray-300"><span className="text-yellow-200">Watch out:</span> {tool.watchOut}</p>
               <p className="text-sm text-gray-300"><span className="text-yellow-200">Use with Dunamis:</span> {tool.dunamisTip}</p>
-              <div className="pt-2">
+              <div className="pt-2 flex items-center gap-3 flex-wrap">
+                <a href={tool.url} target="_blank" rel="noopener noreferrer">
+                  <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                    Visit Tool
+                  </Button>
+                </a>
                 <Link href={`/prompt/${tool.relatedPrompt}`}>
                   <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                     Related Prompt
@@ -124,4 +153,3 @@ export default function AIToolFinds() {
     </div>
   );
 }
-
