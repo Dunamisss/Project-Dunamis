@@ -6,9 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { addDoc, collection } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 type SubmissionType = "prompt" | "image";
 type PromptCategory =
@@ -55,7 +54,7 @@ export default function SubmitPrompt() {
   const [imageDescription, setImageDescription] = useState("");
   const [imageTags, setImageTags] = useState("");
   const [imagePromptUsed, setImagePromptUsed] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
 
   const resetPromptForm = () => {
     setPromptTitle("");
@@ -70,7 +69,7 @@ export default function SubmitPrompt() {
     setImageDescription("");
     setImageTags("");
     setImagePromptUsed("");
-    setImageFile(null);
+    setImageUrl("");
   };
 
   const submitPrompt = async () => {
@@ -99,15 +98,14 @@ export default function SubmitPrompt() {
 
   const submitImage = async () => {
     if (!user) return;
-    if (!imageTitle.trim() || !imageDescription.trim() || !imageFile) {
-      setMessage("Please fill in title, description, and choose an image file.");
+    if (!imageTitle.trim() || !imageDescription.trim() || !imageUrl.trim()) {
+      setMessage("Please fill in title, description, and image URL.");
       return;
     }
-    const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-    const storagePath = `submissions/images/${user.uid}/${Date.now()}-${safeName}`;
-    const fileRef = ref(storage, storagePath);
-    await uploadBytes(fileRef, imageFile);
-    const imageUrl = await getDownloadURL(fileRef);
+    if (!/^https?:\/\//i.test(imageUrl.trim())) {
+      setMessage("Image URL must start with http:// or https://");
+      return;
+    }
 
     await addDoc(collection(db, "submissions"), {
       type: "image",
@@ -116,9 +114,8 @@ export default function SubmitPrompt() {
       description: imageDescription.trim(),
       tags: parseTags(imageTags),
       promptUsed: imagePromptUsed.trim(),
-      imageUrl,
-      thumbUrl: imageUrl,
-      storagePath,
+      imageUrl: imageUrl.trim(),
+      thumbUrl: imageUrl.trim(),
       userId: user.uid,
       userEmail: user.email || "",
       userDisplayName: user.displayName || "Dunamis Member",
@@ -246,10 +243,10 @@ export default function SubmitPrompt() {
                   className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
                 />
                 <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
-                  className="bg-black/40 border-yellow-500/30 text-white file:text-yellow-200"
+                  value={imageUrl}
+                  onChange={(event) => setImageUrl(event.target.value)}
+                  placeholder="Image URL (https://...)"
+                  className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
                 />
               </TabsContent>
             </Tabs>
