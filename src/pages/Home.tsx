@@ -24,6 +24,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronDown, Info, Maximize2, Minimize2, Trash2 } from "lucide-react";
 import { Link } from "wouter";
+import { db } from "@/lib/firebase";
+import { addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query } from "firebase/firestore";
 
 const SHOW_TIMING = false;
 
@@ -185,6 +187,14 @@ export default function Home() {
     label: "ChatGPT",
     url: "https://chatgpt.com/",
   });
+  const [historyItems, setHistoryItems] = useState<Array<{
+    id: string;
+    input: string;
+    output: string;
+    mode: "optimize" | "audit" | "fix";
+    createdAt: number;
+  }>>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const optimizerRef = useRef<HTMLDivElement>(null);
   const copyTimeoutRef = useRef<number | null>(null);
 
@@ -268,6 +278,11 @@ export default function Home() {
         setVpnWarning(data.vpnWarning);
         setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
       }
+      void saveHistoryItem({
+        input: promptInput.trim(),
+        output: data?.output ?? "",
+        mode: mode === "audit" ? "audit" : "optimize",
+      });
     } catch (error) {
       setOptimizerError((error as Error).message);
     } finally {
@@ -381,6 +396,11 @@ export default function Home() {
         setVpnWarning(data.vpnWarning);
         setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
       }
+      void saveHistoryItem({
+        input: lastAuditInput.trim(),
+        output: data?.output ?? "",
+        mode: "fix",
+      });
     } catch (error) {
       setOptimizerError((error as Error).message);
     } finally {
@@ -454,6 +474,98 @@ export default function Home() {
     showCopyFeedback(`Copied. Opening ${provider.label}...`);
     window.open(provider.url, "_blank", "noopener,noreferrer");
   };
+
+  const saveHistoryItem = async ({
+    input,
+    output,
+    mode: itemMode,
+  }: {
+    input: string;
+    output: string;
+    mode: "optimize" | "audit" | "fix";
+  }) => {
+    if (!user?.uid) return;
+    const trimmedInput = input.trim();
+    const trimmedOutput = output.trim();
+    if (!trimmedInput || !trimmedOutput) return;
+    try {
+      await addDoc(collection(db, "users", user.uid, "optimizerHistory"), {
+        input: trimmedInput,
+        output: trimmedOutput,
+        mode: itemMode,
+        createdAt: Date.now(),
+      });
+    } catch {
+      // Silent fail: history should not block optimizer flow.
+    }
+  };
+
+  const loadFromHistory = (item: {
+    input: string;
+    output: string;
+    mode: "optimize" | "audit" | "fix";
+  }) => {
+    setPromptInput(item.input);
+    setOptimizedOutput(item.output);
+    setOutputKind(item.mode);
+    setMode(item.mode === "audit" ? "audit" : "optimize");
+    setOptimizerError(null);
+    setCopyFeedback("Loaded from recent history.");
+    if (optimizerRef.current) {
+      optimizerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const removeHistoryItem = async (itemId: string) => {
+    if (!user?.uid) return;
+    try {
+      await deleteDoc(doc(db, "users", user.uid, "optimizerHistory", itemId));
+      setCopyFeedback("History item deleted.");
+    } catch {
+      setCopyFeedback("Could not delete history item.");
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setHistoryItems([]);
+      return;
+    }
+
+    setLoadingHistory(true);
+    const historyQuery = query(
+      collection(db, "users", user.uid, "optimizerHistory"),
+      orderBy("createdAt", "desc"),
+      limit(12),
+    );
+    const unsubscribe = onSnapshot(
+      historyQuery,
+      (snapshot) => {
+        const next = snapshot.docs.map((historyDoc) => {
+          const data = historyDoc.data() as {
+            input?: string;
+            output?: string;
+            mode?: "optimize" | "audit" | "fix";
+            createdAt?: number;
+          };
+          return {
+            id: historyDoc.id,
+            input: data.input || "",
+            output: data.output || "",
+            mode: data.mode || "optimize",
+            createdAt: Number(data.createdAt || Date.now()),
+          };
+        });
+        setHistoryItems(next);
+        setLoadingHistory(false);
+      },
+      () => {
+        setLoadingHistory(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   const selectedFramework = FRAMEWORK_TEMPLATES.find((item) => item.id === frameworkId);
 
@@ -936,6 +1048,60 @@ export default function Home() {
                       : outputKind === "audit"
                         ? "Audit mode is for scoring and critique. Use Fix It to generate a rewritten prompt."
                         : "We copy the prompt and open your provider in a new tab. Browsers don’t allow auto‑pasting into other sites."}
+                  </div>
+                  <div className="rounded-md border border-yellow-500/20 bg-black/40 p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs uppercase tracking-[0.25em] text-gray-400">Recent History</p>
+                      <p className="text-[11px] text-gray-400">Last 12 results</p>
+                    </div>
+                    {loadingHistory ? (
+                      <p className="text-[12px] text-gray-300">Loading history...</p>
+                    ) : historyItems.length === 0 ? (
+                      <p className="text-[12px] text-gray-300">No history yet. Your results will appear here automatically.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {historyItems.map((item) => {
+                          const preview = item.input.replace(/\s+/g, " ").trim();
+                          const modeLabel = item.mode === "fix" ? "Fix" : item.mode === "audit" ? "Audit" : "Optimize";
+                          return (
+                            <div key={item.id} className="rounded-md border border-yellow-500/20 bg-black/30 p-2 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-[11px] text-yellow-200">{modeLabel}</p>
+                                <p className="text-[10px] text-gray-400">
+                                  {new Date(item.createdAt).toLocaleString()}
+                                </p>
+                              </div>
+                              <p className="text-[11px] text-gray-300 line-clamp-2">
+                                {preview || "No input text"}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  variant="outline"
+                                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                                  onClick={() => loadFromHistory(item)}
+                                >
+                                  Load
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                                  onClick={() => copyToClipboard(item.output)}
+                                >
+                                  Copy Output
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="border-red-500/40 text-red-300 hover:bg-red-500/10"
+                                  onClick={() => removeHistoryItem(item.id)}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   {SHOW_TIMING && timingInfo && (
                     <div className="text-[11px] text-gray-400">
