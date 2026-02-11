@@ -1,42 +1,70 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accessTier == "admin"
+      );
+    }
 
     // Users can read and update their own profile
     match /users/{userId} {
       allow read: if true; // public profiles readable
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if isOwner(userId);
     }
 
     // Private prompt packs per user profile
     match /users/{userId}/promptPacks/{packId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
     }
 
     // Private optimizer history per user profile
     match /users/{userId}/optimizerHistory/{itemId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
+    }
+
+    // Unified community submissions flow
+    match /submissions/{submissionId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (request.resource.data.type == "prompt" || request.resource.data.type == "image")
+        && request.resource.data.status == "pending";
+
+      allow read: if isAdmin()
+        || resource.data.status == "approved"
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow update, delete: if isAdmin();
     }
 
     // Prompt submissions are moderatable; authenticated users can create
     // Only admins may create submissions marked as 'bulk' (server/admin uploads)
     // LOCKED prompts only readable by admins
     match /promptSubmissions/{submissionId} {
-      allow create: if request.auth != null
+      allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && (
           // If no submissionSource or it's 'form', allow for any authenticated user
           !(request.resource.data.submissionSource == 'bulk')
-          || request.auth.token.admin == true
+          || isAdmin()
         );
       allow read: if 
         // Admins can always read
-        request.auth.token.admin == true
+        isAdmin()
         || (
           // Non-admins can read only if not locked
           !resource.data.isLocked
         );
-      allow update, delete: if request.auth != null && request.auth.token.admin == true;
+      allow update, delete: if isAdmin();
     }
 
     // Default deny

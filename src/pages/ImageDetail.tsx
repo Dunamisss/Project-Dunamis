@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { IMAGE_LIBRARY } from "@/data/imageLibrary";
+import { IMAGE_LIBRARY, type ImageLibraryItem } from "@/data/imageLibrary";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
 import ShareMenu from "@/components/ShareMenu";
+import { db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 
 const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-simple");
 
@@ -65,12 +67,48 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
   const [, setLocation] = useLocation();
   const { loadPrompt } = useChat();
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [communityImage, setCommunityImage] = useState<ImageLibraryItem | null>(null);
   const imageId = params?.id;
+  const sourceId = imageId?.startsWith("community-") ? imageId.replace("community-", "") : null;
 
-  const image = useMemo(
+  const staticImage = useMemo(
     () => IMAGE_LIBRARY.find((item) => item.id === imageId),
     [imageId]
   );
+  const image = staticImage || communityImage;
+
+  useEffect(() => {
+    if (!sourceId) {
+      setCommunityImage(null);
+      return;
+    }
+    const ref = doc(db, "submissions", sourceId);
+    const unsubscribe = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          setCommunityImage(null);
+          return;
+        }
+        const data = snap.data() as Record<string, any>;
+        if (data.type !== "image" || data.status !== "approved" || !data.imageUrl) {
+          setCommunityImage(null);
+          return;
+        }
+        setCommunityImage({
+          id: `community-${snap.id}`,
+          title: data.title || "Community Image",
+          description: data.description || "Community submitted image.",
+          tags: Array.isArray(data.tags) ? data.tags : [],
+          full: data.imageUrl,
+          thumb: data.thumbUrl || data.imageUrl,
+          createdAt: Number(data.approvedAt || data.createdAt || Date.now()),
+        });
+      },
+      () => setCommunityImage(null),
+    );
+    return () => unsubscribe();
+  }, [sourceId]);
 
   useEffect(() => {
     if (!image) {
@@ -95,7 +133,7 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
     document.title = `${image.title} — DUNAMIS`;
     const description = image.description || DEFAULT_META.description;
     const url = window.location.href;
-    const imageUrl = `${window.location.origin}${image.full}`;
+    const imageUrl = image.full.startsWith("http") ? image.full : `${window.location.origin}${image.full}`;
     setMeta("description", description);
     setMeta("canonical", url);
     setMeta("og:title", `${image.title} — DUNAMIS`);

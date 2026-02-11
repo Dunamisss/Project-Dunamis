@@ -10,6 +10,8 @@ import PromptDetail from "@/pages/PromptDetail";
 import ImageDetail from "@/pages/ImageDetail";
 import Frameworks from "@/pages/Frameworks";
 import Profile from "@/pages/Profile";
+import SubmitPrompt from "@/pages/SubmitPrompt";
+import AdminSubmissions from "@/pages/AdminSubmissions";
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
               <Route path="/image/:id" component={ImageDetail} />
               <Route path="/frameworks" component={Frameworks} />
               <Route path="/profile" component={Profile} />
+              <Route path="/submit" component={SubmitPrompt} />
+              <Route path="/admin/submissions" component={AdminSubmissions} />
             </Switch>
           </Router>
         </ChatProvider>

@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShareMenu from "@/components/ShareMenu";
-import { IMAGE_LIBRARY } from "@/data/imageLibrary";
+import { IMAGE_LIBRARY, type ImageLibraryItem } from "@/data/imageLibrary";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, orderBy, query as fsQuery } from "firebase/firestore";
 
 const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-simple");
 const PAGE_SIZE = 24;
@@ -24,17 +26,50 @@ export default function ImageLibrary() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [communityImages, setCommunityImages] = useState<ImageLibraryItem[]>([]);
+
+  useEffect(() => {
+    const submissionsQuery = fsQuery(collection(db, "submissions"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(
+      submissionsQuery,
+      (snapshot) => {
+        const approved: ImageLibraryItem[] = [];
+        snapshot.docs.forEach((docSnap) => {
+          const item = docSnap.data() as Record<string, unknown>;
+          if (item.type !== "image" || item.status !== "approved" || !item.imageUrl) return;
+          approved.push({
+            id: `community-${docSnap.id}`,
+            title: String(item.title || "Community Image"),
+            description: String(item.description || "Community submitted image."),
+            tags: Array.isArray(item.tags) ? (item.tags as string[]) : [],
+            full: String(item.imageUrl),
+            thumb: String(item.thumbUrl || item.imageUrl),
+            createdAt: Number(item.approvedAt || item.createdAt || Date.now()),
+          });
+        });
+        setCommunityImages(approved);
+      },
+      () => setCommunityImages([]),
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const libraryImages = useMemo(() => {
+    const map = new Map<string, ImageLibraryItem>();
+    [...communityImages, ...IMAGE_LIBRARY].forEach((item) => map.set(item.id, item));
+    return Array.from(map.values());
+  }, [communityImages]);
 
   const availableTags = useMemo(() => {
     const tagSet = new Set<string>();
-    IMAGE_LIBRARY.forEach((image) => image.tags.forEach((tag) => tagSet.add(tag)));
+    libraryImages.forEach((image) => image.tags.forEach((tag) => tagSet.add(tag)));
     return ["All", ...Array.from(tagSet).sort()];
-  }, []);
+  }, [libraryImages]);
 
   const filteredImages = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return IMAGE_LIBRARY;
-    return IMAGE_LIBRARY.filter((image) => {
+    if (!q) return libraryImages;
+    return libraryImages.filter((image) => {
       const haystack = [
         image.title,
         image.description,
@@ -44,7 +79,7 @@ export default function ImageLibrary() {
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [query]);
+  }, [query, libraryImages]);
 
   const filteredByTag = useMemo(() => {
     if (tagFilter === "All") return filteredImages;
@@ -134,6 +169,11 @@ export default function ImageLibrary() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/submit">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Submit Image
+              </Button>
+            </Link>
             <Link href="/">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                 Back to Optimizer

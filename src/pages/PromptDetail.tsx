@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { PROMPT_LIBRARY } from "@/data/promptLibrary";
+import { PROMPT_LIBRARY, type PromptLibraryItem } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
 import ShareMenu from "@/components/ShareMenu";
 import AddToPackDialog from "@/components/AddToPackDialog";
@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 
 const tryInProviders = [
   { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com/" },
@@ -82,12 +84,48 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
   const [, setLocation] = useLocation();
   const { loadPrompt } = useChat();
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [communityPrompt, setCommunityPrompt] = useState<PromptLibraryItem | null>(null);
   const promptId = params?.id;
+  const sourceId = promptId?.startsWith("community-") ? promptId.replace("community-", "") : null;
 
-  const prompt = useMemo(
+  const staticPrompt = useMemo(
     () => PROMPT_LIBRARY.find((item) => item.id === promptId),
     [promptId]
   );
+  const prompt = staticPrompt || communityPrompt;
+
+  useEffect(() => {
+    if (!sourceId) {
+      setCommunityPrompt(null);
+      return;
+    }
+    const ref = doc(db, "submissions", sourceId);
+    const unsubscribe = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          setCommunityPrompt(null);
+          return;
+        }
+        const data = snap.data() as Record<string, any>;
+        if (data.type !== "prompt" || data.status !== "approved") {
+          setCommunityPrompt(null);
+          return;
+        }
+        setCommunityPrompt({
+          id: `community-${snap.id}`,
+          title: data.title || "Community Prompt",
+          category: data.category || "Other",
+          description: data.description || "Community submitted prompt.",
+          tags: Array.isArray(data.tags) ? data.tags : [],
+          content: data.promptContent || "",
+          createdAt: Number(data.approvedAt || data.createdAt || Date.now()),
+        });
+      },
+      () => setCommunityPrompt(null),
+    );
+    return () => unsubscribe();
+  }, [sourceId]);
 
   useEffect(() => {
     if (!prompt) {

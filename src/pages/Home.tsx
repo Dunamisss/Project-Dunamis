@@ -640,11 +640,21 @@ export default function Home() {
                   Frameworks
                 </Button>
               </Link>
+              <Link href="/submit">
+                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
+                  Submit
+                </Button>
+              </Link>
               {user ? (
                 <>
                   <Link href="/profile">
                     <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
                       Profile
+                    </Button>
+                  </Link>
+                  <Link href="/admin/submissions">
+                    <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
+                      Moderation
                     </Button>
                   </Link>
                   <Button variant="ghost" onClick={logout} className="text-white hover:text-white">

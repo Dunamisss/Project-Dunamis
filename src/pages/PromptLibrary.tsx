@@ -12,8 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { PROMPT_LIBRARY } from "@/data/promptLibrary";
+import { PROMPT_LIBRARY, type PromptLibraryItem } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, orderBy, query as fsQuery } from "firebase/firestore";
 
 const categories = ["All", "Art", "Marketing", "Development", "Business", "Creative Writing", "Productivity", "SEO", "Other"] as const;
 const tryInProviders = [
@@ -36,10 +38,43 @@ export default function PromptLibrary() {
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [communityPrompts, setCommunityPrompts] = useState<PromptLibraryItem[]>([]);
+
+  useEffect(() => {
+    const submissionsQuery = fsQuery(collection(db, "submissions"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(
+      submissionsQuery,
+      (snapshot) => {
+        const approved: PromptLibraryItem[] = [];
+        snapshot.docs.forEach((docSnap) => {
+          const item = docSnap.data() as Record<string, unknown>;
+          if (item.type !== "prompt" || item.status !== "approved") return;
+          approved.push({
+            id: `community-${docSnap.id}`,
+            title: String(item.title || "Community Prompt"),
+            category: String(item.category || "Other") as PromptLibraryItem["category"],
+            description: String(item.description || "Community submitted prompt."),
+            tags: Array.isArray(item.tags) ? (item.tags as string[]) : [],
+            content: String(item.promptContent || ""),
+            createdAt: Number(item.approvedAt || item.createdAt || Date.now()),
+          });
+        });
+        setCommunityPrompts(approved);
+      },
+      () => setCommunityPrompts([]),
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const libraryItems = useMemo(() => {
+    const map = new Map<string, PromptLibraryItem>();
+    [...communityPrompts, ...PROMPT_LIBRARY].forEach((item) => map.set(item.id, item));
+    return Array.from(map.values());
+  }, [communityPrompts]);
 
   const filteredPrompts = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return PROMPT_LIBRARY.filter((prompt) => {
+    return libraryItems.filter((prompt) => {
       const matchesCategory = category === "All" || prompt.category === category;
       if (!matchesCategory) return false;
       if (!q) return true;
@@ -53,7 +88,7 @@ export default function PromptLibrary() {
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [category, query]);
+  }, [category, query, libraryItems]);
 
   const sortedPrompts = useMemo(() => {
     const dir = sortOrder === "newest" ? -1 : 1;
@@ -115,6 +150,11 @@ export default function PromptLibrary() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/submit">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Submit Prompt
+              </Button>
+            </Link>
             <Link href="/">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                 Back to Optimizer
