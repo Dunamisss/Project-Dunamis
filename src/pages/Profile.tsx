@@ -6,14 +6,27 @@ import { useAuth } from "@/contexts/AuthContext";
 import { auth, db, storage } from "@/lib/firebase";
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { sendPasswordResetEmail } from "firebase/auth";
+import { sendPasswordResetEmail, updateProfile } from "firebase/auth";
 
 type UserProfile = {
+  uid?: string;
   displayName: string;
   email: string;
   avatarUrl: string;
+  photoURL?: string;
+  accessTier?: "free" | "premium" | "admin";
+  strikes?: number;
+  banned?: boolean;
   createdAt: number;
   updatedAt: number;
+};
+
+type AccountStatus = {
+  limit: number;
+  used: number;
+  remaining: number | null;
+  unlimited: boolean;
+  banned: boolean;
 };
 
 const setMeta = (name: string, content: string) => {
@@ -47,8 +60,18 @@ const setMeta = (name: string, content: string) => {
 export default function Profile() {
   const { user, isLoading } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [savingName, setSavingName] = useState(false);
+  const [displayNameInput, setDisplayNameInput] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  const apiBase = (import.meta as any).env?.VITE_API_BASE ?? "";
+  const accountStatusUrl = apiBase
+    ? `${apiBase.replace(/\/+$/, "")}/api/account-status`
+    : "/api/account-status";
 
   const initials = useMemo(() => {
     const name = profile?.displayName || user?.displayName || "";
@@ -94,12 +117,95 @@ export default function Profile() {
     return () => unsubscribe();
   }, [user]);
 
+  const currentDisplayName = (profile?.displayName || user?.displayName || "Dunamis Member").trim();
+  const normalizedDisplayNameInput = displayNameInput.trim();
+  const isNameDirty = normalizedDisplayNameInput !== currentDisplayName;
+
+  useEffect(() => {
+    if (!user) return;
+    if (isEditingName) return;
+    setDisplayNameInput(currentDisplayName);
+  }, [user, currentDisplayName, isEditingName]);
+
+  useEffect(() => {
+    if (!user?.email) {
+      setAccountStatus(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadStatus = async () => {
+      setLoadingStatus(true);
+      try {
+        const response = await fetch(accountStatusUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userEmail: user.email }),
+        });
+        if (!response.ok) {
+          throw new Error("Status lookup failed.");
+        }
+        const data = await response.json();
+        if (cancelled) return;
+        setAccountStatus({
+          limit: Number(data?.limit || 3),
+          used: Number(data?.used || 0),
+          remaining: typeof data?.remaining === "number" ? data.remaining : null,
+          unlimited: Boolean(data?.unlimited),
+          banned: Boolean(data?.banned),
+        });
+      } catch {
+        if (!cancelled) setAccountStatus(null);
+      } finally {
+        if (!cancelled) setLoadingStatus(false);
+      }
+    };
+
+    loadStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, accountStatusUrl]);
+
   useEffect(() => {
     document.title = "Profile — DUNAMIS";
     setMeta("description", "Manage your Dunamis profile and avatar.");
     setMeta("canonical", `${window.location.origin}/profile`);
     setMeta("robots", "noindex,nofollow");
   }, []);
+
+  const handleSaveDisplayName = async () => {
+    if (!user) return;
+    const nextName = normalizedDisplayNameInput;
+    if (!nextName) {
+      setMessage("Display name cannot be empty.");
+      return;
+    }
+    if (nextName.length > 60) {
+      setMessage("Display name must be 60 characters or less.");
+      return;
+    }
+
+    setSavingName(true);
+    setMessage(null);
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          displayName: nextName,
+          updatedAt: Date.now(),
+        },
+        { merge: true },
+      );
+      await updateProfile(user, { displayName: nextName });
+      setIsEditingName(false);
+      setMessage("Display name updated.");
+    } catch {
+      setMessage("Could not update display name.");
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   const handleAvatarUpload = async (file: File | null) => {
     if (!user || !file) return;
@@ -178,6 +284,19 @@ export default function Profile() {
 
   const avatarUrl = profile?.avatarUrl || user.photoURL || "";
   const hasPasswordProvider = user.providerData.some((p) => p.providerId === "password");
+  const joinedDateRaw = profile?.createdAt || (user.metadata.creationTime ? new Date(user.metadata.creationTime).getTime() : null);
+  const joinedDate = joinedDateRaw ? new Date(joinedDateRaw).toLocaleDateString() : "Unknown";
+  const isUnlimited = Boolean(accountStatus?.unlimited || profile?.accessTier === "premium" || profile?.accessTier === "admin");
+  const isBanned = Boolean(accountStatus?.banned || profile?.banned);
+  const strikes = Number(profile?.strikes || 0);
+  const accountState = isBanned ? "Banned" : strikes > 0 ? "Warned" : "Active";
+  const usageValue = isUnlimited
+    ? "Unlimited"
+    : accountStatus?.remaining !== null && accountStatus?.remaining !== undefined
+      ? `${accountStatus.remaining} of ${accountStatus.limit}`
+      : loadingStatus
+        ? "Loading..."
+        : "Not available";
 
   return (
     <div className="min-h-screen relative overflow-x-hidden">
@@ -212,6 +331,65 @@ export default function Profile() {
           </div>
 
           <div className="space-y-3">
+            <p className="text-xs text-gray-400 uppercase tracking-[0.25em]">Display Name</p>
+            <div className="flex flex-col md:flex-row gap-3">
+              <Input
+                value={displayNameInput}
+                onChange={(event) => {
+                  setDisplayNameInput(event.target.value);
+                  setIsEditingName(true);
+                }}
+                maxLength={60}
+                className="bg-black/40 border-yellow-500/30 text-white"
+                placeholder="Your display name"
+              />
+              <Button
+                variant="outline"
+                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                onClick={handleSaveDisplayName}
+                disabled={savingName || !isNameDirty || !normalizedDisplayNameInput}
+              >
+                {savingName ? "Saving..." : "Save Name"}
+              </Button>
+            </div>
+            <p className="text-[11px] text-gray-400">Shown across your profile and submissions.</p>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-xs text-gray-400 uppercase tracking-[0.25em]">Usage & Access</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="rounded-md border border-yellow-500/20 bg-black/40 px-3 py-2">
+                <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em]">Plan</p>
+                <p className="text-yellow-200 font-semibold">{isUnlimited ? "Unlimited" : "Free"}</p>
+              </div>
+              <div className="rounded-md border border-yellow-500/20 bg-black/40 px-3 py-2">
+                <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em]">Uses Left</p>
+                <p className="text-yellow-200 font-semibold">{usageValue}</p>
+              </div>
+              <div className="rounded-md border border-yellow-500/20 bg-black/40 px-3 py-2">
+                <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em]">Account State</p>
+                <p className="text-yellow-200 font-semibold">{accountState}</p>
+              </div>
+              <div className="rounded-md border border-yellow-500/20 bg-black/40 px-3 py-2">
+                <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em]">Joined</p>
+                <p className="text-yellow-200 font-semibold">{joinedDate}</p>
+              </div>
+            </div>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-md border border-yellow-500/20 bg-black/40 px-3 py-3">
+              <p className="text-[12px] text-gray-300">
+                {isUnlimited
+                  ? "Your account is unlocked for unlimited optimizer usage."
+                  : "Support the project on Ko-fi and we can unlock unlimited optimizer usage."}
+              </p>
+              <a href="https://ko-fi.com/dunamis_site" target="_blank" rel="noopener noreferrer">
+                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                  {isUnlimited ? "Support Anyway" : "Support Unlock"}
+                </Button>
+              </a>
+            </div>
+          </div>
+
+          <div className="space-y-3">
             <p className="text-xs text-gray-400 uppercase tracking-[0.25em]">Avatar</p>
             <Input
               type="file"
@@ -235,7 +413,7 @@ export default function Profile() {
             </Button>
             {!hasPasswordProvider && (
               <p className="text-[11px] text-gray-400">
-                You signed in with Google. Password reset is not required.
+                You signed in with a social account. Password reset is not required.
               </p>
             )}
           </div>

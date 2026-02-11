@@ -412,6 +412,49 @@ app.post("/api/optimize", async (req, res) => {
   }
 });
 
+app.post("/api/account-status", async (req, res) => {
+  const { userEmail } = req.body ?? {};
+  const normalizedEmail = typeof userEmail === "string" ? userEmail.trim().toLowerCase() : "";
+  if (!normalizedEmail) {
+    return res.status(400).json({ error: "userEmail is required." });
+  }
+
+  const usageKey = normalizedEmail;
+  let isAllowlisted = allowList.includes(normalizedEmail);
+  let usageRecord = null;
+
+  if (SUPABASE_ENABLED) {
+    try {
+      const [allowRow, usageRow] = await Promise.all([
+        supabaseSelectSingle("optimizer_allowlist", { email: normalizedEmail }),
+        supabaseSelectSingle("optimizer_usage", { email: usageKey }),
+      ]);
+      if (allowRow?.unlimited) {
+        isAllowlisted = true;
+      }
+      usageRecord = usageRow || null;
+    } catch (error) {
+      console.warn("Account status lookup failed.", error);
+      usageRecord = null;
+    }
+  } else {
+    usageRecord = getUsageRecord(usageKey);
+  }
+
+  const used = Number(usageRecord?.count || 0);
+  const banned = Boolean(usageRecord?.is_banned);
+  const limit = USAGE_LIMIT;
+  const remaining = isAllowlisted ? null : Math.max(limit - used, 0);
+
+  return res.json({
+    limit,
+    used,
+    remaining,
+    unlimited: isAllowlisted,
+    banned,
+  });
+});
+
 app.post("/api/kofi-webhook", async (req, res) => {
   const token = process.env.KOFI_WEBHOOK_TOKEN;
   if (!token) {
