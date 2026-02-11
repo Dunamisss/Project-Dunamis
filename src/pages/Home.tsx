@@ -656,23 +656,23 @@ export default function Home() {
               )}
             </div>
           </div>
-          <div className="relative z-10 max-w-4xl mx-auto space-y-8">
-            <h1 className="font-display text-7xl md:text-9xl font-light text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-300 to-orange-200 tracking-widest leading-tight drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]">
+          <div className="relative z-10 max-w-5xl 2xl:max-w-6xl mx-auto space-y-8 px-2">
+            <h1 className="font-display text-7xl md:text-9xl 2xl:text-[11rem] font-light text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-300 to-orange-200 tracking-[0.08em] 2xl:tracking-[0.1em] leading-[0.95] drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]">
               DUNAMIS
             </h1>
             
             <div className="space-y-6">
-              <p className="text-2xl md:text-3xl text-yellow-300 drop-shadow-lg italic font-light">
+              <p className="text-2xl md:text-3xl 2xl:text-4xl text-yellow-300 drop-shadow-lg italic font-light">
                 "Precision prompts, zero noise — built for creators who ship."
               </p>
               
-              <p className="text-base md:text-lg text-gray-100 drop-shadow-md leading-relaxed">
+              <p className="max-w-4xl mx-auto text-base md:text-lg 2xl:text-xl text-gray-100 drop-shadow-md leading-relaxed 2xl:leading-9">
                 Run powerful language models directly in your browser.<br/>
                 No servers, no data collection, no compromises.
               </p>
               
               <div className="pt-6 border-t border-white/30">
-                <p className="text-sm md:text-base text-yellow-400 drop-shadow-md font-semibold tracking-widest uppercase">
+                <p className="text-sm md:text-base 2xl:text-lg text-yellow-400 drop-shadow-md font-semibold tracking-widest uppercase">
                   Community-Driven Prompt Engineering
                 </p>
               </div>
@@ -686,9 +686,9 @@ export default function Home() {
           </div>
         </header>
 
-        <main className="w-full max-w-5xl mx-auto px-4 space-y-16 pb-20 bg-gradient-to-b from-black/80 to-black">
+        <main className="w-full max-w-7xl 2xl:max-w-[1700px] mx-auto px-4 xl:px-8 space-y-16 pb-20 bg-gradient-to-b from-black/80 to-black">
           <div className="pt-10">
-            <div className="rounded-lg border border-yellow-500/40 bg-black/70 px-5 py-4 text-center text-base md:text-lg font-semibold text-yellow-200 shadow-lg">
+            <div className="rounded-lg border border-yellow-500/40 bg-black/70 px-5 py-4 text-center text-base md:text-lg 2xl:text-xl font-semibold text-yellow-200 shadow-lg max-w-5xl mx-auto">
               Prompt Optimizer: describe what you want, and we’ll craft a production-ready prompt for you.
             </div>
             <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -709,14 +709,14 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 shadow-lg">
+          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2">
                 <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Frameworks</p>
-                <h2 className="text-2xl md:text-3xl font-semibold text-yellow-200">
+                <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
                   Practical Prompting Frameworks
                 </h2>
-                <p className="text-sm text-gray-300 max-w-2xl">
+                <p className="text-sm 2xl:text-base text-gray-300 max-w-3xl leading-relaxed">
                   Clear templates that explain what each structure does, when to use it, and how to apply it fast.
                 </p>
               </div>
@@ -742,8 +742,8 @@ export default function Home() {
             {user && (
             <div
               className={[
-                "rounded-lg border border-yellow-500/30 bg-black/70 p-6 shadow-lg space-y-6",
-                isFullscreen ? "fixed inset-4 z-50 overflow-y-auto" : ""
+                "rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg space-y-6",
+                isFullscreen ? "fixed inset-3 md:inset-6 2xl:inset-10 z-50 overflow-y-auto" : ""
               ].join(" ")}
             >
               <div className="rounded-lg border border-yellow-500/30 bg-black/60 px-4 py-3 text-xs text-yellow-100/90">
@@ -752,9 +752,9 @@ export default function Home() {
                   : "Advanced Mode: Use Frameworks, Audit mode, and provider tools for full control."}
               </div>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="space-y-1">
+                <div className="space-y-1 max-w-2xl">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-semibold">Prompt Optimizer</h2>
+                    <h2 className="text-2xl 2xl:text-3xl font-semibold">Prompt Optimizer</h2>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
@@ -776,7 +776,7 @@ export default function Home() {
                       : "Choose Optimize to rebuild, or Audit to score and critique before fixing."}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 justify-center md:justify-end">
+                <div className="flex items-center gap-2 justify-center md:justify-end flex-wrap md:flex-nowrap">
                   <Button
                     variant={simpleMode ? "default" : "outline"}
                     className={simpleMode ? "bg-yellow-400 text-black hover:bg-yellow-300" : "border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"}
@@ -796,7 +796,7 @@ export default function Home() {
                       value={mode}
                       onValueChange={(value) => setMode(value as "optimize" | "audit")}
                     >
-                      <SelectTrigger className="w-[180px] border-yellow-500/40 bg-black/30 text-yellow-200">
+                      <SelectTrigger className="w-[160px] lg:w-[180px] border-yellow-500/40 bg-black/30 text-yellow-200 shrink-0">
                         <SelectValue placeholder="Select mode" />
                       </SelectTrigger>
                       <SelectContent className="bg-black/90 text-white border-yellow-500/30">
@@ -832,8 +832,8 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4">
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4 xl:col-span-5 min-w-0">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold">Your Prompt</h3>
                   <p className="text-xs text-gray-300">
@@ -1008,7 +1008,7 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4">
+                <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4 xl:col-span-7 min-w-0">
                   <div className="space-y-1">
                     <h3 className="text-lg font-semibold">
                       {simpleMode ? "Your Improved Prompt" : outputKind === "audit" ? "Audit Output" : "Optimized Output"}
@@ -1024,7 +1024,7 @@ export default function Home() {
                   <Textarea
                     value={optimizedOutput}
                     readOnly
-                    className="min-h-[420px] bg-black/30 border-yellow-500/20 text-white placeholder:text-gray-500"
+                    className="min-h-[420px] 2xl:min-h-[500px] bg-black/30 border-yellow-500/20 text-white placeholder:text-gray-500"
                     placeholder={
                       simpleMode
                         ? "Your improved prompt will appear here after you click Make My Prompt Better."
