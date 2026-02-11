@@ -66,6 +66,7 @@ export default function Profile() {
   const [savingName, setSavingName] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState("");
   const [isEditingName, setIsEditingName] = useState(false);
+  const [awaitingUnlock, setAwaitingUnlock] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const apiBase = (import.meta as any).env?.VITE_API_BASE ?? "";
@@ -293,6 +294,37 @@ export default function Profile() {
         ? "Loading..."
         : "Not available";
 
+  useEffect(() => {
+    if (isUnlimited && awaitingUnlock) {
+      setAwaitingUnlock(false);
+      setMessage("Unlimited access detected. Your account is now unlocked.");
+    }
+  }, [isUnlimited, awaitingUnlock]);
+
+  useEffect(() => {
+    if (!awaitingUnlock || isUnlimited) return;
+    const intervalId = window.setInterval(() => {
+      loadAccountStatus();
+    }, 10000);
+    const timeoutId = window.setTimeout(() => {
+      setAwaitingUnlock(false);
+    }, 5 * 60 * 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [awaitingUnlock, isUnlimited, loadAccountStatus]);
+
+  useEffect(() => {
+    if (!awaitingUnlock || isUnlimited) return;
+    const onFocus = () => {
+      loadAccountStatus();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [awaitingUnlock, isUnlimited, loadAccountStatus]);
+
   return (
     <div className="min-h-screen relative overflow-x-hidden">
       <div className="fixed inset-0 z-0 w-full h-screen bg-gradient-to-b from-black via-black/90 to-black" />
@@ -387,11 +419,23 @@ export default function Profile() {
                   : "Support the project on Ko-fi and we can unlock unlimited optimizer usage."}
               </p>
               <a href="https://ko-fi.com/dunamis_site" target="_blank" rel="noopener noreferrer">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                <Button
+                  className="bg-yellow-400 text-black hover:bg-yellow-300"
+                  onClick={() => {
+                    setAwaitingUnlock(true);
+                    setMessage("We’ll auto-check your unlock status for the next few minutes.");
+                    loadAccountStatus();
+                  }}
+                >
                   {isUnlimited ? "Support Anyway" : "Support Unlock"}
                 </Button>
               </a>
             </div>
+            {awaitingUnlock && !isUnlimited && (
+              <p className="text-[11px] text-gray-400">
+                Waiting for webhook confirmation. Status refresh runs automatically every 10 seconds.
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
