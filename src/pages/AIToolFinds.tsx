@@ -13,7 +13,7 @@ type ToolEntry = {
   dunamisTip: string;
   relatedPrompt: string;
   accent: string;
-  screenshot?: string;
+  screenshotBase?: string;
 };
 
 const TOOL_ENTRIES: ToolEntry[] = [
@@ -28,7 +28,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use the optimizer first, then paste the improved prompt into Flux.",
     relatedPrompt: "reverse-engineer-image",
     accent: "from-orange-400/30 via-yellow-300/20 to-rose-400/30",
-    screenshot: "/images/tools/flux-kontext-pro.webp?v=2",
+    screenshotBase: "/images/tools/flux-kontext-pro",
   },
   {
     id: "perplexity",
@@ -41,7 +41,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use a Dunamis prompt template to structure your research questions.",
     relatedPrompt: "80-20-method",
     accent: "from-cyan-400/30 via-sky-400/20 to-indigo-400/30",
-    screenshot: "/images/tools/perplexity.webp?v=2",
+    screenshotBase: "/images/tools/perplexity",
   },
   {
     id: "chatgpt",
@@ -54,7 +54,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Draft in Dunamis, then run final prompt in ChatGPT.",
     relatedPrompt: "suno-v5",
     accent: "from-emerald-400/30 via-teal-400/20 to-lime-400/30",
-    screenshot: "/images/tools/chatgpt.webp?v=2",
+    screenshotBase: "/images/tools/chatgpt",
   },
   {
     id: "gemini",
@@ -67,7 +67,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use Dunamis framework templates before sending to Gemini.",
     relatedPrompt: "github-search-script",
     accent: "from-blue-400/30 via-violet-400/20 to-pink-400/30",
-    screenshot: "/images/tools/gemini.webp?v=2",
+    screenshotBase: "/images/tools/gemini",
   },
   {
     id: "claude",
@@ -80,23 +80,40 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use an audit-style prompt from Dunamis to force clearer output.",
     relatedPrompt: "prompt-revealer",
     accent: "from-amber-400/30 via-orange-400/20 to-red-400/30",
-    screenshot: "/images/tools/claude.webp?v=2",
+    screenshotBase: "/images/tools/claude",
   },
 ];
 
 function ToolPreview({ tool }: { tool: ToolEntry }) {
-  const [broken, setBroken] = useState(false);
-  const canShowImage = Boolean(tool.screenshot) && !broken;
+  const version = "4";
+  const candidates = tool.screenshotBase
+    ? [
+        `${tool.screenshotBase}.webp?v=${version}`,
+        `${tool.screenshotBase}.png?v=${version}`,
+        `${tool.screenshotBase}.jpg?v=${version}`,
+        `${tool.screenshotBase}.jpeg?v=${version}`,
+      ]
+    : [];
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const currentSrc = candidates[candidateIndex] || "";
+  const canShowImage = Boolean(currentSrc);
 
   if (canShowImage) {
     return (
-      <div className="mt-3 h-[170px] w-full rounded-md border border-white/10 bg-gradient-to-b from-white to-slate-100 p-3">
+      <div
+        className="mt-3 h-[170px] w-full rounded-md border border-white/10 p-3"
+        style={{
+          backgroundImage:
+            "linear-gradient(45deg, rgba(255,255,255,0.92) 25%, rgba(17,24,39,0.82) 25%, rgba(17,24,39,0.82) 50%, rgba(255,255,255,0.92) 50%, rgba(255,255,255,0.92) 75%, rgba(17,24,39,0.82) 75%, rgba(17,24,39,0.82) 100%)",
+          backgroundSize: "24px 24px",
+        }}
+      >
         <img
-          src={tool.screenshot}
+          src={currentSrc}
           alt={`${tool.name} screenshot`}
           loading="lazy"
-          onError={() => setBroken(true)}
-          className="h-full w-full object-contain"
+          onError={() => setCandidateIndex((idx) => idx + 1)}
+          className="h-full w-full object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]"
         />
       </div>
     );
@@ -130,7 +147,7 @@ export default function AIToolFinds() {
               Curated free/low-cost AI tools we test, plus how to pair each one with Dunamis prompts.
             </p>
             <p className="text-xs text-gray-400">
-              Screenshot paths: <code className="text-yellow-200">public/images/tools/*.webp</code>
+              Screenshot paths: <code className="text-yellow-200">public/images/tools/*.(webp|png|jpg)</code>
             </p>
           </div>
           <Link href="/">

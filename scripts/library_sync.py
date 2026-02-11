@@ -3,6 +3,8 @@ import json
 import re
 import sys
 import hashlib
+import shutil
+from datetime import datetime
 from pathlib import Path
 
 try:
@@ -20,6 +22,7 @@ PROMPT_OUT = ROOT / "src" / "data" / "promptLibrary.ts"
 IMAGE_OUT = ROOT / "src" / "data" / "imageLibrary.ts"
 IMAGE_FULL_DIR = ROOT / "public" / "images" / "library" / "full"
 IMAGE_THUMB_DIR = ROOT / "public" / "images" / "library" / "thumbs"
+BACKUP_DIR = ROOT / "scripts" / "backups"
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
@@ -362,6 +365,14 @@ def _parse_prompt_entries(text: str) -> tuple[int, int, list[dict]]:
     return open_index, close_index, entries
 
 
+def backup_file(path: Path, label: str) -> Path:
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    target = BACKUP_DIR / f"{path.stem}-{label}-{stamp}{path.suffix}"
+    shutil.copy2(path, target)
+    return target
+
+
 def remove_prompts(args: argparse.Namespace) -> None:
     if not PROMPT_OUT.exists():
         print("promptLibrary.ts not found.")
@@ -411,8 +422,10 @@ def remove_prompts(args: argparse.Namespace) -> None:
     for entry in sorted(remove_entries, key=lambda x: x["array_start"], reverse=True):
         array_text = array_text[:entry["array_start"]] + array_text[entry["array_end"]:]
 
+    backup_path = backup_file(PROMPT_OUT, "before-remove")
     updated = text[:open_index + 1] + array_text + text[close_index:]
     PROMPT_OUT.write_text(updated, encoding="utf-8")
+    print(f"Backup saved: {backup_path}")
     print(f"Removed {len(remove_entries)} prompt(s).")
 
 
@@ -470,7 +483,9 @@ def remove_images(args: argparse.Namespace) -> None:
                         deleted += 1
         print(f"Deleted {deleted} image file(s) from public folder.")
 
+    backup_path = backup_file(IMAGE_OUT, "before-remove")
     write_images(kept, IMAGE_OUT)
+    print(f"Backup saved: {backup_path}")
     print(f"Removed {len(to_remove)} image record(s).")
 
 
