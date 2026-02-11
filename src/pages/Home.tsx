@@ -88,6 +88,12 @@ const FRAMEWORK_TEMPLATES = [
   },
 ];
 
+const SIMPLE_STARTER_EXAMPLES = [
+  "Write a friendly welcome email for new customers of my small business.",
+  "Create a social media post about our weekend sale with a clear call to action.",
+  "Turn my rough notes into a clear, professional LinkedIn post.",
+];
+
 const OPTIMIZER_SYSTEM_PROMPT =
   "PERSONA: You are the Chief Prompt Architect, an expert in Large Language Model logic and instruction design.\n\n" +
   "CONTEXT: A user will provide a raw, unstructured idea or request. They require a rigorous, production-ready prompt that can be pasted directly into an AI model (like ChatGPT, Claude, or Gemini) to achieve a specific result.\n\n" +
@@ -168,6 +174,8 @@ export default function Home() {
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [frameworkId, setFrameworkId] = useState<string>("");
   const [mode, setMode] = useState<"optimize" | "audit">("optimize");
+  const [simpleMode, setSimpleMode] = useState(true);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [outputKind, setOutputKind] = useState<"optimize" | "audit" | "fix" | null>(null);
   const [lastAuditInput, setLastAuditInput] = useState("");
   const [vpnWarning, setVpnWarning] = useState(false);
@@ -578,6 +586,14 @@ export default function Home() {
     });
   };
 
+  const applySimpleStarter = (example: string) => {
+    setPromptInput(example);
+    setMode("optimize");
+    if (optimizerRef.current) {
+      optimizerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <div className="min-h-screen relative selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
       {/* Full Hero Background Image */}
@@ -731,7 +747,9 @@ export default function Home() {
               ].join(" ")}
             >
               <div className="rounded-lg border border-yellow-500/30 bg-black/60 px-4 py-3 text-xs text-yellow-100/90">
-                What’s new: Use Frameworks to drop a proven template into your prompt box in one click.
+                {simpleMode
+                  ? "Simple Mode: Type what you want and click Make My Prompt Better."
+                  : "Advanced Mode: Use Frameworks, Audit mode, and provider tools for full control."}
               </div>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="space-y-1">
@@ -753,22 +771,48 @@ export default function Home() {
                     </Tooltip>
                   </div>
                   <p className="text-xs text-gray-300">
-                    Choose Optimize to rebuild, or Audit to score and critique before fixing.
+                    {simpleMode
+                      ? "Step 1: Describe what you need. Step 2: Click Make My Prompt Better."
+                      : "Choose Optimize to rebuild, or Audit to score and critique before fixing."}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 justify-center md:justify-end">
-                  <Select
-                    value={mode}
-                    onValueChange={(value) => setMode(value as "optimize" | "audit")}
+                  <Button
+                    variant={simpleMode ? "default" : "outline"}
+                    className={simpleMode ? "bg-yellow-400 text-black hover:bg-yellow-300" : "border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"}
+                    onClick={() => setSimpleMode(true)}
                   >
-                    <SelectTrigger className="w-[180px] border-yellow-500/40 bg-black/30 text-yellow-200">
-                      <SelectValue placeholder="Select mode" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black/90 text-white border-yellow-500/30">
-                      <SelectItem value="optimize">Optimize</SelectItem>
-                      <SelectItem value="audit">Audit</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    Simple Mode
+                  </Button>
+                  <Button
+                    variant={!simpleMode ? "default" : "outline"}
+                    className={!simpleMode ? "bg-yellow-400 text-black hover:bg-yellow-300" : "border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"}
+                    onClick={() => setSimpleMode(false)}
+                  >
+                    Advanced Mode
+                  </Button>
+                  {!simpleMode ? (
+                    <Select
+                      value={mode}
+                      onValueChange={(value) => setMode(value as "optimize" | "audit")}
+                    >
+                      <SelectTrigger className="w-[180px] border-yellow-500/40 bg-black/30 text-yellow-200">
+                        <SelectValue placeholder="Select mode" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black/90 text-white border-yellow-500/30">
+                        <SelectItem value="optimize">Optimize</SelectItem>
+                        <SelectItem value="audit">Audit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                      onClick={() => setShowAdvancedOptions((prev) => !prev)}
+                    >
+                      {showAdvancedOptions ? "Hide Options" : "More Options"}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
@@ -792,11 +836,33 @@ export default function Home() {
                 <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold">Your Prompt</h3>
-                  <p className="text-xs text-gray-300">Paste your rough prompt here.</p>
+                  <p className="text-xs text-gray-300">
+                    {simpleMode ? "Describe what you want help with in plain English." : "Paste your rough prompt here."}
+                  </p>
                   <p className="text-[11px] text-gray-400">
-                    Even a few words is enough — we’ll craft a perfect, production-ready prompt. More features coming soon.
+                    {simpleMode
+                      ? "You can type normally. Example: “Write a short Facebook post about my cafe’s new menu.”"
+                      : "Even a few words is enough — we’ll craft a perfect, production-ready prompt. More features coming soon."}
                   </p>
                 </div>
+                  {simpleMode && (
+                    <div className="rounded-md border border-yellow-500/30 bg-black/40 p-4 space-y-3">
+                      <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">Starter Examples</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {SIMPLE_STARTER_EXAMPLES.map((example, idx) => (
+                          <Button
+                            key={`${idx}-${example.slice(0, 12)}`}
+                            variant="outline"
+                            className="justify-start text-left h-auto whitespace-normal border-yellow-500/30 text-yellow-100 hover:bg-yellow-500/10"
+                            onClick={() => applySimpleStarter(example)}
+                          >
+                            {example}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(!simpleMode || showAdvancedOptions) && (
                   <div className="rounded-md border border-yellow-500/30 bg-black/40 p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">Frameworks</p>
@@ -863,12 +929,14 @@ export default function Home() {
                       )}
                     </div>
                   </div>
+                  )}
                   <Textarea
                     value={promptInput}
                     onChange={(event) => setPromptInput(event.target.value)}
                     className="min-h-[200px] bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-400"
-                    placeholder="Write or paste your prompt here..."
+                    placeholder={simpleMode ? "Example: Write a friendly email to customers about our new weekend offer..." : "Write or paste your prompt here..."}
                   />
+                  {(!simpleMode || showAdvancedOptions) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <label className="flex flex-col gap-2 text-xs text-gray-300">
                       Upload .txt context
@@ -890,16 +958,21 @@ export default function Home() {
                       />
                     </label>
                   </div>
+                  )}
+                  {(!simpleMode || showAdvancedOptions) && (
                   <Textarea
                     value={extraContext}
                     onChange={(event) => setExtraContext(event.target.value)}
                     className="min-h-[140px] bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-400"
                     placeholder="Extra context: goals, constraints, audience, tone, or examples..."
                   />
+                  )}
+                  {(!simpleMode || showAdvancedOptions) && (
                   <p className="text-[11px] text-gray-400">
                     This box is for details that help the optimizer (audience, tone, must-have points).
                     Example: “Audience is SaaS founders. Keep it punchy. Include a CTA.”
                   </p>
+                  )}
                   {attachedImages.length > 0 && (
                     <div className="text-xs text-yellow-200/80">
                       Attached images: {attachedImages.join(", ")}
@@ -910,7 +983,7 @@ export default function Home() {
                     onClick={handleOptimize}
                     disabled={isOptimizing || !promptInput.trim()}
                   >
-                    {isOptimizing ? "Sending..." : mode === "audit" ? "Score It" : "Send"}
+                    {isOptimizing ? "Working..." : simpleMode ? "Make My Prompt Better" : mode === "audit" ? "Score It" : "Send"}
                   </Button>
                   <div className="text-xs text-yellow-200/80 text-center">
                     {isUnlimited
@@ -938,10 +1011,12 @@ export default function Home() {
                 <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4">
                   <div className="space-y-1">
                     <h3 className="text-lg font-semibold">
-                      {outputKind === "audit" ? "Audit Output" : "Optimized Output"}
+                      {simpleMode ? "Your Improved Prompt" : outputKind === "audit" ? "Audit Output" : "Optimized Output"}
                     </h3>
                     <p className="text-xs text-gray-300">
-                      {outputKind === "audit"
+                      {simpleMode
+                        ? "Copy this and paste it into your AI tool (like ChatGPT)."
+                        : outputKind === "audit"
                         ? "Brutal score and critique appears here."
                         : "Your improved prompt appears here."}
                     </p>
@@ -951,7 +1026,9 @@ export default function Home() {
                     readOnly
                     className="min-h-[420px] bg-black/30 border-yellow-500/20 text-white placeholder:text-gray-500"
                     placeholder={
-                      mode === "audit"
+                      simpleMode
+                        ? "Your improved prompt will appear here after you click Make My Prompt Better."
+                        : mode === "audit"
                         ? "Click Score It to get a brutal audit."
                         : "Click Send to generate an improved version."
                     }
