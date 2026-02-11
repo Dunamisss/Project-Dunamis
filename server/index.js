@@ -9,7 +9,7 @@ const port = process.env.PORT || 8787;
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-const USAGE_LIMIT = Number.parseInt(process.env.DAILY_LIMIT || "3", 10);
+const USAGE_LIMIT = Number.parseInt(process.env.DAILY_LIMIT || "5", 10);
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);

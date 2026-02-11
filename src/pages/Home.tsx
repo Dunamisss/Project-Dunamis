@@ -990,7 +990,7 @@ export default function Home() {
                       ? "Unlimited access enabled."
                       : dailyLimit !== null && remainingUses !== null
                         ? `${remainingUses} of ${dailyLimit} uses remaining`
-                        : "You have 3 free uses total."}
+                        : "You have 5 free uses total."}
                   </div>
                   <div className="text-[11px] text-gray-300 text-center">
                     Supporters can be upgraded to unlimited uses.
@@ -1119,7 +1119,7 @@ export default function Home() {
                       </div>
                     </div>
                   )}
-                  <div className="text-[11px] text-gray-300">
+                  <div className="text-[11px] text-gray-300 break-words">
                     {copyFeedback
                       ? copyFeedback
                       : outputKind === "audit"
@@ -1127,9 +1127,9 @@ export default function Home() {
                         : "We copy the prompt and open your provider in a new tab. Browsers don’t allow auto‑pasting into other sites."}
                   </div>
                   <div className="rounded-md border border-yellow-500/20 bg-black/40 p-3 space-y-3">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
                       <p className="text-xs uppercase tracking-[0.25em] text-gray-400">Recent History</p>
-                      <p className="text-[11px] text-gray-400">Last 12 results</p>
+                      <p className="text-[11px] text-gray-400 text-right">Last 12 results</p>
                     </div>
                     {loadingHistory ? (
                       <p className="text-[12px] text-gray-300">Loading history...</p>
@@ -1142,13 +1142,13 @@ export default function Home() {
                           const modeLabel = item.mode === "fix" ? "Fix" : item.mode === "audit" ? "Audit" : "Optimize";
                           return (
                             <div key={item.id} className="rounded-md border border-yellow-500/20 bg-black/30 p-2 space-y-2">
-                              <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
                                 <p className="text-[11px] text-yellow-200">{modeLabel}</p>
-                                <p className="text-[10px] text-gray-400">
+                                <p className="text-[10px] text-gray-400 text-right">
                                   {new Date(item.createdAt).toLocaleString()}
                                 </p>
                               </div>
-                              <p className="text-[11px] text-gray-300 line-clamp-2">
+                              <p className="text-[11px] text-gray-300 line-clamp-2 break-words">
                                 {preview || "No input text"}
                               </p>
                               <div className="flex flex-wrap gap-2">
