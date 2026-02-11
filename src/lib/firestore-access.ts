@@ -147,10 +147,6 @@ export async function getUserSubmissions() {
   return [];
 }
 
-export async function getLeaderboard() {
-  return [];
-}
-
 export async function getAuditLogs() {
   return [];
 }
