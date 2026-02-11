@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +73,37 @@ export default function Profile() {
     ? `${apiBase.replace(/\/+$/, "")}/api/account-status`
     : "/api/account-status";
 
+  const loadAccountStatus = useCallback(async () => {
+    if (!user?.email) {
+      setAccountStatus(null);
+      return;
+    }
+
+    setLoadingStatus(true);
+    try {
+      const response = await fetch(accountStatusUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail: user.email }),
+      });
+      if (!response.ok) {
+        throw new Error("Status lookup failed.");
+      }
+      const data = await response.json();
+      setAccountStatus({
+        limit: Number(data?.limit || 3),
+        used: Number(data?.used || 0),
+        remaining: typeof data?.remaining === "number" ? data.remaining : null,
+        unlimited: Boolean(data?.unlimited),
+        banned: Boolean(data?.banned),
+      });
+    } catch {
+      setAccountStatus(null);
+    } finally {
+      setLoadingStatus(false);
+    }
+  }, [user?.email, accountStatusUrl]);
+
   const initials = useMemo(() => {
     const name = profile?.displayName || user?.displayName || "";
     const email = profile?.email || user?.email || "";
@@ -128,44 +159,8 @@ export default function Profile() {
   }, [user, currentDisplayName, isEditingName]);
 
   useEffect(() => {
-    if (!user?.email) {
-      setAccountStatus(null);
-      return;
-    }
-
-    let cancelled = false;
-    const loadStatus = async () => {
-      setLoadingStatus(true);
-      try {
-        const response = await fetch(accountStatusUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userEmail: user.email }),
-        });
-        if (!response.ok) {
-          throw new Error("Status lookup failed.");
-        }
-        const data = await response.json();
-        if (cancelled) return;
-        setAccountStatus({
-          limit: Number(data?.limit || 3),
-          used: Number(data?.used || 0),
-          remaining: typeof data?.remaining === "number" ? data.remaining : null,
-          unlimited: Boolean(data?.unlimited),
-          banned: Boolean(data?.banned),
-        });
-      } catch {
-        if (!cancelled) setAccountStatus(null);
-      } finally {
-        if (!cancelled) setLoadingStatus(false);
-      }
-    };
-
-    loadStatus();
-    return () => {
-      cancelled = true;
-    };
-  }, [user, accountStatusUrl]);
+    loadAccountStatus();
+  }, [loadAccountStatus]);
 
   useEffect(() => {
     document.title = "Profile — DUNAMIS";
@@ -356,7 +351,17 @@ export default function Profile() {
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs text-gray-400 uppercase tracking-[0.25em]">Usage & Access</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-gray-400 uppercase tracking-[0.25em]">Usage & Access</p>
+              <Button
+                variant="outline"
+                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                onClick={loadAccountStatus}
+                disabled={loadingStatus}
+              >
+                {loadingStatus ? "Refreshing..." : "Refresh Status"}
+              </Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="rounded-md border border-yellow-500/20 bg-black/40 px-3 py-2">
                 <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em]">Plan</p>
