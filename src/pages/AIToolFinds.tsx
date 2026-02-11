@@ -28,7 +28,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use the optimizer first, then paste the improved prompt into Flux.",
     relatedPrompt: "reverse-engineer-image",
     accent: "from-orange-400/30 via-yellow-300/20 to-rose-400/30",
-    screenshot: "/images/tools/flux-kontext-pro.webp",
+    screenshot: "/images/tools/flux-kontext-pro.webp?v=2",
   },
   {
     id: "perplexity",
@@ -41,7 +41,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use a Dunamis prompt template to structure your research questions.",
     relatedPrompt: "80-20-method",
     accent: "from-cyan-400/30 via-sky-400/20 to-indigo-400/30",
-    screenshot: "/images/tools/perplexity.webp",
+    screenshot: "/images/tools/perplexity.webp?v=2",
   },
   {
     id: "chatgpt",
@@ -54,7 +54,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Draft in Dunamis, then run final prompt in ChatGPT.",
     relatedPrompt: "suno-v5",
     accent: "from-emerald-400/30 via-teal-400/20 to-lime-400/30",
-    screenshot: "/images/tools/chatgpt.webp",
+    screenshot: "/images/tools/chatgpt.webp?v=2",
   },
   {
     id: "gemini",
@@ -67,7 +67,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use Dunamis framework templates before sending to Gemini.",
     relatedPrompt: "github-search-script",
     accent: "from-blue-400/30 via-violet-400/20 to-pink-400/30",
-    screenshot: "/images/tools/gemini.webp",
+    screenshot: "/images/tools/gemini.webp?v=2",
   },
   {
     id: "claude",
@@ -80,7 +80,7 @@ const TOOL_ENTRIES: ToolEntry[] = [
     dunamisTip: "Use an audit-style prompt from Dunamis to force clearer output.",
     relatedPrompt: "prompt-revealer",
     accent: "from-amber-400/30 via-orange-400/20 to-red-400/30",
-    screenshot: "/images/tools/claude.webp",
+    screenshot: "/images/tools/claude.webp?v=2",
   },
 ];
 
@@ -90,13 +90,15 @@ function ToolPreview({ tool }: { tool: ToolEntry }) {
 
   if (canShowImage) {
     return (
-      <img
-        src={tool.screenshot}
-        alt={`${tool.name} screenshot`}
-        loading="lazy"
-        onError={() => setBroken(true)}
-        className="mt-3 h-[170px] w-full rounded-md border border-white/10 bg-black/40 object-cover"
-      />
+      <div className="mt-3 h-[170px] w-full rounded-md border border-white/10 bg-gradient-to-b from-white to-slate-100 p-3">
+        <img
+          src={tool.screenshot}
+          alt={`${tool.name} screenshot`}
+          loading="lazy"
+          onError={() => setBroken(true)}
+          className="h-full w-full object-contain"
+        />
+      </div>
     );
   }
 
