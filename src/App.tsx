@@ -12,6 +12,7 @@ import Frameworks from "@/pages/Frameworks";
 import Profile from "@/pages/Profile";
 import SubmitPrompt from "@/pages/SubmitPrompt";
 import AdminSubmissions from "@/pages/AdminSubmissions";
+import AIToolFinds from "@/pages/AIToolFinds";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
               <Route path="/profile" component={Profile} />
               <Route path="/submit" component={SubmitPrompt} />
               <Route path="/admin/submissions" component={AdminSubmissions} />
+              <Route path="/tools" component={AIToolFinds} />
             </Switch>
           </Router>
         </ChatProvider>

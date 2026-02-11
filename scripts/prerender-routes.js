@@ -8,7 +8,7 @@ const indexPath = path.join(distDir, "index.html");
 const promptLibraryPath = path.resolve(__dirname, "..", "src", "data", "promptLibrary.ts");
 const imageLibraryPath = path.resolve(__dirname, "..", "src", "data", "imageLibrary.ts");
 
-const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/profile"];
+const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/tools", "/profile"];
 
 async function ensureFileExists(filePath) {
   try {
@@ -336,6 +336,13 @@ function buildRouteMeta({
       ...base,
       title: "Prompting Frameworks — DUNAMIS",
       description: "Practical prompting frameworks with clear structure, examples, and best-use guidance.",
+    };
+  }
+  if (route === "/tools") {
+    return {
+      ...base,
+      title: "AI Tool Finds — DUNAMIS",
+      description: "Curated AI tool finds with practical Dunamis usage tips for creators.",
     };
   }
   if (route === "/profile") {

@@ -640,6 +640,11 @@ export default function Home() {
                   Frameworks
                 </Button>
               </Link>
+              <Link href="/tools">
+                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
+                  AI Tool Finds
+                </Button>
+              </Link>
               <Link href="/submit">
                 <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
                   Submit
@@ -715,6 +720,11 @@ export default function Home() {
               <Link href="/frameworks">
                 <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                   View Frameworks
+                </Button>
+              </Link>
+              <Link href="/tools">
+                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                  AI Tool Finds
                 </Button>
               </Link>
             </div>
