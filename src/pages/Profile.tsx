@@ -39,6 +39,19 @@ type PromptPack = {
   updatedAt: number;
 };
 
+const PROMPT_PACK_EXAMPLES = [
+  {
+    id: "social-post",
+    title: "Social Post Starter",
+    template: "Write a [PLATFORM] post about [TOPIC] for [AUDIENCE] in a [TONE] tone.",
+  },
+  {
+    id: "sales-email",
+    title: "Sales Email Starter",
+    template: "Write a short sales email for [PRODUCT] to [AUDIENCE]. Include one clear CTA and keep it [TONE].",
+  },
+] as const;
+
 const setMeta = (name: string, content: string) => {
   const selector = name === "canonical"
     ? "link[rel=\"canonical\"]"
@@ -392,6 +405,31 @@ export default function Profile() {
     setLocation("/");
   };
 
+  const copyText = async (value: string) => {
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(value);
+      copied = true;
+    } catch {
+      copied = false;
+    }
+
+    if (!copied) {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+
+    setMessage(copied ? "Example copied to clipboard." : "Could not copy example.");
+  };
+
   const handlePasswordReset = async () => {
     if (!user?.email) {
       setMessage("No email on file.");
@@ -552,6 +590,33 @@ export default function Profile() {
               </p>
               <div className="rounded-md border border-yellow-500/20 bg-black/30 p-2 text-[11px] text-gray-300">
                 Example: <span className="text-yellow-200">Write a [PLATFORM] post about [TOPIC] for [AUDIENCE] in a [TONE] tone.</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {PROMPT_PACK_EXAMPLES.map((example) => (
+                  <div key={example.id} className="rounded-md border border-yellow-500/20 bg-black/30 p-2 space-y-2">
+                    <p className="text-[12px] text-yellow-200">{example.title}</p>
+                    <p className="text-[11px] text-gray-300">{example.template}</p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                        onClick={() => copyText(example.template)}
+                      >
+                        Copy Example
+                      </Button>
+                      <Button
+                        className="bg-yellow-400 text-black hover:bg-yellow-300"
+                        onClick={() => {
+                          setNewPackTitle(example.title);
+                          setNewPackTemplate(example.template);
+                          setMessage("Example loaded. Rename it if you want, then click Create Pack.");
+                        }}
+                      >
+                        Use Example
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="rounded-md border border-yellow-500/20 bg-black/40 p-3 space-y-3">
