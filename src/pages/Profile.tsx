@@ -539,6 +539,21 @@ export default function Profile() {
 
           <div className="space-y-4">
             <p className="text-xs text-gray-400 uppercase tracking-[0.25em]">My Prompt Packs</p>
+            <div className="rounded-md border border-yellow-500/20 bg-black/40 p-3 space-y-2">
+              <p className="text-sm font-semibold text-yellow-200">How to use Prompt Packs</p>
+              <p className="text-[12px] text-gray-300">
+                1. Create a pack title and template prompt. Use placeholders like <span className="text-yellow-200">[TOPIC]</span> or <span className="text-yellow-200">[AUDIENCE]</span>.
+              </p>
+              <p className="text-[12px] text-gray-300">
+                2. Click <span className="text-yellow-200">Use in Optimizer</span> to load it on the Home page.
+              </p>
+              <p className="text-[12px] text-gray-300">
+                3. Replace each placeholder with your real details, then run the optimizer.
+              </p>
+              <div className="rounded-md border border-yellow-500/20 bg-black/30 p-2 text-[11px] text-gray-300">
+                Example: <span className="text-yellow-200">Write a [PLATFORM] post about [TOPIC] for [AUDIENCE] in a [TONE] tone.</span>
+              </div>
+            </div>
             <div className="rounded-md border border-yellow-500/20 bg-black/40 p-3 space-y-3">
               <Input
                 value={newPackTitle}
