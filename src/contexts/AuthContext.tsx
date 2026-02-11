@@ -9,7 +9,8 @@ import {
   signInWithPopup,
   signOut,
 } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth, githubProvider, googleProvider } from "@/lib/firebase";
+import { createUserProfile, updateLastLogin } from "@/lib/firestore-access";
 
 interface AuthContextType {
   user: User | null;
@@ -34,9 +35,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       setUser(nextUser);
       setIsLoading(false);
+      if (!nextUser) return;
+
+      const providerIds = (nextUser.providerData || []).map((p) => p.providerId);
+      const authProvider =
+        providerIds.includes("google.com")
+          ? "google"
+          : providerIds.includes("github.com")
+            ? "github"
+            : "email";
+
+      try {
+        await createUserProfile({
+          uid: nextUser.uid,
+          email: nextUser.email || "",
+          displayName: nextUser.displayName,
+          photoURL: nextUser.photoURL,
+          authProvider,
+        });
+        await updateLastLogin(nextUser.uid);
+      } catch (error) {
+        console.warn("Failed to sync auth user profile.", error);
+      }
     });
 
     return () => unsubscribe();
@@ -44,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (provider: string, email?: string, password?: string) => {
     if (!auth) return;
-    if (provider !== "google") {
+    if (provider !== "google" && provider !== "github") {
       if (provider === "email") {
         if (!email || !password) {
           throw new Error("Email and password are required.");
@@ -61,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       throw new Error("Unsupported provider.");
     }
-    await signInWithPopup(auth, googleProvider);
+    await signInWithPopup(auth, provider === "google" ? googleProvider : githubProvider);
   };
 
   const resetPassword = async (email: string) => {

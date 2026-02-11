@@ -103,6 +103,10 @@ export default function Profile() {
 
   const handleAvatarUpload = async (file: File | null) => {
     if (!user || !file) return;
+    if (!file.type.startsWith("image/")) {
+      setMessage("Please upload an image file.");
+      return;
+    }
     if (file.size > 2 * 1024 * 1024) {
       setMessage("Avatar must be under 2MB.");
       return;
