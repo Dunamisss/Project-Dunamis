@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShareMenu from "@/components/ShareMenu";
+import AddToPackDialog from "@/components/AddToPackDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -200,6 +201,19 @@ export default function PromptLibrary() {
                 >
                   Try Me
                 </Button>
+                <AddToPackDialog
+                  promptText={prompt.content}
+                  suggestedTitle={prompt.title}
+                  onDone={showCopyFeedback}
+                  trigger={
+                    <Button
+                      variant="outline"
+                      className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                    >
+                      Add to Pack
+                    </Button>
+                  }
+                />
                 <Button
                   variant="outline"
                   className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"

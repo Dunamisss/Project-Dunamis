@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
 import ShareMenu from "@/components/ShareMenu";
+import AddToPackDialog from "@/components/AddToPackDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -226,6 +227,19 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
             <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={handleTryMe}>
               Try Me
             </Button>
+            <AddToPackDialog
+              promptText={prompt.content}
+              suggestedTitle={prompt.title}
+              onDone={showCopyFeedback}
+              trigger={
+                <Button
+                  variant="outline"
+                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                >
+                  Add to Pack
+                </Button>
+              }
+            />
             <Button
               variant="outline"
               className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"

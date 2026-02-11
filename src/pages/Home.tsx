@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useChat } from "@/contexts/ChatContext";
 import { AuthModal } from "@/components/AuthModal";
 import ContactSection from "@/components/ContactSection";
+import AddToPackDialog from "@/components/AddToPackDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -862,7 +863,7 @@ export default function Home() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <Button
                         variant="outline"
                         className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
@@ -871,6 +872,20 @@ export default function Home() {
                       >
                         Copy Optimized Prompt
                       </Button>
+                      <AddToPackDialog
+                        promptText={optimizedOutput}
+                        suggestedTitle="Optimizer Result"
+                        onDone={showCopyFeedback}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                            disabled={!optimizedOutput}
+                          >
+                            Add to Pack
+                          </Button>
+                        }
+                      />
                       <div className="w-full overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
                         <Button
                           variant="outline"
