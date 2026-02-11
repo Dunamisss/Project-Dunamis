@@ -166,19 +166,26 @@ function buildLastmodMap(promptRecords, imageRecords) {
   return { map, latestPrompt, latestImage };
 }
 
+function canonicalizeRoute(route) {
+  if (route === "/library") return "/prompts";
+  if (route === "/gallery") return "/images";
+  return route;
+}
+
 async function writeSitemap(siteUrl, routes, promptRecords, imageRecords) {
   const today = new Date().toISOString().split("T")[0];
   const { map, latestPrompt, latestImage } = buildLastmodMap(
     promptRecords,
     imageRecords,
   );
+  const canonicalRoutes = uniqueSorted(routes.map((route) => canonicalizeRoute(route)));
 
-  const entries = routes.map((route) => {
+  const entries = canonicalRoutes.map((route) => {
     const loc = route === "/" ? `${siteUrl}/` : `${siteUrl}${encodeURI(route)}`;
     const lastmod =
       map.get(route) ||
-      (route === "/prompts" || route === "/library" ? latestPrompt : null) ||
-      (route === "/images" || route === "/gallery" ? latestImage : null) ||
+      (route === "/prompts" ? latestPrompt : null) ||
+      (route === "/images" ? latestImage : null) ||
       today;
     return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
   });
@@ -231,6 +238,11 @@ function injectRouteMeta(html, meta) {
     html,
     /<meta\s+name="description"[^>]*>/i,
     `<meta name="description" content="${escapeAttr(meta.description)}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+name="robots"[^>]*>/i,
+    `<meta name="robots" content="${escapeAttr(meta.robots || "index,follow")}" />`,
   );
 
   html = upsertTag(
@@ -285,11 +297,13 @@ function buildRouteMeta({
   promptMeta,
   imageMeta,
 }) {
+  const canonicalRoute = canonicalizeRoute(route);
   const base = {
     title: defaultMeta.title,
     description: defaultMeta.description,
     image: defaultMeta.image,
-    url: route === "/" ? `${siteUrl}/` : `${siteUrl}${route}`,
+    url: canonicalRoute === "/" ? `${siteUrl}/` : `${siteUrl}${canonicalRoute}`,
+    robots: "index,follow",
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "WebSite",
@@ -329,6 +343,7 @@ function buildRouteMeta({
       ...base,
       title: "Profile — DUNAMIS",
       description: "Manage your Dunamis profile and avatar.",
+      robots: "noindex,follow",
     };
   }
 
