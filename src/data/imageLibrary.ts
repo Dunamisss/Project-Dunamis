@@ -1584,20 +1584,6 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
     "createdAt": 1770745038
   },
   {
-    "id": "half-lion-half-glass-8409ac9e",
-    "title": "half lion half glass 8409ac9e",
-    "description": "Original artwork: half lion half glass 8409ac9e.",
-    "tags": [
-      "half",
-      "lion",
-      "glass",
-      "8409ac9e"
-    ],
-    "full": "/images/library/full/half-lion-half-glass-8409ac9e.webp",
-    "thumb": "/images/library/thumbs/half-lion-half-glass-8409ac9e.webp",
-    "createdAt": 1770639318
-  },
-  {
     "id": "id-almost-organi-1c341db6",
     "title": "id almost organi 1c341db6",
     "description": "Original artwork: id almost organi 1c341db6.",
