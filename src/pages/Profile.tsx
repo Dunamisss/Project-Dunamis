@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChat } from "@/contexts/ChatContext";
 import { auth, db, storage } from "@/lib/firebase";
-import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query, setDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { sendPasswordResetEmail, updateProfile } from "firebase/auth";
 
@@ -27,6 +29,14 @@ type AccountStatus = {
   remaining: number | null;
   unlimited: boolean;
   banned: boolean;
+};
+
+type PromptPack = {
+  id: string;
+  title: string;
+  template: string;
+  createdAt: number;
+  updatedAt: number;
 };
 
 const setMeta = (name: string, content: string) => {
@@ -59,6 +69,8 @@ const setMeta = (name: string, content: string) => {
 
 export default function Profile() {
   const { user, isLoading } = useAuth();
+  const { loadPrompt } = useChat();
+  const [, setLocation] = useLocation();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
@@ -67,6 +79,16 @@ export default function Profile() {
   const [displayNameInput, setDisplayNameInput] = useState("");
   const [isEditingName, setIsEditingName] = useState(false);
   const [awaitingUnlock, setAwaitingUnlock] = useState(false);
+  const [packs, setPacks] = useState<PromptPack[]>([]);
+  const [loadingPacks, setLoadingPacks] = useState(false);
+  const [creatingPack, setCreatingPack] = useState(false);
+  const [updatingPackId, setUpdatingPackId] = useState<string | null>(null);
+  const [deletingPackId, setDeletingPackId] = useState<string | null>(null);
+  const [editingPackId, setEditingPackId] = useState<string | null>(null);
+  const [newPackTitle, setNewPackTitle] = useState("");
+  const [newPackTemplate, setNewPackTemplate] = useState("");
+  const [editPackTitle, setEditPackTitle] = useState("");
+  const [editPackTemplate, setEditPackTemplate] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
   const apiBase = (import.meta as any).env?.VITE_API_BASE ?? "";
@@ -145,6 +167,41 @@ export default function Profile() {
         setProfile(fallbackProfile);
       }
     });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setPacks([]);
+      return;
+    }
+
+    setLoadingPacks(true);
+    const packsQuery = query(
+      collection(db, "users", user.uid, "promptPacks"),
+      orderBy("updatedAt", "desc"),
+    );
+    const unsubscribe = onSnapshot(
+      packsQuery,
+      (snapshot) => {
+        const next = snapshot.docs.map((packDoc) => {
+          const data = packDoc.data() as Omit<PromptPack, "id">;
+          return {
+            id: packDoc.id,
+            title: data.title || "Untitled Pack",
+            template: data.template || "",
+            createdAt: Number(data.createdAt || Date.now()),
+            updatedAt: Number(data.updatedAt || Date.now()),
+          };
+        });
+        setPacks(next);
+        setLoadingPacks(false);
+      },
+      () => {
+        setLoadingPacks(false);
+      },
+    );
 
     return () => unsubscribe();
   }, [user]);
@@ -235,6 +292,104 @@ export default function Profile() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const resetPackInputs = () => {
+    setNewPackTitle("");
+    setNewPackTemplate("");
+  };
+
+  const handleCreatePack = async () => {
+    if (!user) return;
+    const title = newPackTitle.trim();
+    const template = newPackTemplate.trim();
+    if (!title) {
+      setMessage("Pack title is required.");
+      return;
+    }
+    if (!template) {
+      setMessage("Pack template is required.");
+      return;
+    }
+
+    setCreatingPack(true);
+    setMessage(null);
+    try {
+      const now = Date.now();
+      await addDoc(collection(db, "users", user.uid, "promptPacks"), {
+        title,
+        template,
+        createdAt: now,
+        updatedAt: now,
+      });
+      resetPackInputs();
+      setMessage("Prompt pack created.");
+    } catch {
+      setMessage("Could not create prompt pack.");
+    } finally {
+      setCreatingPack(false);
+    }
+  };
+
+  const beginEditPack = (pack: PromptPack) => {
+    setEditingPackId(pack.id);
+    setEditPackTitle(pack.title);
+    setEditPackTemplate(pack.template);
+  };
+
+  const handleSavePack = async () => {
+    if (!user || !editingPackId) return;
+    const title = editPackTitle.trim();
+    const template = editPackTemplate.trim();
+    if (!title) {
+      setMessage("Pack title is required.");
+      return;
+    }
+    if (!template) {
+      setMessage("Pack template is required.");
+      return;
+    }
+
+    setUpdatingPackId(editingPackId);
+    setMessage(null);
+    try {
+      await updateDoc(doc(db, "users", user.uid, "promptPacks", editingPackId), {
+        title,
+        template,
+        updatedAt: Date.now(),
+      });
+      setEditingPackId(null);
+      setEditPackTitle("");
+      setEditPackTemplate("");
+      setMessage("Prompt pack updated.");
+    } catch {
+      setMessage("Could not update prompt pack.");
+    } finally {
+      setUpdatingPackId(null);
+    }
+  };
+
+  const handleDeletePack = async (packId: string) => {
+    if (!user) return;
+    setDeletingPackId(packId);
+    setMessage(null);
+    try {
+      await deleteDoc(doc(db, "users", user.uid, "promptPacks", packId));
+      if (editingPackId === packId) {
+        setEditingPackId(null);
+      }
+      setMessage("Prompt pack deleted.");
+    } catch {
+      setMessage("Could not delete prompt pack.");
+    } finally {
+      setDeletingPackId(null);
+    }
+  };
+
+  const handleUsePack = (template: string) => {
+    if (!template.trim()) return;
+    loadPrompt(template);
+    setLocation("/");
   };
 
   const handlePasswordReset = async () => {
@@ -380,6 +535,129 @@ export default function Profile() {
               </Button>
             </div>
             <p className="text-[11px] text-gray-400">Shown across your profile and submissions.</p>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-xs text-gray-400 uppercase tracking-[0.25em]">My Prompt Packs</p>
+            <div className="rounded-md border border-yellow-500/20 bg-black/40 p-3 space-y-3">
+              <Input
+                value={newPackTitle}
+                onChange={(event) => setNewPackTitle(event.target.value)}
+                maxLength={80}
+                className="bg-black/40 border-yellow-500/30 text-white"
+                placeholder="Pack title (e.g. YouTube Hooks)"
+              />
+              <Textarea
+                value={newPackTemplate}
+                onChange={(event) => setNewPackTemplate(event.target.value)}
+                className="min-h-[140px] bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-400"
+                placeholder="Template prompt with placeholders, e.g. Write a [PLATFORM] post about [TOPIC] for [AUDIENCE] in a [TONE] tone."
+              />
+              <div className="flex gap-2">
+                <Button
+                  className="bg-yellow-400 text-black hover:bg-yellow-300"
+                  onClick={handleCreatePack}
+                  disabled={creatingPack || !newPackTitle.trim() || !newPackTemplate.trim()}
+                >
+                  {creatingPack ? "Creating..." : "Create Pack"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                  onClick={resetPackInputs}
+                  disabled={creatingPack}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+
+            {loadingPacks ? (
+              <p className="text-sm text-gray-300">Loading packs...</p>
+            ) : packs.length === 0 ? (
+              <p className="text-sm text-gray-300">No packs yet. Create your first reusable prompt pack above.</p>
+            ) : (
+              <div className="space-y-3">
+                {packs.map((pack) => {
+                  const isEditingThis = editingPackId === pack.id;
+                  const isUpdatingThis = updatingPackId === pack.id;
+                  const isDeletingThis = deletingPackId === pack.id;
+                  const updatedDate = new Date(pack.updatedAt).toLocaleDateString();
+
+                  return (
+                    <div key={pack.id} className="rounded-md border border-yellow-500/20 bg-black/40 p-3 space-y-3">
+                      {isEditingThis ? (
+                        <>
+                          <Input
+                            value={editPackTitle}
+                            onChange={(event) => setEditPackTitle(event.target.value)}
+                            maxLength={80}
+                            className="bg-black/40 border-yellow-500/30 text-white"
+                          />
+                          <Textarea
+                            value={editPackTemplate}
+                            onChange={(event) => setEditPackTemplate(event.target.value)}
+                            className="min-h-[140px] bg-black/40 border-yellow-500/30 text-white"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              className="bg-yellow-400 text-black hover:bg-yellow-300"
+                              onClick={handleSavePack}
+                              disabled={isUpdatingThis || !editPackTitle.trim() || !editPackTemplate.trim()}
+                            >
+                              {isUpdatingThis ? "Saving..." : "Save"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                              onClick={() => setEditingPackId(null)}
+                              disabled={isUpdatingThis}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-1">
+                            <p className="text-yellow-200 font-semibold">{pack.title}</p>
+                            <p className="text-[11px] text-gray-400">Updated {updatedDate}</p>
+                          </div>
+                          <Textarea
+                            value={pack.template}
+                            readOnly
+                            className="min-h-[120px] bg-black/30 border-yellow-500/20 text-white"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              className="bg-yellow-400 text-black hover:bg-yellow-300"
+                              onClick={() => handleUsePack(pack.template)}
+                            >
+                              Use in Optimizer
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                              onClick={() => beginEditPack(pack)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="border-red-500/40 text-red-300 hover:bg-red-500/10"
+                              onClick={() => handleDeletePack(pack.id)}
+                              disabled={isDeletingThis}
+                            >
+                              {isDeletingThis ? "Deleting..." : "Delete"}
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
