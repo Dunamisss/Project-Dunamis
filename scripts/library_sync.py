@@ -229,6 +229,251 @@ def load_existing_images(out_path: Path) -> list[dict]:
         return []
 
 
+def _find_matching_bracket(text: str, open_index: int, open_char: str, close_char: str) -> int:
+    depth = 0
+    quote = None
+    escaped = False
+    for i in range(open_index, len(text)):
+        ch = text[i]
+        if quote is not None:
+            if escaped:
+                escaped = False
+                continue
+            if ch == "\\":
+                escaped = True
+                continue
+            if ch == quote:
+                quote = None
+            continue
+        if ch in {'"', "'", "`"}:
+            quote = ch
+            continue
+        if ch == open_char:
+            depth += 1
+            continue
+        if ch == close_char:
+            depth -= 1
+            if depth == 0:
+                return i
+    raise ValueError("Matching bracket not found.")
+
+
+def _extract_json_array(text: str, marker: str) -> list[dict]:
+    marker_pos = text.find(marker)
+    if marker_pos == -1:
+        raise ValueError(f"Marker not found: {marker}")
+    open_index = text.find("[", marker_pos)
+    if open_index == -1:
+        raise ValueError("Array start not found.")
+    close_index = _find_matching_bracket(text, open_index, "[", "]")
+    raw = text[open_index:close_index + 1]
+    return json.loads(raw)
+
+
+def _parse_selection(selection: str, total: int) -> list[int]:
+    picked = set()
+    for chunk in selection.split(","):
+        part = chunk.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start_s, end_s = part.split("-", 1)
+            start = int(start_s.strip())
+            end = int(end_s.strip())
+            if start > end:
+                start, end = end, start
+            for idx in range(start, end + 1):
+                if 1 <= idx <= total:
+                    picked.add(idx)
+            continue
+        idx = int(part)
+        if 1 <= idx <= total:
+            picked.add(idx)
+    return sorted(picked)
+
+
+def _parse_prompt_entries(text: str) -> tuple[int, int, list[dict]]:
+    marker = "export const PROMPT_LIBRARY"
+    marker_pos = text.find(marker)
+    if marker_pos == -1:
+        raise ValueError("PROMPT_LIBRARY not found.")
+    open_index = text.find("[", marker_pos)
+    if open_index == -1:
+        raise ValueError("Prompt array start not found.")
+    close_index = _find_matching_bracket(text, open_index, "[", "]")
+    array_text = text[open_index + 1:close_index]
+
+    entries = []
+    quote = None
+    escaped = False
+    brace_depth = 0
+    obj_start = None
+    for i, ch in enumerate(array_text):
+        if quote is not None:
+            if escaped:
+                escaped = False
+                continue
+            if ch == "\\":
+                escaped = True
+                continue
+            if ch == quote:
+                quote = None
+            continue
+        if ch in {'"', "'", "`"}:
+            quote = ch
+            continue
+        if ch == "{":
+            if brace_depth == 0:
+                obj_start = i
+            brace_depth += 1
+            continue
+        if ch == "}":
+            brace_depth -= 1
+            if brace_depth == 0 and obj_start is not None:
+                obj_end = i + 1
+                span_start = obj_start
+                span_end = obj_end
+                j = obj_end
+                while j < len(array_text) and array_text[j] in " \t\r\n":
+                    j += 1
+                if j < len(array_text) and array_text[j] == ",":
+                    j += 1
+                    while j < len(array_text) and array_text[j] in " \t\r\n":
+                        j += 1
+                    span_end = j
+                else:
+                    k = obj_start - 1
+                    while k >= 0 and array_text[k] in " \t\r\n":
+                        k -= 1
+                    if k >= 0 and array_text[k] == ",":
+                        span_start = k
+
+                block = array_text[obj_start:obj_end]
+                id_match = re.search(r'id:\s*"([^"]+)"', block)
+                title_match = re.search(r'title:\s*"((?:\\.|[^"\\])*)"', block)
+                entries.append({
+                    "array_start": span_start,
+                    "array_end": span_end,
+                    "id": id_match.group(1) if id_match else "",
+                    "title": title_match.group(1).replace('\\"', '"') if title_match else "",
+                })
+                obj_start = None
+
+    return open_index, close_index, entries
+
+
+def remove_prompts(args: argparse.Namespace) -> None:
+    if not PROMPT_OUT.exists():
+        print("promptLibrary.ts not found.")
+        sys.exit(1)
+
+    text = PROMPT_OUT.read_text(encoding="utf-8")
+    open_index, close_index, entries = _parse_prompt_entries(text)
+    if not entries:
+        print("No prompt entries found.")
+        return
+
+    print("\nPrompt entries:")
+    for idx, entry in enumerate(entries, 1):
+        print(f"{idx:>3}) {entry['title']}  [{entry['id']}]")
+
+    total = len(entries)
+    selection = (args.select or "").strip()
+    if not selection:
+        selection = input("\nEnter numbers to remove (e.g. 2,5-7), or blank to cancel: ").strip()
+    if not selection:
+        print("Cancelled.")
+        return
+
+    try:
+        picked = _parse_selection(selection, total)
+    except Exception:
+        print("Invalid selection.")
+        return
+
+    if not picked:
+        print("No valid numbers selected.")
+        return
+
+    print("\nWill remove:")
+    for idx in picked:
+        e = entries[idx - 1]
+        print(f"- {e['title']} [{e['id']}]")
+
+    if not args.yes:
+        confirm = input("Confirm removal? [y/N]: ").strip().lower()
+        if confirm != "y":
+            print("Cancelled.")
+            return
+
+    remove_entries = [entries[i - 1] for i in picked]
+    array_text = text[open_index + 1:close_index]
+    for entry in sorted(remove_entries, key=lambda x: x["array_start"], reverse=True):
+        array_text = array_text[:entry["array_start"]] + array_text[entry["array_end"]:]
+
+    updated = text[:open_index + 1] + array_text + text[close_index:]
+    PROMPT_OUT.write_text(updated, encoding="utf-8")
+    print(f"Removed {len(remove_entries)} prompt(s).")
+
+
+def remove_images(args: argparse.Namespace) -> None:
+    items = load_existing_images(IMAGE_OUT)
+    if not items:
+        print("No images found in image library.")
+        return
+
+    print("\nImage entries:")
+    for idx, item in enumerate(items, 1):
+        print(f"{idx:>3}) {item.get('title', '')}  [{item.get('id', '')}]")
+
+    total = len(items)
+    selection = (args.select or "").strip()
+    if not selection:
+        selection = input("\nEnter numbers to remove (e.g. 3,10-12), or blank to cancel: ").strip()
+    if not selection:
+        print("Cancelled.")
+        return
+
+    try:
+        picked = _parse_selection(selection, total)
+    except Exception:
+        print("Invalid selection.")
+        return
+
+    if not picked:
+        print("No valid numbers selected.")
+        return
+
+    remove_set = {idx - 1 for idx in picked}
+    to_remove = [items[i] for i in sorted(remove_set)]
+    kept = [item for i, item in enumerate(items) if i not in remove_set]
+
+    print("\nWill remove:")
+    for item in to_remove:
+        print(f"- {item.get('title', '')} [{item.get('id', '')}]")
+
+    if not args.yes:
+        confirm = input("Confirm removal? [y/N]: ").strip().lower()
+        if confirm != "y":
+            print("Cancelled.")
+            return
+
+    if args.delete_files:
+        deleted = 0
+        for item in to_remove:
+            for key in ("full", "thumb"):
+                rel = item.get(key)
+                if isinstance(rel, str) and rel.startswith("/"):
+                    path = ROOT / rel.lstrip("/")
+                    if path.exists():
+                        path.unlink()
+                        deleted += 1
+        print(f"Deleted {deleted} image file(s) from public folder.")
+
+    write_images(kept, IMAGE_OUT)
+    print(f"Removed {len(to_remove)} image record(s).")
+
+
 def write_images(items: list[dict], out_path: Path) -> None:
     header = (
         "export interface ImageLibraryItem {\n"
@@ -351,6 +596,17 @@ def main() -> None:
     image_parser.add_argument("--images-dir", default=str(IMAGE_SRC_DIR))
     image_parser.set_defaults(func=sync_images)
 
+    remove_prompt_parser = sub.add_parser("remove-prompts", help="Remove prompts by number from prompt library.")
+    remove_prompt_parser.add_argument("--select", default="")
+    remove_prompt_parser.add_argument("--yes", action="store_true")
+    remove_prompt_parser.set_defaults(func=remove_prompts)
+
+    remove_image_parser = sub.add_parser("remove-images", help="Remove images by number from image library.")
+    remove_image_parser.add_argument("--select", default="")
+    remove_image_parser.add_argument("--delete-files", action="store_true")
+    remove_image_parser.add_argument("--yes", action="store_true")
+    remove_image_parser.set_defaults(func=remove_images)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -358,11 +614,13 @@ def main() -> None:
         print("1) Sync prompts")
         print("2) Sync images")
         print("3) Sync both")
-        print("4) Exit")
+        print("4) Remove prompts")
+        print("5) Remove images")
+        print("6) Exit")
         choice = input("Choose an option: ").strip()
-        if choice == "4":
+        if choice == "6":
             return
-        if choice not in {"1", "2", "3"}:
+        if choice not in {"1", "2", "3", "4", "5"}:
             print("Invalid option.")
             return
 
@@ -378,6 +636,11 @@ def main() -> None:
             ))
         if choice in {"2", "3"}:
             sync_images(argparse.Namespace(images_dir=str(IMAGE_SRC_DIR)))
+        if choice == "4":
+            remove_prompts(argparse.Namespace(select="", yes=False))
+        if choice == "5":
+            delete_files = input("Also delete image files from public folder? [y/N]: ").strip().lower() == "y"
+            remove_images(argparse.Namespace(select="", yes=False, delete_files=delete_files))
         return
 
     args.func(args)
