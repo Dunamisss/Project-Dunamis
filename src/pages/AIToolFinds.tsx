@@ -143,7 +143,7 @@ export default function AIToolFinds() {
               </div>
 
               <div className="pt-2 flex items-center gap-3 flex-wrap">
-                <Link href="/">
+                <Link href="/?focus=optimizer">
                   <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
                     Optimize This Pack
                   </Button>

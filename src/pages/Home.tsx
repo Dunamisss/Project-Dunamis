@@ -316,6 +316,17 @@ export default function Home() {
     }
   }, [promptToLoad, clearPromptToLoad]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("focus") !== "optimizer") return;
+    const timer = window.setTimeout(() => {
+      if (optimizerRef.current) {
+        optimizerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const handleTxtUpload = async (file: File | null) => {
     if (!file) return;
     const text = await file.text();
