@@ -778,7 +778,7 @@ export default function Home() {
               </Link>
             </div>
           </section>
-          <section ref={optimizerRef} className="pt-12 space-y-6">
+          <section id="optimizer" ref={optimizerRef} className="pt-12 space-y-6">
             {!user && (
               <div className="rounded-lg border border-yellow-500/40 bg-black/80 p-6 text-center shadow-lg">
                 <h2 className="text-xl md:text-2xl font-semibold text-white">Sign in to use the Prompt Optimizer</h2>

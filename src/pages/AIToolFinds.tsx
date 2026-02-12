@@ -183,7 +183,7 @@ export default function AIToolFinds() {
               </div>
 
               <div className="pt-2 flex items-center gap-3 flex-wrap">
-                <Link href="/?focus=optimizer">
+                <Link href="/#optimizer">
                   <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
                     Optimize This Pack
                   </Button>
@@ -198,6 +198,12 @@ export default function AIToolFinds() {
                     View Frameworks
                   </Button>
                 </Link>
+              </div>
+              <div className="rounded-md border border-yellow-500/20 bg-black/30 p-3 space-y-1">
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">How To Use</p>
+                <p className="text-sm text-gray-300">1. Copy a template from this pack.</p>
+                <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Optimize This Pack</span>.</p>
+                <p className="text-sm text-gray-300">3. Paste it into the optimizer, replace placeholders, then run.</p>
               </div>
             </div>
           ))}
