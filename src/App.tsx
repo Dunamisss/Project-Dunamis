@@ -33,6 +33,7 @@ function App() {
               <Route path="/profile" component={Profile} />
               <Route path="/submit" component={SubmitPrompt} />
               <Route path="/admin/submissions" component={AdminSubmissions} />
+              <Route path="/starter-packs" component={AIToolFinds} />
               <Route path="/tools" component={AIToolFinds} />
             </Switch>
           </Router>

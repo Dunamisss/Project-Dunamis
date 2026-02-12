@@ -1,153 +1,94 @@
 import { Link } from "wouter";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-type ToolEntry = {
+type StarterPack = {
   id: string;
-  name: string;
-  url: string;
-  whatItDoes: string;
-  bestFor: string;
-  freeLimits: string;
-  watchOut: string;
-  dunamisTip: string;
-  relatedPrompt: string;
+  title: string;
+  subtitle: string;
+  problem: string;
+  before: string;
+  after: string;
+  templates: string[];
+  whyItWorks: string[];
   accent: string;
-  screenshotBase?: string;
 };
 
-const TOOL_ENTRIES: ToolEntry[] = [
+const STARTER_PACKS: StarterPack[] = [
   {
-    id: "flux-kontext-pro",
-    name: "Flux Kontext Pro",
-    url: "https://imageeditor.online/ai-models/flux-kontext-pro",
-    whatItDoes: "Quick AI image edits and style changes from text instructions.",
-    bestFor: "Creators testing visual concepts fast.",
-    freeLimits: "Usually daily credit limits and slower queues at busy times.",
-    watchOut: "Vague prompts produce inconsistent results.",
-    dunamisTip: "Use the optimizer first, then paste the improved prompt into Flux.",
-    relatedPrompt: "reverse-engineer-image",
-    accent: "from-orange-400/30 via-yellow-300/20 to-rose-400/30",
-    screenshotBase: "/images/tools/flux-kontext-pro",
+    id: "midjourney",
+    title: "Midjourney Starter Pack",
+    subtitle: "Stop wasting credits. Build cinematic prompts with proper structure.",
+    problem: "Most users type broad ideas with no camera, lighting, or composition cues.",
+    before: "a cool futuristic city at night",
+    after:
+      "futuristic cyberpunk megacity at night, neon reflections on wet pavement, cinematic wide-angle lens, volumetric fog, dramatic rim lighting, ultra-detailed architecture --ar 16:9 --v 6",
+    templates: [
+      "[subject], cinematic composition, dramatic lighting, volumetric atmosphere, ultra-detailed textures, sharp focus --ar 16:9",
+      "full-body character design of [character], highly detailed costume, studio lighting, realistic fabric textures --ar 2:3",
+      "epic fantasy environment, [location], atmospheric perspective, dynamic lighting, matte painting style --ar 21:9",
+    ],
+    whyItWorks: [
+      "Midjourney responds best to concrete visual descriptors.",
+      "Camera + lighting instructions increase consistency.",
+      "Aspect ratio tokens prevent awkward framing.",
+    ],
+    accent: "from-amber-300/25 via-orange-300/15 to-yellow-200/20",
   },
   {
-    id: "perplexity",
-    name: "Perplexity",
-    url: "https://www.perplexity.ai/",
-    whatItDoes: "AI search assistant with cited web results.",
-    bestFor: "Quick research and source discovery.",
-    freeLimits: "Limited advanced model usage on free tier.",
-    watchOut: "Verify cited sources before publishing important claims.",
-    dunamisTip: "Use a Dunamis prompt template to structure your research questions.",
-    relatedPrompt: "80-20-method",
-    accent: "from-cyan-400/30 via-sky-400/20 to-indigo-400/30",
-    screenshotBase: "/images/tools/perplexity",
+    id: "chatgpt-business",
+    title: "ChatGPT Business Starter Pack",
+    subtitle: "Turn vague business asks into clear, usable deliverables.",
+    problem: "Most prompts miss audience, objective, and output format, so results drift.",
+    before: "write me a marketing plan",
+    after:
+      "You are a growth strategist. Build a 90-day marketing plan for [business type] targeting [audience]. Include weekly actions, estimated effort, KPIs, and a plain-English summary for non-technical stakeholders.",
+    templates: [
+      "You are a [role]. Task: [goal]. Audience: [who]. Constraints: [limits]. Output format: [table/checklist/steps].",
+      "Analyze this [text/data] and return: 1) key insights, 2) top risks, 3) action plan with priorities.",
+      "Rewrite this for [audience] in [tone]. Keep it under [length]. Include one CTA.",
+    ],
+    whyItWorks: [
+      "Role + audience prevents generic outputs.",
+      "Constraints force useful, realistic answers.",
+      "Explicit output format improves readability.",
+    ],
+    accent: "from-emerald-300/25 via-teal-300/15 to-lime-200/20",
   },
   {
-    id: "chatgpt",
-    name: "ChatGPT",
-    url: "https://chatgpt.com/",
-    whatItDoes: "General-purpose AI for writing, coding, planning, and analysis.",
-    bestFor: "Everyday prompt workflows.",
-    freeLimits: "Model access and message caps can vary.",
-    watchOut: "Outputs improve a lot with clear constraints and format requests.",
-    dunamisTip: "Draft in Dunamis, then run final prompt in ChatGPT.",
-    relatedPrompt: "suno-v5",
-    accent: "from-emerald-400/30 via-teal-400/20 to-lime-400/30",
-    screenshotBase: "/images/tools/chatgpt",
-  },
-  {
-    id: "gemini",
-    name: "Google Gemini",
-    url: "https://gemini.google.com/",
-    whatItDoes: "AI assistant for reasoning, writing, and multimodal tasks.",
-    bestFor: "Fast idea generation and summaries.",
-    freeLimits: "Feature and model access depends on account tier.",
-    watchOut: "Large tasks still need explicit output structure.",
-    dunamisTip: "Use Dunamis framework templates before sending to Gemini.",
-    relatedPrompt: "github-search-script",
-    accent: "from-blue-400/30 via-violet-400/20 to-pink-400/30",
-    screenshotBase: "/images/tools/gemini",
-  },
-  {
-    id: "claude",
-    name: "Claude",
-    url: "https://claude.ai/",
-    whatItDoes: "Strong long-form writing and structured analysis assistant.",
-    bestFor: "Documents, strategy notes, and polished writing.",
-    freeLimits: "Free usage windows and rate limits apply.",
-    watchOut: "May stay too general unless you request strict output sections.",
-    dunamisTip: "Use an audit-style prompt from Dunamis to force clearer output.",
-    relatedPrompt: "prompt-revealer",
-    accent: "from-amber-400/30 via-orange-400/20 to-red-400/30",
-    screenshotBase: "/images/tools/claude",
+    id: "research",
+    title: "Research & Fact Check Starter Pack",
+    subtitle: "Find better sources faster without drowning in noise.",
+    problem: "Users ask broad research questions and get shallow summaries.",
+    before: "tell me about AI in education",
+    after:
+      "Research AI adoption in K-12 education (last 24 months). Return: top 5 trends, source links, disagreements between sources, and a practical recommendation list for school leaders.",
+    templates: [
+      "Research [topic] for [audience]. Scope: [timeframe/region]. Return claims with linked sources and confidence level.",
+      "Compare [option A] vs [option B] on cost, risk, setup complexity, and expected ROI. Output as decision table.",
+      "Summarize these 3 articles into one executive brief with key takeaways and open questions.",
+    ],
+    whyItWorks: [
+      "Scope boundaries reduce vague results.",
+      "Source-first instructions increase trust.",
+      "Decision-table outputs speed up action.",
+    ],
+    accent: "from-cyan-300/25 via-sky-300/15 to-blue-200/20",
   },
 ];
-
-function ToolPreview({ tool }: { tool: ToolEntry }) {
-  const version = "4";
-  const candidates = tool.screenshotBase
-    ? [
-        `${tool.screenshotBase}.webp?v=${version}`,
-        `${tool.screenshotBase}.png?v=${version}`,
-        `${tool.screenshotBase}.jpg?v=${version}`,
-        `${tool.screenshotBase}.jpeg?v=${version}`,
-      ]
-    : [];
-  const [candidateIndex, setCandidateIndex] = useState(0);
-  const currentSrc = candidates[candidateIndex] || "";
-  const canShowImage = Boolean(currentSrc);
-
-  if (canShowImage) {
-    return (
-      <div
-        className="mt-3 h-[170px] w-full rounded-md border border-white/10 p-3"
-        style={{
-          backgroundImage:
-            "linear-gradient(45deg, rgba(255,255,255,0.92) 25%, rgba(17,24,39,0.82) 25%, rgba(17,24,39,0.82) 50%, rgba(255,255,255,0.92) 50%, rgba(255,255,255,0.92) 75%, rgba(17,24,39,0.82) 75%, rgba(17,24,39,0.82) 100%)",
-          backgroundSize: "24px 24px",
-        }}
-      >
-        <img
-          src={currentSrc}
-          alt={`${tool.name} screenshot`}
-          loading="lazy"
-          onError={() => setCandidateIndex((idx) => idx + 1)}
-          className="h-full w-full object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)]"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-3 rounded-md border border-white/10 bg-black/40 p-3 space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-red-300/70" />
-        <span className="h-2 w-2 rounded-full bg-yellow-300/70" />
-        <span className="h-2 w-2 rounded-full bg-green-300/70" />
-        <span className="ml-2 text-[10px] text-gray-200/80">preview</span>
-      </div>
-      <div className="h-2 rounded bg-white/10" />
-      <div className="h-2 w-11/12 rounded bg-white/10" />
-      <div className="h-2 w-8/12 rounded bg-white/10" />
-    </div>
-  );
-}
 
 export default function AIToolFinds() {
   return (
     <div className="min-h-screen relative overflow-x-hidden">
-      <div className="fixed inset-0 z-0 w-full h-screen bg-gradient-to-b from-black via-black/90 to-black" />
+      <div className="fixed inset-0 z-0 w-full h-screen bg-[radial-gradient(circle_at_top,rgba(234,179,8,0.30),rgba(0,0,0,0.94)_46%,rgba(0,0,0,1)_80%)]" />
+      <div className="fixed inset-0 z-0 opacity-25 bg-[linear-gradient(120deg,rgba(251,191,36,0.16),rgba(146,64,14,0.08),rgba(251,191,36,0.10))]" />
       <div className="relative z-10 px-4 py-10 max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis</p>
-            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">AI Tool Finds</h1>
+            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Starter Packs</h1>
             <p className="text-sm text-gray-300 max-w-3xl">
-              Curated free/low-cost AI tools we test, plus how to pair each one with Dunamis prompts.
-            </p>
-            <p className="text-xs text-gray-400">
-              Screenshot paths: <code className="text-yellow-200">public/images/tools/*.(webp|png|jpg)</code>
+              Platform-specific prompt systems your users can copy immediately. Each pack includes
+              a before/after example, ready templates, and a direct path into the optimizer.
             </p>
           </div>
           <Link href="/">
@@ -157,42 +98,59 @@ export default function AIToolFinds() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {TOOL_ENTRIES.map((tool) => (
-            <div key={tool.id} className="rounded-xl border border-yellow-500/20 bg-black/60 p-5 shadow-lg space-y-4">
-              <div className={`rounded-lg border border-white/10 bg-gradient-to-r ${tool.accent} p-4`}>
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-xl font-semibold text-yellow-100">{tool.name}</h2>
-                  <span className="rounded-full border border-yellow-300/40 bg-black/40 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-yellow-200">
-                    Tool Find
-                  </span>
-                </div>
-                <ToolPreview tool={tool} />
+        <div className="rounded-xl border border-yellow-500/30 bg-black/60 p-5 md:p-6 shadow-lg">
+          <p className="text-sm text-yellow-100">
+            Build one pack properly, then duplicate the structure for other platforms. Focus beats volume.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {STARTER_PACKS.map((pack) => (
+            <div key={pack.id} className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
+              <div className={`rounded-lg border border-white/10 bg-gradient-to-r ${pack.accent} p-4 space-y-2`}>
+                <p className="text-[11px] uppercase tracking-[0.25em] text-yellow-100/90">Starter Pack</p>
+                <h2 className="text-xl font-semibold text-yellow-100">{pack.title}</h2>
+                <p className="text-sm text-gray-100">{pack.subtitle}</p>
               </div>
-              <div className="space-y-1">
-                <a
-                  href={tool.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-yellow-300 underline underline-offset-4 break-all"
-                >
-                  {tool.url}
-                </a>
+
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Problem</p>
+                <p className="text-sm text-gray-300">{pack.problem}</p>
               </div>
-              <p className="text-sm text-gray-300"><span className="text-yellow-200">What it does:</span> {tool.whatItDoes}</p>
-              <p className="text-sm text-gray-300"><span className="text-yellow-200">Best for:</span> {tool.bestFor}</p>
-              <p className="text-sm text-gray-300"><span className="text-yellow-200">Free limits:</span> {tool.freeLimits}</p>
-              <p className="text-sm text-gray-300"><span className="text-yellow-200">Watch out:</span> {tool.watchOut}</p>
-              <p className="text-sm text-gray-300"><span className="text-yellow-200">Use with Dunamis:</span> {tool.dunamisTip}</p>
+
+              <div className="space-y-2 rounded-lg border border-yellow-500/20 bg-black/40 p-3">
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Before</p>
+                <p className="text-sm text-gray-300">{pack.before}</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80 pt-2">After</p>
+                <p className="text-sm text-gray-200 break-words">{pack.after}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Templates</p>
+                {pack.templates.map((template, idx) => (
+                  <div key={`${pack.id}-${idx}`} className="rounded-md border border-yellow-500/20 bg-black/35 p-3">
+                    <p className="text-xs text-yellow-200 mb-1">Template {idx + 1}</p>
+                    <p className="text-sm text-gray-300 break-words">{template}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Why It Works</p>
+                {pack.whyItWorks.map((line, idx) => (
+                  <p key={`${pack.id}-why-${idx}`} className="text-sm text-gray-300">• {line}</p>
+                ))}
+              </div>
+
               <div className="pt-2 flex items-center gap-3 flex-wrap">
-                <a href={tool.url} target="_blank" rel="noopener noreferrer">
+                <Link href="/">
                   <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                    Visit Tool
+                    Optimize This Pack
                   </Button>
-                </a>
-                <Link href={`/prompt/${tool.relatedPrompt}`}>
+                </Link>
+                <Link href="/frameworks">
                   <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                    Related Prompt
+                    View Frameworks
                   </Button>
                 </Link>
               </div>
@@ -203,3 +161,4 @@ export default function AIToolFinds() {
     </div>
   );
 }
+
