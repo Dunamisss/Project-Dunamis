@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 type StarterPack = {
@@ -11,6 +12,8 @@ type StarterPack = {
   templates: string[];
   whyItWorks: string[];
   accent: string;
+  platformLabel: string;
+  platformUrl: string;
 };
 
 const STARTER_PACKS: StarterPack[] = [
@@ -33,6 +36,8 @@ const STARTER_PACKS: StarterPack[] = [
       "Aspect ratio tokens prevent awkward framing.",
     ],
     accent: "from-amber-300/25 via-orange-300/15 to-yellow-200/20",
+    platformLabel: "Midjourney",
+    platformUrl: "https://www.midjourney.com/",
   },
   {
     id: "chatgpt-business",
@@ -53,6 +58,8 @@ const STARTER_PACKS: StarterPack[] = [
       "Explicit output format improves readability.",
     ],
     accent: "from-emerald-300/25 via-teal-300/15 to-lime-200/20",
+    platformLabel: "ChatGPT",
+    platformUrl: "https://chatgpt.com/",
   },
   {
     id: "research",
@@ -73,10 +80,28 @@ const STARTER_PACKS: StarterPack[] = [
       "Decision-table outputs speed up action.",
     ],
     accent: "from-cyan-300/25 via-sky-300/15 to-blue-200/20",
+    platformLabel: "Perplexity",
+    platformUrl: "https://www.perplexity.ai/",
   },
 ];
 
 export default function AIToolFinds() {
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+  const showCopyFeedback = (message: string) => {
+    setCopyFeedback(message);
+    window.setTimeout(() => setCopyFeedback(null), 1800);
+  };
+
+  const copyTemplate = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      showCopyFeedback("Template copied.");
+    } catch {
+      showCopyFeedback("Copy failed. Please copy manually.");
+    }
+  };
+
   return (
     <div className="min-h-screen relative overflow-x-hidden">
       <div className="fixed inset-0 z-0 w-full h-screen bg-[radial-gradient(circle_at_top,rgba(234,179,8,0.30),rgba(0,0,0,0.94)_46%,rgba(0,0,0,1)_80%)]" />
@@ -103,6 +128,11 @@ export default function AIToolFinds() {
             Build one pack properly, then duplicate the structure for other platforms. Focus beats volume.
           </p>
         </div>
+        {copyFeedback && (
+          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-yellow-500/40 bg-black/90 px-4 py-2 text-[12px] text-yellow-200 shadow-lg">
+            {copyFeedback}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {STARTER_PACKS.map((pack) => (
@@ -129,7 +159,17 @@ export default function AIToolFinds() {
                 <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Templates</p>
                 {pack.templates.map((template, idx) => (
                   <div key={`${pack.id}-${idx}`} className="rounded-md border border-yellow-500/20 bg-black/35 p-3">
-                    <p className="text-xs text-yellow-200 mb-1">Template {idx + 1}</p>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-xs text-yellow-200">Template {idx + 1}</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
+                        onClick={() => copyTemplate(template)}
+                      >
+                        Copy Template
+                      </Button>
+                    </div>
                     <p className="text-sm text-gray-300 break-words">{template}</p>
                   </div>
                 ))}
@@ -148,6 +188,11 @@ export default function AIToolFinds() {
                     Optimize This Pack
                   </Button>
                 </Link>
+                <a href={pack.platformUrl} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                    Try in {pack.platformLabel}
+                  </Button>
+                </a>
                 <Link href="/frameworks">
                   <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                     View Frameworks
