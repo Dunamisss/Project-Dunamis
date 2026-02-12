@@ -87,7 +87,7 @@ export default function AIToolFinds() {
             <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis</p>
             <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Starter Packs</h1>
             <p className="text-sm text-gray-300 max-w-3xl">
-              Platform-specific prompt systems your users can copy immediately. Each pack includes
+              Platform-specific prompt systems visitors can use immediately. Each pack includes
               a before/after example, ready templates, and a direct path into the optimizer.
             </p>
           </div>
@@ -161,4 +161,3 @@ export default function AIToolFinds() {
     </div>
   );
 }
-
