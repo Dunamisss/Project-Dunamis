@@ -18,6 +18,50 @@ type StarterPack = {
 
 const STARTER_PACKS: StarterPack[] = [
   {
+    id: "suno-v5",
+    title: "Suno Song Starter Pack",
+    subtitle: "From rough song idea to Suno-ready structure with fewer bad generations.",
+    problem: "Most song prompts are too vague, so the hook, structure, and genre feel inconsistent.",
+    before: "make me a good song about heartbreak",
+    after:
+      "Modern melodic pop with emotional punch, 118 BPM, warm synth layers, clean punchy drums, expressive lead vocal. Theme: rebuilding after heartbreak. Structure: Verse 1, Chorus, Verse 2, Chorus, Bridge, Final Chorus, Outro. Chorus must be short, memorable, and repeatable.",
+    templates: [
+      "Genre/style: [GENRE]. Mood: [MOOD]. BPM: [BPM]. Theme/story: [TOPIC]. Vocal style: [VOICE]. Structure: Verse 1, Chorus, Verse 2, Chorus, Bridge, Final Chorus, Outro. Production notes: [KEY TEXTURES]. Keep the chorus hook simple and memorable.",
+      "Write lyrics for a [GENRE] track about [TOPIC] with [MOOD] tone. Keep lines singable and natural. Add section labels: [Verse 1], [Chorus], [Verse 2], [Bridge], [Final Chorus], [Outro].",
+      "Create 3 title options, then provide full lyrics and a separate style prompt for Suno. Avoid artist-name imitation, avoid filler lyrics, and keep the hook under 2 short lines.",
+    ],
+    whyItWorks: [
+      "Suno performs better when style + structure are explicit.",
+      "Short hook constraints improve replay value.",
+      "Separate style prompt and lyrics reduce muddy outputs.",
+    ],
+    accent: "from-yellow-300/25 via-amber-300/15 to-orange-200/20",
+    platformLabel: "Suno",
+    platformUrl: "https://suno.com/",
+  },
+  {
+    id: "suno-reggae-fusion",
+    title: "Suno Reggae-Fusion Pack",
+    subtitle: "Blend reggae roots with modern rap/pop energy without sounding generic.",
+    problem: "Single-genre reggae prompts often sound flat and repetitive.",
+    before: "make a reggae rap song",
+    after:
+      "Reggae-fusion with modern hip-hop drums, offbeat skank guitar, deep warm bass, subtle dub FX, 96 BPM. Theme: resilience under pressure. Vocal mix: melodic rap verse + sung hook. Structure: Verse 1, Chorus, Verse 2, Chorus, Bridge, Final Chorus, Outro.",
+    templates: [
+      "Reggae-fusion + hip-hop crossover, [BPM] BPM. Instrument palette: offbeat guitar skank, dub delay accents, warm sub bass, modern trap-influenced drums. Theme: [TOPIC]. Vocal blend: [RAP/SUNG RATIO].",
+      "Write original reggae-fusion lyrics with clear hook and chantable chorus. Keep cadence tight, no overlong bars, no recycled lines, no artist-name references.",
+      "Give final output in 3 blocks: 1) Title options, 2) Full lyrics with section labels, 3) Suno style prompt with production direction.",
+    ],
+    whyItWorks: [
+      "Fusion tags prevent generic one-dimensional reggae outputs.",
+      "Instrument-level guidance improves groove identity.",
+      "Sectioned output speeds up iterative Suno runs.",
+    ],
+    accent: "from-lime-300/25 via-emerald-300/15 to-yellow-200/20",
+    platformLabel: "Suno",
+    platformUrl: "https://suno.com/",
+  },
+  {
     id: "midjourney",
     title: "Midjourney Starter Pack",
     subtitle: "Stop wasting credits. Build cinematic prompts with proper structure.",
