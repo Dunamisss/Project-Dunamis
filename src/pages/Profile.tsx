@@ -104,7 +104,7 @@ export default function Profile() {
   const [editPackTemplate, setEditPackTemplate] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
-  const apiBase = (import.meta as any).env?.VITE_API_BASE ?? "";
+  const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim();
   const accountStatusUrl = apiBase
     ? `${apiBase.replace(/\/+$/, "")}/api/account-status`
     : "/api/account-status";

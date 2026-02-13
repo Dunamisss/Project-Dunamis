@@ -206,7 +206,7 @@ export default function Home() {
   const optimizerRef = useRef<HTMLDivElement>(null);
   const copyTimeoutRef = useRef<number | null>(null);
 
-  const apiBase = (import.meta as any).env?.VITE_API_BASE ?? "";
+  const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim();
   const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
   const tryInProviders = [
     { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com/" },

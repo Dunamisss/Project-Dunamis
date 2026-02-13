@@ -128,7 +128,7 @@ export default function ColoringPageMachine() {
   const [genMessage, setGenMessage] = useState<string | null>(null);
 
   const ageGuidance = useMemo(() => getAgeGuidance(ageGroup), [ageGroup]);
-  const apiBase = ((import.meta as any).env?.VITE_API_BASE || "").replace(/\/+$/, "");
+  const apiBase = (((import.meta as any).env?.VITE_API_BASE || "") as string).trim().replace(/\/+$/, "");
   const coloringApiUrl = apiBase ? `${apiBase}/api/coloring/outline` : "/api/coloring/outline";
 
   useEffect(() => {
