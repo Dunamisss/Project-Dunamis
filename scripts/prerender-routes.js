@@ -207,7 +207,7 @@ async function writeRobots(siteUrl) {
     "Allow: /",
     `Sitemap: ${siteUrl}/sitemap.xml`,
     "",
-  ].join("\\n");
+  ].join("\n");
   await fs.writeFile(path.join(distDir, "robots.txt"), content, "utf8");
 }
 
