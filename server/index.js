@@ -223,17 +223,17 @@ function isLikelyVpnIp(ip) {
 function getColoringStrength(ageGroup) {
   switch (ageGroup) {
     case "3-5":
-      return { threshold: 168, blurSigma: 0.9, sharpenAmount: 0.8, fineOpacity: 0.45 };
+      return { threshold: 148, finalThreshold: 154, blurSigma: 0.85, sharpenAmount: 0.9, fineOpacity: 0.55, dilate: 1 };
     case "6-8":
-      return { threshold: 160, blurSigma: 0.75, sharpenAmount: 1.0, fineOpacity: 0.5 };
+      return { threshold: 140, finalThreshold: 148, blurSigma: 0.7, sharpenAmount: 1.05, fineOpacity: 0.62, dilate: 1 };
     case "9-12":
-      return { threshold: 152, blurSigma: 0.6, sharpenAmount: 1.1, fineOpacity: 0.58 };
+      return { threshold: 132, finalThreshold: 142, blurSigma: 0.55, sharpenAmount: 1.15, fineOpacity: 0.7, dilate: 1 };
     case "13-17":
-      return { threshold: 146, blurSigma: 0.45, sharpenAmount: 1.25, fineOpacity: 0.62 };
+      return { threshold: 126, finalThreshold: 136, blurSigma: 0.4, sharpenAmount: 1.25, fineOpacity: 0.75, dilate: 1 };
     case "18+":
-      return { threshold: 140, blurSigma: 0.3, sharpenAmount: 1.35, fineOpacity: 0.7 };
+      return { threshold: 118, finalThreshold: 130, blurSigma: 0.3, sharpenAmount: 1.35, fineOpacity: 0.82, dilate: 1 };
     default:
-      return { threshold: 152, blurSigma: 0.6, sharpenAmount: 1.1, fineOpacity: 0.58 };
+      return { threshold: 132, finalThreshold: 142, blurSigma: 0.55, sharpenAmount: 1.15, fineOpacity: 0.7, dilate: 1 };
   }
 }
 
@@ -257,13 +257,13 @@ async function fetchImageBuffer(imageUrl) {
 }
 
 async function toColoringOutline(inputBuffer, ageGroup = "9-12") {
-  const { threshold, blurSigma, sharpenAmount, fineOpacity } = getColoringStrength(ageGroup);
+  const { threshold, finalThreshold, blurSigma, sharpenAmount, fineOpacity, dilate } = getColoringStrength(ageGroup);
 
   const prepared = sharp(inputBuffer)
     .rotate()
     .resize({
-      width: 1800,
-      height: 1800,
+      width: 2400,
+      height: 2400,
       fit: "inside",
       withoutEnlargement: true,
     })
@@ -294,8 +294,10 @@ async function toColoringOutline(inputBuffer, ageGroup = "9-12") {
   const processed = await sharp(coarseEdges)
     .composite([{ input: fineEdges, blend: "darken", opacity: fineOpacity }])
     .threshold(threshold)
+    .dilate(dilate)
     .sharpen(sharpenAmount)
-    .toColourspace("b-w")
+    .threshold(finalThreshold)
+    .grayscale()
     .png({ compressionLevel: 9 })
     .toBuffer();
 
