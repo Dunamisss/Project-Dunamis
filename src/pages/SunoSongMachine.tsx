@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -177,6 +177,16 @@ export default function SunoSongMachine() {
 
   const canGenerate = useMemo(() => sanitize(idea).length > 2, [idea]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const incomingIdea = params.get("idea");
+    if (incomingIdea && !idea) {
+      setIdea(incomingIdea);
+      setMessage("Template loaded from Starter Pack.");
+      window.setTimeout(() => setMessage(null), 1800);
+    }
+  }, [idea]);
+
   const copy = async (value: string, ok = "Copied.") => {
     try {
       await navigator.clipboard.writeText(value);
@@ -236,7 +246,15 @@ export default function SunoSongMachine() {
         </div>
 
         <div className="rounded-xl border border-yellow-500/30 bg-black/65 p-5 md:p-6 shadow-lg space-y-1">
-          <p className="text-xs uppercase tracking-[0.25em] text-yellow-200/80">How To Use</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xs uppercase tracking-[0.25em] text-yellow-200/80">How To Use</p>
+            <span className="text-[10px] uppercase tracking-[0.2em] rounded-full border border-yellow-500/40 px-2 py-1 text-yellow-200">
+              Suno Free 4.5 Ready
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.2em] rounded-full border border-yellow-500/40 px-2 py-1 text-yellow-200">
+              Suno Pro v5 Ready
+            </span>
+          </div>
           <p className="text-sm text-gray-300">1. Type what song you want.</p>
           <p className="text-sm text-gray-300">2. Click Generate Preview (Verse + Chorus).</p>
           <p className="text-sm text-gray-300">3. Regenerate variation until it feels right.</p>

@@ -146,6 +146,9 @@ export default function AIToolFinds() {
     }
   };
 
+  const toSongMachineLink = (template: string) =>
+    `/suno-song-machine?idea=${encodeURIComponent(template)}`;
+
   return (
     <div className="min-h-screen relative overflow-x-hidden">
       <div className="fixed inset-0 z-0 w-full h-screen bg-[radial-gradient(circle_at_top,rgba(234,179,8,0.30),rgba(0,0,0,0.94)_46%,rgba(0,0,0,1)_80%)]" />
@@ -205,14 +208,27 @@ export default function AIToolFinds() {
                   <div key={`${pack.id}-${idx}`} className="rounded-md border border-yellow-500/20 bg-black/35 p-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-xs text-yellow-200">Template {idx + 1}</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
-                        onClick={() => copyTemplate(template)}
-                      >
-                        Copy Template
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {pack.id.startsWith("suno-") && (
+                          <Link href={toSongMachineLink(template)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
+                            >
+                              Use in Song Machine
+                            </Button>
+                          </Link>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
+                          onClick={() => copyTemplate(template)}
+                        >
+                          Copy Template
+                        </Button>
+                      </div>
                     </div>
                     <p className="text-sm text-gray-300 break-words">{template}</p>
                   </div>
@@ -227,16 +243,31 @@ export default function AIToolFinds() {
               </div>
 
               <div className="pt-2 flex items-center gap-3 flex-wrap">
-                <Link href="/#optimizer">
-                  <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                    Optimize This Pack
-                  </Button>
-                </Link>
+                {pack.id.startsWith("suno-") ? (
+                  <Link href="/suno-song-machine">
+                    <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                      Use Song Machine
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href="/#optimizer">
+                    <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                      Optimize This Pack
+                    </Button>
+                  </Link>
+                )}
                 <a href={pack.platformUrl} target="_blank" rel="noopener noreferrer">
                   <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                     Try in {pack.platformLabel}
                   </Button>
                 </a>
+                {pack.id.startsWith("suno-") && (
+                  <a href="https://suno.com/" target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                      Open Suno
+                    </Button>
+                  </a>
+                )}
                 <Link href="/frameworks">
                   <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                     View Frameworks
@@ -246,8 +277,17 @@ export default function AIToolFinds() {
               <div className="rounded-md border border-yellow-500/20 bg-black/30 p-3 space-y-1">
                 <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">How To Use</p>
                 <p className="text-sm text-gray-300">1. Copy a template from this pack.</p>
-                <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Optimize This Pack</span>.</p>
-                <p className="text-sm text-gray-300">3. Paste it into the optimizer, replace placeholders, then run.</p>
+                {pack.id.startsWith("suno-") ? (
+                  <>
+                    <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Use Song Machine</span>.</p>
+                    <p className="text-sm text-gray-300">3. Tweak details, generate preview, then copy into Suno.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Optimize This Pack</span>.</p>
+                    <p className="text-sm text-gray-300">3. Paste it into the optimizer, replace placeholders, then run.</p>
+                  </>
+                )}
               </div>
             </div>
           ))}
