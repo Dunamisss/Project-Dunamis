@@ -6,6 +6,7 @@ type StarterPack = {
   id: string;
   title: string;
   subtitle: string;
+  logoSrc?: string;
   problem: string;
   before: string;
   after: string;
@@ -21,6 +22,7 @@ const STARTER_PACKS: StarterPack[] = [
     id: "suno-v5",
     title: "Suno Song Starter Pack",
     subtitle: "From rough song idea to Suno-ready structure with fewer bad generations.",
+    logoSrc: "/images/tools/suno.webp",
     problem: "Most song prompts are too vague, so the hook, structure, and genre feel inconsistent.",
     before: "make me a good song about heartbreak",
     after:
@@ -43,6 +45,7 @@ const STARTER_PACKS: StarterPack[] = [
     id: "suno-reggae-fusion",
     title: "Suno Reggae-Fusion Pack",
     subtitle: "Blend reggae roots with modern rap/pop energy without sounding generic.",
+    logoSrc: "/images/tools/suno.webp",
     problem: "Single-genre reggae prompts often sound flat and repetitive.",
     before: "make a reggae rap song",
     after:
@@ -65,6 +68,7 @@ const STARTER_PACKS: StarterPack[] = [
     id: "midjourney",
     title: "Midjourney Starter Pack",
     subtitle: "Stop wasting credits. Build cinematic prompts with proper structure.",
+    logoSrc: "/images/tools/midjourney.webp",
     problem: "Most users type broad ideas with no camera, lighting, or composition cues.",
     before: "a cool futuristic city at night",
     after:
@@ -87,6 +91,7 @@ const STARTER_PACKS: StarterPack[] = [
     id: "chatgpt-business",
     title: "ChatGPT Business Starter Pack",
     subtitle: "Turn vague business asks into clear, usable deliverables.",
+    logoSrc: "/images/tools/chatgpt.webp",
     problem: "Most prompts miss audience, objective, and output format, so results drift.",
     before: "write me a marketing plan",
     after:
@@ -109,6 +114,7 @@ const STARTER_PACKS: StarterPack[] = [
     id: "research",
     title: "Research & Fact Check Starter Pack",
     subtitle: "Find better sources faster without drowning in noise.",
+    logoSrc: "/images/tools/perplexity.webp",
     problem: "Users ask broad research questions and get shallow summaries.",
     before: "tell me about AI in education",
     after:
@@ -186,7 +192,21 @@ export default function AIToolFinds() {
             <div key={pack.id} className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
               <div className={`rounded-lg border border-white/10 bg-gradient-to-r ${pack.accent} p-4 space-y-2`}>
                 <p className="text-[11px] uppercase tracking-[0.25em] text-yellow-100/90">Starter Pack</p>
-                <h2 className="text-xl font-semibold text-yellow-100">{pack.title}</h2>
+                <div className="flex items-center gap-3">
+                  {pack.logoSrc && (
+                    <img
+                      src={pack.logoSrc}
+                      alt={`${pack.platformLabel} logo`}
+                      className="h-8 w-8 rounded-md object-contain bg-black/30 p-1 border border-white/15"
+                      loading="lazy"
+                      onError={(event) => {
+                        const target = event.currentTarget as HTMLImageElement;
+                        target.style.display = "none";
+                      }}
+                    />
+                  )}
+                  <h2 className="text-xl font-semibold text-yellow-100">{pack.title}</h2>
+                </div>
                 <p className="text-sm text-gray-100">{pack.subtitle}</p>
               </div>
 
