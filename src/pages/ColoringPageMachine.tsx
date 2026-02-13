@@ -195,18 +195,57 @@ export default function ColoringPageMachine() {
     setGenMessage(null);
     try {
       const seed = Math.floor(Math.random() * 1000000);
-      const prompt = encodeURIComponent(result.finalPrompt);
-      const generatedUrl = `https://image.pollinations.ai/prompt/${prompt}?model=flux&width=1024&height=1024&seed=${seed}&nologo=true`;
+      const compact = result.finalPrompt.slice(0, 600);
+      const prompt = encodeURIComponent(compact);
+      const alt = encodeURIComponent(
+        `black and white coloring page line art, ${theme || "creative scene"}, clean bold outlines, no color, no text, white background`
+      );
+      const candidateUrls = [
+        `https://image.pollinations.ai/prompt/${prompt}?width=1024&height=1024&seed=${seed}&nologo=true`,
+        `https://image.pollinations.ai/prompt/${prompt}?model=flux&width=1024&height=1024&seed=${seed}&nologo=true`,
+        `https://image.pollinations.ai/prompt/${alt}?width=1024&height=1024&seed=${seed}&nologo=true`,
+      ];
 
-      const probe = new Image();
-      const loaded = await new Promise<boolean>((resolve) => {
-        probe.onload = () => resolve(true);
-        probe.onerror = () => resolve(false);
-        probe.src = generatedUrl;
-      });
+      let generatedUrl = "";
+      for (const candidate of candidateUrls) {
+        const loaded = await new Promise<boolean>((resolve) => {
+          const probe = new Image();
+          let done = false;
+          const timer = window.setTimeout(() => {
+            if (!done) {
+              done = true;
+              resolve(false);
+            }
+          }, 15000);
+          probe.onload = () => {
+            if (!done) {
+              done = true;
+              window.clearTimeout(timer);
+              resolve(true);
+            }
+          };
+          probe.onerror = () => {
+            if (!done) {
+              done = true;
+              window.clearTimeout(timer);
+              resolve(false);
+            }
+          };
+          probe.src = candidate;
+        });
+        if (loaded) {
+          generatedUrl = candidate;
+          break;
+        }
+      }
 
-      if (!loaded) {
-        throw new Error("Free provider failed to generate this time.");
+      if (!generatedUrl) {
+        const fallback = candidateUrls[0];
+        setImageUrl(fallback);
+        setPrintImageUrl(fallback);
+        setGenMessage("Free provider is busy. Opened fallback image URL in a new tab. Try again in 1-2 minutes if blank.");
+        window.open(fallback, "_blank", "noopener,noreferrer");
+        return;
       }
 
       setImageUrl(generatedUrl);
