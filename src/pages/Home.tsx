@@ -656,9 +656,9 @@ export default function Home() {
                   Starter Packs
                 </Button>
               </Link>
-              <Link href="/coloring-page-machine">
+              <Link href="/suno-song-machine">
                 <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Coloring Beta
+                  Song Machine
                 </Button>
               </Link>
               <Link href="/submit">
@@ -743,9 +743,9 @@ export default function Home() {
                   Starter Packs
                 </Button>
               </Link>
-              <Link href="/coloring-page-machine">
+              <Link href="/suno-song-machine">
                 <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Coloring Page Beta
+                  Suno Song Machine
                 </Button>
               </Link>
             </div>
@@ -766,6 +766,25 @@ export default function Home() {
               <Link href="/starter-packs">
                 <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
                   Open Starter Packs
+                </Button>
+              </Link>
+            </div>
+          </section>
+          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-2 max-w-3xl">
+                <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Beta Tool</p>
+                <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
+                  Suno Song Machine
+                </h2>
+                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed">
+                  A simple song workflow for Suno users: describe your track, generate Verse 1 + Chorus,
+                  tweak it, then copy a full Suno-ready paste block with structure and style notes.
+                </p>
+              </div>
+              <Link href="/suno-song-machine">
+                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                  Open Song Machine
                 </Button>
               </Link>
             </div>
