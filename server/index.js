@@ -1,10 +1,16 @@
 import express from "express";
 import dotenv from "dotenv";
+import multer from "multer";
+import sharp from "sharp";
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 8787;
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+});
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -31,6 +37,11 @@ const usageByKey = new Map();
 let disposableBlocklist = new Set();
 let disposableAllowlist = new Set();
 let vpnIpv4Cidrs = [];
+const EDGE_KERNEL = {
+  width: 3,
+  height: 3,
+  kernel: [-1, -1, -1, -1, 8, -1, -1, -1, -1],
+};
 
 function getUsageRecord(key) {
   const existing = usageByKey.get(key);
@@ -209,6 +220,68 @@ function isLikelyVpnIp(ip) {
   return false;
 }
 
+function getColoringStrength(ageGroup) {
+  switch (ageGroup) {
+    case "3-5":
+      return { threshold: 186, blurSigma: 1.2, sharpenAmount: 0.7 };
+    case "6-8":
+      return { threshold: 178, blurSigma: 1.05, sharpenAmount: 0.9 };
+    case "9-12":
+      return { threshold: 170, blurSigma: 0.9, sharpenAmount: 1.1 };
+    case "13-17":
+      return { threshold: 164, blurSigma: 0.75, sharpenAmount: 1.2 };
+    case "18+":
+      return { threshold: 158, blurSigma: 0.55, sharpenAmount: 1.35 };
+    default:
+      return { threshold: 170, blurSigma: 0.9, sharpenAmount: 1.1 };
+  }
+}
+
+async function fetchImageBuffer(imageUrl) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(imageUrl, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`Remote image fetch failed with status ${response.status}.`);
+    }
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.toLowerCase().startsWith("image/")) {
+      throw new Error("Provided image URL did not return an image.");
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function toColoringOutline(inputBuffer, ageGroup = "9-12") {
+  const { threshold, blurSigma, sharpenAmount } = getColoringStrength(ageGroup);
+
+  const processed = await sharp(inputBuffer)
+    .rotate()
+    .resize({
+      width: 1800,
+      height: 1800,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .grayscale()
+    .normalise()
+    .blur(blurSigma)
+    .convolve(EDGE_KERNEL)
+    .linear(2.0, -28)
+    .threshold(threshold)
+    .negate()
+    .sharpen(sharpenAmount)
+    .toColourspace("b-w")
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+
+  return processed;
+}
+
 async function loadLists() {
   try {
     const [blocklistText, allowlistText, vpnText] = await Promise.all([
@@ -247,6 +320,29 @@ app.use((req, res, next) => {
     return res.sendStatus(204);
   }
   next();
+});
+
+app.post("/api/coloring/outline", upload.single("image"), async (req, res) => {
+  try {
+    const ageGroup = typeof req.body?.ageGroup === "string" ? req.body.ageGroup.trim() : "9-12";
+    let sourceBuffer = req.file?.buffer || null;
+
+    if (!sourceBuffer) {
+      const imageUrl = typeof req.body?.imageUrl === "string" ? req.body.imageUrl.trim() : "";
+      if (!imageUrl) {
+        return res.status(400).json({ error: "Provide an image file or imageUrl." });
+      }
+      sourceBuffer = await fetchImageBuffer(imageUrl);
+    }
+
+    const outputBuffer = await toColoringOutline(sourceBuffer, ageGroup);
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(outputBuffer);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to generate outline.";
+    return res.status(500).json({ error: message });
+  }
 });
 
 app.post("/api/optimize", async (req, res) => {
@@ -491,6 +587,13 @@ app.post("/api/kofi-webhook", async (req, res) => {
   } catch (error) {
     return res.status(400).send("Invalid payload");
   }
+});
+
+app.use((error, req, res, next) => {
+  if (error?.code === "LIMIT_FILE_SIZE") {
+    return res.status(413).json({ error: "Image too large. Maximum upload size is 8MB." });
+  }
+  return next(error);
 });
 
 app.listen(port, () => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,20 +121,23 @@ export default function ColoringPageMachine() {
   const [result, setResult] = useState<OutputBlock | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [printImageUrl, setPrintImageUrl] = useState("");
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [generatedObjectUrl, setGeneratedObjectUrl] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
-  const [freeGenUsed, setFreeGenUsed] = useState(() => {
-    try {
-      const key = localStorage.getItem("dunamis_coloring_free_gen_date");
-      const today = new Date().toISOString().slice(0, 10);
-      return key === today;
-    } catch {
-      return false;
-    }
-  });
   const [generatingImage, setGeneratingImage] = useState(false);
   const [genMessage, setGenMessage] = useState<string | null>(null);
 
   const ageGuidance = useMemo(() => getAgeGuidance(ageGroup), [ageGroup]);
+  const apiBase = ((import.meta as any).env?.VITE_API_BASE || "").replace(/\/+$/, "");
+  const coloringApiUrl = apiBase ? `${apiBase}/api/coloring/outline` : "/api/coloring/outline";
+
+  useEffect(() => {
+    return () => {
+      if (generatedObjectUrl) {
+        URL.revokeObjectURL(generatedObjectUrl);
+      }
+    };
+  }, [generatedObjectUrl]);
 
   const showCopyFeedback = (message: string) => {
     setCopyFeedback(message);
@@ -189,77 +192,61 @@ export default function ColoringPageMachine() {
     window.print();
   };
 
-  const generateFreeOutline = async () => {
-    if (!result || freeGenUsed || generatingImage) return;
+  const handleImagePick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setUploadedImage(file);
+    if (file) {
+      setGenMessage(`Selected: ${file.name}`);
+    }
+  };
+
+  const convertUploadedToOutline = async () => {
+    if (!result || generatingImage) return;
+    if (!uploadedImage) {
+      setGenMessage("Upload a photo first.");
+      return;
+    }
+
     setGeneratingImage(true);
     setGenMessage(null);
+
     try {
-      const seed = Math.floor(Math.random() * 1000000);
-      const compact = result.finalPrompt.slice(0, 600);
-      const prompt = encodeURIComponent(compact);
-      const alt = encodeURIComponent(
-        `black and white coloring page line art, ${theme || "creative scene"}, clean bold outlines, no color, no text, white background`
-      );
-      const candidateUrls = [
-        `https://image.pollinations.ai/prompt/${prompt}?width=1024&height=1024&seed=${seed}&nologo=true`,
-        `https://image.pollinations.ai/prompt/${prompt}?model=flux&width=1024&height=1024&seed=${seed}&nologo=true`,
-        `https://image.pollinations.ai/prompt/${alt}?width=1024&height=1024&seed=${seed}&nologo=true`,
-      ];
+      const body = new FormData();
+      body.append("image", uploadedImage);
+      body.append("ageGroup", ageGroup);
+      body.append("theme", theme.trim());
+      body.append("details", details.trim());
 
-      let generatedUrl = "";
-      for (const candidate of candidateUrls) {
-        const loaded = await new Promise<boolean>((resolve) => {
-          const probe = new Image();
-          let done = false;
-          const timer = window.setTimeout(() => {
-            if (!done) {
-              done = true;
-              resolve(false);
-            }
-          }, 15000);
-          probe.onload = () => {
-            if (!done) {
-              done = true;
-              window.clearTimeout(timer);
-              resolve(true);
-            }
-          };
-          probe.onerror = () => {
-            if (!done) {
-              done = true;
-              window.clearTimeout(timer);
-              resolve(false);
-            }
-          };
-          probe.src = candidate;
-        });
-        if (loaded) {
-          generatedUrl = candidate;
-          break;
+      const response = await fetch(coloringApiUrl, {
+        method: "POST",
+        body,
+      });
+
+      if (!response.ok) {
+        let errorMessage = "Conversion failed. Please try a different image.";
+        try {
+          const payload = await response.json();
+          if (payload?.error) {
+            errorMessage = payload.error;
+          }
+        } catch {
+          // ignore parse errors
         }
+        throw new Error(errorMessage);
       }
 
-      if (!generatedUrl) {
-        const fallback = candidateUrls[0];
-        setImageUrl(fallback);
-        setPrintImageUrl(fallback);
-        setGenMessage("Free provider is busy. Opened fallback image URL in a new tab. Try again in 1-2 minutes if blank.");
-        window.open(fallback, "_blank", "noopener,noreferrer");
-        return;
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      if (generatedObjectUrl) {
+        URL.revokeObjectURL(generatedObjectUrl);
       }
-
-      setImageUrl(generatedUrl);
-      setPrintImageUrl(generatedUrl);
-      const today = new Date().toISOString().slice(0, 10);
-      try {
-        localStorage.setItem("dunamis_coloring_free_gen_date", today);
-      } catch {
-        // ignore storage issues
-      }
-      setFreeGenUsed(true);
-      setGenMessage("Free outline generated. Daily free generation used.");
-    } catch {
-      setGenMessage("Free generation failed. Try again later or use external image tool.");
+      setGeneratedObjectUrl(objectUrl);
+      setImageUrl(objectUrl);
+      setPrintImageUrl(objectUrl);
+      setGenMessage("Outline generated from your uploaded photo.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Conversion failed. Please try again.";
+      setGenMessage(message);
     } finally {
       setGeneratingImage(false);
     }
@@ -313,8 +300,8 @@ export default function ColoringPageMachine() {
           <p className="text-xs uppercase tracking-[0.25em] text-yellow-200/80">How This Beta Works</p>
           <p className="text-sm text-gray-300">1. Pick age group + theme.</p>
           <p className="text-sm text-gray-300">2. Click Generate Prompt.</p>
-          <p className="text-sm text-gray-300">3. Copy into your image generator and render line art.</p>
-          <p className="text-sm text-gray-300">4. Use Regenerate Variant for fresh compositions.</p>
+          <p className="text-sm text-gray-300">3. Upload a photo and click Convert Uploaded Photo.</p>
+          <p className="text-sm text-gray-300">4. Print to PDF or copy prompts for external generators.</p>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -362,7 +349,17 @@ export default function ColoringPageMachine() {
             </label>
 
             <label className="space-y-2 block">
-              <span className="text-xs text-gray-300">Generated image URL (optional, for print/download sheet)</span>
+              <span className="text-xs text-gray-300">Upload photo to convert into coloring outline</span>
+              <Input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                onChange={handleImagePick}
+                className="bg-black/40 border-yellow-500/30 text-white file:text-white file:bg-yellow-500/20 file:border-0 file:rounded file:px-3 file:py-1"
+              />
+            </label>
+
+            <label className="space-y-2 block">
+              <span className="text-xs text-gray-300">Generated image URL (optional manual paste)</span>
               <Input
                 value={imageUrl}
                 onChange={(event) => setImageUrl(event.target.value)}
@@ -454,10 +451,10 @@ export default function ColoringPageMachine() {
                   <Button
                     variant="outline"
                     className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                    onClick={generateFreeOutline}
-                    disabled={freeGenUsed || generatingImage}
+                    onClick={convertUploadedToOutline}
+                    disabled={generatingImage || !uploadedImage}
                   >
-                    {generatingImage ? "Generating..." : freeGenUsed ? "Free Generation Used" : "Generate Free Outline (Beta)"}
+                    {generatingImage ? "Converting..." : "Convert Uploaded Photo"}
                   </Button>
                   <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={handlePrintPdf}>
                     Print to PDF
