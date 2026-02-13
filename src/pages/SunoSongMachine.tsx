@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
+import { addDoc, collection } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 
 type SongOutput = {
   titles: string[];
@@ -12,6 +15,65 @@ type SongOutput = {
   stylePrompt: string;
   sunoPasteBlock: string;
 };
+
+type SongPreset = {
+  id: string;
+  label: string;
+  idea: string;
+  genre: string;
+  mood: string;
+  voice: string;
+  energy: string;
+  bpm: string;
+  length: "standard" | "extended";
+};
+
+const PRESETS: SongPreset[] = [
+  {
+    id: "radio-pop",
+    label: "Radio Pop",
+    idea: "a comeback anthem about rebuilding confidence after setbacks",
+    genre: "modern pop with cinematic lift",
+    mood: "uplifting",
+    voice: "clean emotional lead vocal",
+    energy: "high",
+    bpm: "118",
+    length: "standard",
+  },
+  {
+    id: "reggae-fusion",
+    label: "Reggae Fusion",
+    idea: "resilience under pressure while staying grounded",
+    genre: "reggae-fusion with modern hip-hop drums and dub textures",
+    mood: "reflective",
+    voice: "melodic rap verse with sung hook",
+    energy: "medium",
+    bpm: "96",
+    length: "extended",
+  },
+  {
+    id: "trap-soul",
+    label: "Trap Soul",
+    idea: "late-night honesty about trust and ambition",
+    genre: "trap soul with atmospheric pads and punchy 808s",
+    mood: "dark",
+    voice: "intimate male lead with soft harmonies",
+    energy: "medium",
+    bpm: "134",
+    length: "standard",
+  },
+  {
+    id: "cinematic",
+    label: "Cinematic",
+    idea: "fighting through chaos to protect what matters",
+    genre: "cinematic alternative with hybrid orchestral drums",
+    mood: "energetic",
+    voice: "powerful lead with dramatic phrasing",
+    energy: "high",
+    bpm: "110",
+    length: "extended",
+  },
+];
 
 const MOOD_WORDS: Record<string, string[]> = {
   uplifting: ["rising", "golden", "hopeful", "wide-open", "steady"],
@@ -66,8 +128,8 @@ function makeChorus(seed: number, theme: string) {
   const hook = pick(HOOKS, seed + 7);
   return [
     `${hook},`,
-    `hands up to the sky, we don't fold tonight,`,
-    `all this weight turns light when we call it by name,`,
+    "hands up to the sky, we don't fold tonight,",
+    "all this weight turns light when we call it by name,",
     `we came too far to leave without a flame for ${theme}.`,
   ].join("\n");
 }
@@ -96,13 +158,13 @@ function buildSong(params: {
   const chorus = makeChorus(seed, idea);
   const verse2 = makeVerse(seed + 13, mood, idea, voice);
   const bridge = [
-    `Strip it back, let the room breathe.`,
-    `One note, one truth, one reason we stayed.`,
-    `Then hit the lift and bring the skyline with us.`,
+    "Strip it back, let the room breathe.",
+    "One note, one truth, one reason we stayed.",
+    "Then hit the lift and bring the skyline with us.",
   ].join("\n");
   const outro = [
-    `Fade on harmonies, leave the final word hanging.`,
-    `Repeat the hook softly, then end clean.`,
+    "Fade on harmonies, leave the final word hanging.",
+    "Repeat the hook softly, then end clean.",
   ].join("\n");
 
   const fullLyrics = [
@@ -164,6 +226,7 @@ function buildSong(params: {
 }
 
 export default function SunoSongMachine() {
+  const { user } = useAuth();
   const [idea, setIdea] = useState("");
   const [genre, setGenre] = useState("");
   const [mood, setMood] = useState("uplifting");
@@ -174,8 +237,22 @@ export default function SunoSongMachine() {
   const [variant, setVariant] = useState(0);
   const [result, setResult] = useState<SongOutput | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const canGenerate = useMemo(() => sanitize(idea).length > 2, [idea]);
+
+  const trackEvent = async (eventType: string, meta: Record<string, string> = {}) => {
+    if (!user?.uid) return;
+    try {
+      await addDoc(collection(db, "users", user.uid, "songUsageEvents"), {
+        eventType,
+        meta,
+        createdAt: Date.now(),
+      });
+    } catch {
+      // analytics must never block user flow
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -185,20 +262,40 @@ export default function SunoSongMachine() {
       setMessage("Template loaded from Starter Pack.");
       window.setTimeout(() => setMessage(null), 1800);
     }
+
+    const fromDraft = params.get("fromDraft");
+    if (!fromDraft) return;
+    const draftIdea = params.get("draftIdea");
+    const draftGenre = params.get("draftGenre");
+    const draftMood = params.get("draftMood");
+    const draftVoice = params.get("draftVoice");
+    const draftEnergy = params.get("draftEnergy");
+    const draftBpm = params.get("draftBpm");
+    const draftLength = params.get("draftLength");
+    if (draftIdea) setIdea(draftIdea);
+    if (draftGenre) setGenre(draftGenre);
+    if (draftMood) setMood(draftMood);
+    if (draftVoice) setVoice(draftVoice);
+    if (draftEnergy) setEnergy(draftEnergy);
+    if (draftBpm) setBpm(draftBpm);
+    if (draftLength === "standard" || draftLength === "extended") setLength(draftLength);
+    setMessage("Song draft loaded from profile.");
+    window.setTimeout(() => setMessage(null), 2000);
   }, [idea]);
 
-  const copy = async (value: string, ok = "Copied.") => {
+  const copy = async (value: string, ok = "Copied.", eventType = "copy") => {
     try {
       await navigator.clipboard.writeText(value);
       setMessage(ok);
       window.setTimeout(() => setMessage(null), 1600);
+      await trackEvent(eventType, { mode: "song-machine" });
     } catch {
       setMessage("Copy failed.");
       window.setTimeout(() => setMessage(null), 1600);
     }
   };
 
-  const generate = (nextVariant = variant) => {
+  const generate = async (nextVariant = variant) => {
     const output = buildSong({
       idea,
       genre,
@@ -210,12 +307,84 @@ export default function SunoSongMachine() {
       variant: nextVariant,
     });
     setResult(output);
+    await trackEvent("generate_preview", {
+      preset: "custom",
+      mood: sanitize(mood),
+      energy: sanitize(energy),
+      length,
+    });
   };
 
-  const regenerate = () => {
+  const regenerate = async () => {
     const next = variant + 1;
     setVariant(next);
-    generate(next);
+    const output = buildSong({
+      idea,
+      genre,
+      mood,
+      voice,
+      energy,
+      bpm,
+      length,
+      variant: next,
+    });
+    setResult(output);
+    await trackEvent("regenerate_variation", {
+      variation: String(next),
+      mood: sanitize(mood),
+      energy: sanitize(energy),
+    });
+  };
+
+  const applyPreset = async (preset: SongPreset) => {
+    setIdea(preset.idea);
+    setGenre(preset.genre);
+    setMood(preset.mood);
+    setVoice(preset.voice);
+    setEnergy(preset.energy);
+    setBpm(preset.bpm);
+    setLength(preset.length);
+    setVariant(0);
+    setMessage(`${preset.label} preset loaded.`);
+    window.setTimeout(() => setMessage(null), 1500);
+    await trackEvent("apply_preset", { preset: preset.id });
+  };
+
+  const saveDraft = async () => {
+    if (!user?.uid || !result) {
+      setMessage("Sign in and generate a song first.");
+      window.setTimeout(() => setMessage(null), 1600);
+      return;
+    }
+    setSavingDraft(true);
+    try {
+      const title = result.titles[0] || "Untitled Song Draft";
+      await addDoc(collection(db, "users", user.uid, "songDrafts"), {
+        title,
+        idea: sanitize(idea),
+        genre: sanitize(genre),
+        mood: sanitize(mood),
+        voice: sanitize(voice),
+        energy: sanitize(energy),
+        bpm: sanitize(bpm),
+        length,
+        verse1: result.verse1,
+        chorus: result.chorus,
+        fullLyrics: result.fullLyrics,
+        stylePrompt: result.stylePrompt,
+        sunoPasteBlock: result.sunoPasteBlock,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      setMessage("Song draft saved to profile.");
+      window.setTimeout(() => setMessage(null), 1600);
+      await trackEvent("save_draft", { title });
+    } catch {
+      setMessage("Could not save draft.");
+      window.setTimeout(() => setMessage(null), 1600);
+    } finally {
+      setSavingDraft(false);
+    }
   };
 
   return (
@@ -232,10 +401,15 @@ export default function SunoSongMachine() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <a href="https://suno.com/" target="_blank" rel="noopener noreferrer">
-              <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                Open Suno
-              </Button>
+            <a
+              href="https://suno.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                void trackEvent("open_suno", { source: "song-machine-header" });
+              }}
+            >
+              <Button className="bg-yellow-400 text-black hover:bg-yellow-300">Open Suno</Button>
             </a>
             <Link href="/">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
@@ -255,10 +429,28 @@ export default function SunoSongMachine() {
               Suno Pro v5 Ready
             </span>
           </div>
-          <p className="text-sm text-gray-300">1. Type what song you want.</p>
+          <p className="text-sm text-gray-300">1. Choose a preset or type your own song idea.</p>
           <p className="text-sm text-gray-300">2. Click Generate Preview (Verse + Chorus).</p>
           <p className="text-sm text-gray-300">3. Regenerate variation until it feels right.</p>
-          <p className="text-sm text-gray-300">4. Copy the Suno Paste Block into Suno.</p>
+          <p className="text-sm text-gray-300">4. Copy the Suno Paste Block and generate in Suno.</p>
+        </div>
+
+        <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-4 shadow-lg">
+          <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80 mb-3">Quick Presets</p>
+          <div className="flex flex-wrap gap-2">
+            {PRESETS.map((preset) => (
+              <Button
+                key={preset.id}
+                variant="outline"
+                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                onClick={() => {
+                  void applyPreset(preset);
+                }}
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -343,7 +535,9 @@ export default function SunoSongMachine() {
             <div className="pt-2 flex flex-wrap gap-3">
               <Button
                 className="bg-yellow-400 text-black hover:bg-yellow-300"
-                onClick={() => generate()}
+                onClick={() => {
+                  void generate();
+                }}
                 disabled={!canGenerate}
               >
                 Generate Preview
@@ -351,10 +545,20 @@ export default function SunoSongMachine() {
               <Button
                 variant="outline"
                 className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                onClick={regenerate}
+                onClick={() => {
+                  void regenerate();
+                }}
                 disabled={!result}
               >
                 Regenerate Variation
+              </Button>
+              <Button
+                variant="outline"
+                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                onClick={saveDraft}
+                disabled={!result || savingDraft}
+              >
+                {savingDraft ? "Saving..." : "Save Draft"}
               </Button>
             </div>
           </div>
@@ -372,13 +576,17 @@ export default function SunoSongMachine() {
                       size="sm"
                       variant="outline"
                       className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
-                      onClick={() => copy(result.titles.join("\n"), "Titles copied.")}
+                      onClick={() => {
+                        void copy(result.titles.join("\n"), "Titles copied.", "copy_titles");
+                      }}
                     >
                       Copy
                     </Button>
                   </div>
                   {result.titles.map((title, idx) => (
-                    <p key={`${title}-${idx}`} className="text-sm text-gray-200">{idx + 1}. {title}</p>
+                    <p key={`${title}-${idx}`} className="text-sm text-gray-200">
+                      {idx + 1}. {title}
+                    </p>
                   ))}
                 </div>
                 <div className="space-y-2">
@@ -388,7 +596,9 @@ export default function SunoSongMachine() {
                       size="sm"
                       variant="outline"
                       className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
-                      onClick={() => copy(`[Verse 1]\n${result.verse1}\n\n[Chorus]\n${result.chorus}`, "Preview copied.")}
+                      onClick={() => {
+                        void copy(`[Verse 1]\n${result.verse1}\n\n[Chorus]\n${result.chorus}`, "Preview copied.", "copy_preview");
+                      }}
                     >
                       Copy
                     </Button>
@@ -406,7 +616,9 @@ export default function SunoSongMachine() {
                       size="sm"
                       variant="outline"
                       className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
-                      onClick={() => copy(result.sunoPasteBlock, "Suno block copied.")}
+                      onClick={() => {
+                        void copy(result.sunoPasteBlock, "Suno block copied.", "copy_suno_block");
+                      }}
                     >
                       Copy
                     </Button>
@@ -433,3 +645,4 @@ export default function SunoSongMachine() {
     </div>
   );
 }
+

@@ -32,6 +32,16 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
+    // Private song drafts per user profile
+    match /users/{userId}/songDrafts/{draftId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Private song usage analytics per user profile
+    match /users/{userId}/songUsageEvents/{eventId} {
+      allow read, write: if isOwner(userId);
+    }
+
     // Unified community submissions flow
     match /submissions/{submissionId} {
       allow create: if isSignedIn()
