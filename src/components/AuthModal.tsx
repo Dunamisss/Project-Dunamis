@@ -29,6 +29,26 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [humanA, setHumanA] = useState(() => Math.floor(Math.random() * 8) + 2);
+  const [humanB, setHumanB] = useState(() => Math.floor(Math.random() * 8) + 2);
+  const [humanAnswer, setHumanAnswer] = useState("");
+
+  const refreshHumanCheck = () => {
+    setHumanA(Math.floor(Math.random() * 8) + 2);
+    setHumanB(Math.floor(Math.random() * 8) + 2);
+    setHumanAnswer("");
+  };
+
+  const verifyHumanCheck = () => {
+    const expected = humanA + humanB;
+    const actual = Number.parseInt(humanAnswer.trim(), 10);
+    if (Number.isNaN(actual) || actual !== expected) {
+      setAuthError("Human check failed. Please solve the math question.");
+      refreshHumanCheck();
+      return false;
+    }
+    return true;
+  };
 
   const handleLogin = async (provider: "google" | "github" | "email") => {
     if (isAuthenticating) return;
@@ -36,6 +56,17 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
     setAuthError(null);
     setNotice(null);
     try {
+      if (provider === "email") {
+        if (!email.trim()) {
+          throw new Error("Email is required.");
+        }
+        if (!password || password.length < 6) {
+          throw new Error("Password is required (minimum 6 characters).");
+        }
+        if (!verifyHumanCheck()) {
+          return;
+        }
+      }
       await login(provider, email.trim(), password);
       setOpen(false);
     } catch (error: any) {
@@ -64,6 +95,15 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
     setAuthError(null);
     setNotice(null);
     try {
+      if (!email.trim()) {
+        throw new Error("Email is required.");
+      }
+      if (!password || password.length < 6) {
+        throw new Error("Password must be at least 6 characters.");
+      }
+      if (!verifyHumanCheck()) {
+        return;
+      }
       await login("signup", email.trim(), password);
       setOpen(false);
     } catch (error: any) {
@@ -86,6 +126,10 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
     setAuthError(null);
     setNotice(null);
     try {
+      if (!verifyHumanCheck()) {
+        setIsAuthenticating(false);
+        return;
+      }
       await resetPassword(email.trim());
       setNotice("Password reset email sent.");
     } catch {
@@ -149,6 +193,21 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
               onChange={(event) => setPassword(event.target.value)}
             />
           </div>
+          <div className="grid gap-2">
+            <Label htmlFor="human-check">Human Check: {humanA} + {humanB} = ?</Label>
+            <Input
+              id="human-check"
+              type="text"
+              inputMode="numeric"
+              placeholder="Enter answer"
+              className="bg-black/20 border-white/10"
+              value={humanAnswer}
+              onChange={(event) => setHumanAnswer(event.target.value)}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            This helps block basic bots from abusing email sign-in.
+          </p>
           <Button onClick={() => handleLogin("email")} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading || isAuthenticating}>
             {(isLoading || isAuthenticating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign In with Email
