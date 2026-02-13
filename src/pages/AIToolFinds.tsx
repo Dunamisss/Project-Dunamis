@@ -22,7 +22,7 @@ const STARTER_PACKS: StarterPack[] = [
     id: "suno-v5",
     title: "Suno Song Starter Pack",
     subtitle: "From rough song idea to Suno-ready structure with fewer bad generations.",
-    logoSrc: "/images/tools/suno.webp",
+    logoSrc: "/images/tools/Suno.png",
     problem: "Most song prompts are too vague, so the hook, structure, and genre feel inconsistent.",
     before: "make me a good song about heartbreak",
     after:
@@ -45,7 +45,7 @@ const STARTER_PACKS: StarterPack[] = [
     id: "suno-reggae-fusion",
     title: "Suno Reggae-Fusion Pack",
     subtitle: "Blend reggae roots with modern rap/pop energy without sounding generic.",
-    logoSrc: "/images/tools/suno.webp",
+    logoSrc: "/images/tools/Suno.png",
     problem: "Single-genre reggae prompts often sound flat and repetitive.",
     before: "make a reggae rap song",
     after:
@@ -68,7 +68,7 @@ const STARTER_PACKS: StarterPack[] = [
     id: "midjourney",
     title: "Midjourney Starter Pack",
     subtitle: "Stop wasting credits. Build cinematic prompts with proper structure.",
-    logoSrc: "/images/tools/midjourney.webp",
+    logoSrc: "/images/tools/midjourney.jpg",
     problem: "Most users type broad ideas with no camera, lighting, or composition cues.",
     before: "a cool futuristic city at night",
     after:

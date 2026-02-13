@@ -448,6 +448,49 @@ app.get("/api/health", (req, res) => {
   return res.json({ ok: true, service: "dunamis-api" });
 });
 
+app.post("/api/turnstile-verify", async (req, res) => {
+  try {
+    const secretKey = process.env.TURNSTILE_SECRET_KEY || "";
+    if (!secretKey) {
+      return res.status(503).json({ success: false, error: "Turnstile is not configured." });
+    }
+
+    const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+    if (!token) {
+      return res.status(400).json({ success: false, error: "Missing Turnstile token." });
+    }
+
+    const params = new URLSearchParams({
+      secret: secretKey,
+      response: token,
+    });
+    const clientIp = getClientIp(req);
+    if (clientIp) {
+      params.set("remoteip", clientIp);
+    }
+
+    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success) {
+      return res.status(400).json({
+        success: false,
+        error: "Turnstile verification failed.",
+        errorCodes: data?.["error-codes"] || [],
+      });
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Turnstile verification error.";
+    return res.status(500).json({ success: false, error: message });
+  }
+});
+
 app.post("/api/coloring/outline", upload.single("image"), async (req, res) => {
   try {
     const ageGroup = typeof req.body?.ageGroup === "string" ? req.body.ageGroup.trim() : "9-12";

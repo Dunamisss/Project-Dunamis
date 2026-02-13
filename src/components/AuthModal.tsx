@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +21,25 @@ const GoogleIcon = () => (
   </svg>
 );
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: {
+          sitekey: string;
+          theme?: "light" | "dark" | "auto";
+          callback?: (token: string) => void;
+          "expired-callback"?: () => void;
+          "error-callback"?: () => void;
+        }
+      ) => string;
+      reset: (widgetId?: string) => void;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
+
 export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
   const { login, resetPassword, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
@@ -32,6 +51,73 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
   const [humanA, setHumanA] = useState(() => Math.floor(Math.random() * 8) + 2);
   const [humanB, setHumanB] = useState(() => Math.floor(Math.random() * 8) + 2);
   const [humanAnswer, setHumanAnswer] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
+  const turnstileSiteKey = (((import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "") as string).trim();
+  const apiBase = (((import.meta as any).env?.VITE_API_BASE || "") as string).trim().replace(/\/+$/, "");
+  const turnstileVerifyUrl = apiBase ? `${apiBase}/api/turnstile-verify` : "/api/turnstile-verify";
+
+  useEffect(() => {
+    if (!open || !turnstileSiteKey) return;
+    let cancelled = false;
+
+    const loadScript = async () => {
+      if (window.turnstile) return;
+      const existing = document.querySelector('script[data-turnstile-script="1"]') as HTMLScriptElement | null;
+      if (existing) {
+        await new Promise<void>((resolve) => {
+          if ((window as any).turnstile) resolve();
+          existing.addEventListener("load", () => resolve(), { once: true });
+        });
+        return;
+      }
+      await new Promise<void>((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+        script.async = true;
+        script.defer = true;
+        script.setAttribute("data-turnstile-script", "1");
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load Turnstile script."));
+        document.head.appendChild(script);
+      });
+    };
+
+    const initWidget = async () => {
+      try {
+        await loadScript();
+        if (cancelled || !window.turnstile || !turnstileContainerRef.current) return;
+
+        if (turnstileWidgetIdRef.current) {
+          window.turnstile.remove(turnstileWidgetIdRef.current);
+          turnstileWidgetIdRef.current = null;
+        }
+
+        const widgetId = window.turnstile.render(turnstileContainerRef.current, {
+          sitekey: turnstileSiteKey,
+          theme: "dark",
+          callback: (token: string) => {
+            setTurnstileToken(token);
+            setAuthError(null);
+          },
+          "expired-callback": () => setTurnstileToken(""),
+          "error-callback": () => setTurnstileToken(""),
+        });
+        turnstileWidgetIdRef.current = widgetId;
+        setTurnstileReady(true);
+      } catch {
+        setTurnstileReady(false);
+        setAuthError("Captcha failed to load. Refresh and try again.");
+      }
+    };
+
+    initWidget();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, turnstileSiteKey]);
 
   const refreshHumanCheck = () => {
     setHumanA(Math.floor(Math.random() * 8) + 2);
@@ -50,12 +136,45 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
     return true;
   };
 
+  const verifyTurnstile = async () => {
+    if (!turnstileSiteKey) return true;
+    if (!turnstileToken) {
+      setAuthError("Please complete the captcha first.");
+      return false;
+    }
+
+    try {
+      const response = await fetch(turnstileVerifyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: turnstileToken }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.success) {
+        setAuthError("Captcha verification failed. Please try again.");
+        if (window.turnstile && turnstileWidgetIdRef.current) {
+          window.turnstile.reset(turnstileWidgetIdRef.current);
+        }
+        setTurnstileToken("");
+        return false;
+      }
+      return true;
+    } catch {
+      setAuthError("Captcha verification failed. Please try again.");
+      return false;
+    }
+  };
+
   const handleLogin = async (provider: "google" | "github" | "email") => {
     if (isAuthenticating) return;
     setIsAuthenticating(true);
     setAuthError(null);
     setNotice(null);
     try {
+      const captchaOk = await verifyTurnstile();
+      if (!captchaOk) {
+        return;
+      }
       if (provider === "email") {
         if (!email.trim()) {
           throw new Error("Email is required.");
@@ -95,6 +214,10 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
     setAuthError(null);
     setNotice(null);
     try {
+      const captchaOk = await verifyTurnstile();
+      if (!captchaOk) {
+        return;
+      }
       if (!email.trim()) {
         throw new Error("Email is required.");
       }
@@ -126,6 +249,11 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
     setAuthError(null);
     setNotice(null);
     try {
+      const captchaOk = await verifyTurnstile();
+      if (!captchaOk) {
+        setIsAuthenticating(false);
+        return;
+      }
       if (!verifyHumanCheck()) {
         setIsAuthenticating(false);
         return;
@@ -153,6 +281,17 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
+          {turnstileSiteKey && (
+            <div className="rounded-md border border-white/10 bg-black/20 p-3 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Security check required for all sign-in methods.
+              </p>
+              <div ref={turnstileContainerRef} />
+              {!turnstileReady && (
+                <p className="text-[11px] text-muted-foreground">Loading captcha...</p>
+              )}
+            </div>
+          )}
           <Button variant="outline" className="border-white/10 hover:bg-white/5 hover:text-white" onClick={() => handleLogin("google")} disabled={isLoading || isAuthenticating}>
             {isLoading || isAuthenticating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
             Continue with Google
