@@ -273,6 +273,23 @@ async function fetchImageBuffer(imageUrl) {
   }
 }
 
+async function getInkCoverageRatio(imageBuffer) {
+  const { data, info } = await sharp(imageBuffer)
+    .grayscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  let inkPixels = 0;
+  for (let i = 0; i < data.length; i += 1) {
+    if (data[i] < 225) {
+      inkPixels += 1;
+    }
+  }
+  const totalPixels = info.width * info.height;
+  if (!totalPixels) return 0;
+  return inkPixels / totalPixels;
+}
+
 async function toColoringOutline(inputBuffer, ageGroup = "9-12") {
   const { threshold, blurSigma, sharpenAmount, fineOpacity, dilate } = getColoringStrength(ageGroup);
 
@@ -308,18 +325,35 @@ async function toColoringOutline(inputBuffer, ageGroup = "9-12") {
     .negate()
     .toBuffer();
 
-  const processed = await sharp(coarseEdges)
-    .composite([{ input: fineEdges, blend: "screen", opacity: fineOpacity }])
-    .normalise()
-    .linear(1.35, -16)
-    .threshold(threshold) // white lines on black
-    .negate() // black lines on white
-    .dilate(dilate)
-    .median(1)
-    .sharpen(sharpenAmount)
-    .grayscale()
-    .png({ compressionLevel: 9 })
-    .toBuffer();
+  const renderOutline = async (tweak = 0) => {
+    const adjustedThreshold = Math.max(70, threshold - tweak);
+    const adjustedDilate = dilate + (tweak > 0 ? 1 : 0);
+
+    return sharp(coarseEdges)
+      .composite([{ input: fineEdges, blend: "screen", opacity: Math.min(0.95, fineOpacity + tweak * 0.004) }])
+      .normalise()
+      .linear(1.35 + tweak * 0.01, -16 - tweak * 0.5)
+      .threshold(adjustedThreshold) // white lines on black
+      .negate() // black lines on white
+      .dilate(adjustedDilate)
+      .median(1)
+      .sharpen(sharpenAmount + tweak * 0.01)
+      .grayscale()
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+  };
+
+  let processed = await renderOutline(0);
+  let inkCoverage = await getInkCoverageRatio(processed);
+
+  // If output is almost blank, regenerate with stronger settings.
+  if (inkCoverage < 0.01) {
+    processed = await renderOutline(18);
+    inkCoverage = await getInkCoverageRatio(processed);
+  }
+  if (inkCoverage < 0.01) {
+    processed = await renderOutline(32);
+  }
 
   return processed;
 }
