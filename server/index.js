@@ -223,17 +223,17 @@ function isLikelyVpnIp(ip) {
 function getColoringStrength(ageGroup) {
   switch (ageGroup) {
     case "3-5":
-      return { threshold: 186, blurSigma: 1.2, sharpenAmount: 0.7 };
+      return { threshold: 168, blurSigma: 0.9, sharpenAmount: 0.8, fineOpacity: 0.45 };
     case "6-8":
-      return { threshold: 178, blurSigma: 1.05, sharpenAmount: 0.9 };
+      return { threshold: 160, blurSigma: 0.75, sharpenAmount: 1.0, fineOpacity: 0.5 };
     case "9-12":
-      return { threshold: 170, blurSigma: 0.9, sharpenAmount: 1.1 };
+      return { threshold: 152, blurSigma: 0.6, sharpenAmount: 1.1, fineOpacity: 0.58 };
     case "13-17":
-      return { threshold: 164, blurSigma: 0.75, sharpenAmount: 1.2 };
+      return { threshold: 146, blurSigma: 0.45, sharpenAmount: 1.25, fineOpacity: 0.62 };
     case "18+":
-      return { threshold: 158, blurSigma: 0.55, sharpenAmount: 1.35 };
+      return { threshold: 140, blurSigma: 0.3, sharpenAmount: 1.35, fineOpacity: 0.7 };
     default:
-      return { threshold: 170, blurSigma: 0.9, sharpenAmount: 1.1 };
+      return { threshold: 152, blurSigma: 0.6, sharpenAmount: 1.1, fineOpacity: 0.58 };
   }
 }
 
@@ -257,9 +257,9 @@ async function fetchImageBuffer(imageUrl) {
 }
 
 async function toColoringOutline(inputBuffer, ageGroup = "9-12") {
-  const { threshold, blurSigma, sharpenAmount } = getColoringStrength(ageGroup);
+  const { threshold, blurSigma, sharpenAmount, fineOpacity } = getColoringStrength(ageGroup);
 
-  const processed = await sharp(inputBuffer)
+  const prepared = sharp(inputBuffer)
     .rotate()
     .resize({
       width: 1800,
@@ -268,12 +268,32 @@ async function toColoringOutline(inputBuffer, ageGroup = "9-12") {
       withoutEnlargement: true,
     })
     .grayscale()
-    .normalise()
+    .normalise();
+
+  // Coarse edges keep clean printable boundaries.
+  const coarseEdges = await prepared
+    .clone()
     .blur(blurSigma)
     .convolve(EDGE_KERNEL)
-    .linear(2.0, -28)
-    .threshold(threshold)
+    .linear(2.15, -18)
     .negate()
+    .toBuffer();
+
+  // Fine edges recover detail that can otherwise disappear.
+  const fineEdges = await prepared
+    .clone()
+    .convolve({
+      width: 3,
+      height: 3,
+      kernel: [0, -1, 0, -1, 5, -1, 0, -1, 0],
+    })
+    .linear(1.75, -10)
+    .negate()
+    .toBuffer();
+
+  const processed = await sharp(coarseEdges)
+    .composite([{ input: fineEdges, blend: "darken", opacity: fineOpacity }])
+    .threshold(threshold)
     .sharpen(sharpenAmount)
     .toColourspace("b-w")
     .png({ compressionLevel: 9 })
