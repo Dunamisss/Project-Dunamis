@@ -13,6 +13,7 @@ import Profile from "@/pages/Profile";
 import SubmitPrompt from "@/pages/SubmitPrompt";
 import AdminSubmissions from "@/pages/AdminSubmissions";
 import AIToolFinds from "@/pages/AIToolFinds";
+import ColoringPageMachine from "@/pages/ColoringPageMachine";
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
               <Route path="/admin/submissions" component={AdminSubmissions} />
               <Route path="/starter-packs" component={AIToolFinds} />
               <Route path="/tools" component={AIToolFinds} />
+              <Route path="/coloring-page-machine" component={ColoringPageMachine} />
             </Switch>
           </Router>
         </ChatProvider>

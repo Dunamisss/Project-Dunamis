@@ -656,6 +656,11 @@ export default function Home() {
                   Starter Packs
                 </Button>
               </Link>
+              <Link href="/coloring-page-machine">
+                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
+                  Coloring Beta
+                </Button>
+              </Link>
               <Link href="/submit">
                 <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
                   Submit
@@ -736,6 +741,11 @@ export default function Home() {
               <Link href="/starter-packs">
                 <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                   Starter Packs
+                </Button>
+              </Link>
+              <Link href="/coloring-page-machine">
+                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                  Coloring Page Beta
                 </Button>
               </Link>
             </div>
