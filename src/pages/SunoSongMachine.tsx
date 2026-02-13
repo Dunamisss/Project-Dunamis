@@ -221,11 +221,18 @@ export default function SunoSongMachine() {
               Suno-ready song pack.
             </p>
           </div>
-          <Link href="/">
-            <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-              Back to Home
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <a href="https://suno.com/" target="_blank" rel="noopener noreferrer">
+              <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                Open Suno
+              </Button>
+            </a>
+            <Link href="/">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Back to Home
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="rounded-xl border border-yellow-500/30 bg-black/65 p-5 md:p-6 shadow-lg space-y-1">
@@ -408,4 +415,3 @@ export default function SunoSongMachine() {
     </div>
   );
 }
-
