@@ -16,6 +16,7 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const USAGE_LIMIT = Number.parseInt(process.env.DAILY_LIMIT || "5", 10);
+const OPENROUTER_DAILY_LIMIT = Number.parseInt(process.env.OPENROUTER_FREE_DAILY_LIMIT || "1", 10);
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
@@ -34,6 +35,7 @@ const VPN_IPV4_URL =
   "https://raw.githubusercontent.com/X4BNet/lists_vpn/refs/heads/main/output/vpn/ipv4.txt";
 
 const usageByKey = new Map();
+const openRouterUsageByKey = new Map();
 let disposableBlocklist = new Set();
 let disposableAllowlist = new Set();
 let vpnIpv4Cidrs = [];
@@ -48,6 +50,21 @@ function getUsageRecord(key) {
   if (!existing) {
     const record = { count: 0, is_banned: false };
     usageByKey.set(key, record);
+    return record;
+  }
+  return existing;
+}
+
+function getDateKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getOpenRouterUsageRecord(key) {
+  const dateKey = getDateKey();
+  const existing = openRouterUsageByKey.get(key);
+  if (!existing || existing.date !== dateKey) {
+    const record = { date: dateKey, count: 0 };
+    openRouterUsageByKey.set(key, record);
     return record;
   }
   return existing;
@@ -323,6 +340,47 @@ async function loadLists() {
   }
 }
 
+async function callOpenRouter({ systemPrompt, prompt, context, images }) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  const model = process.env.OPENROUTER_MODEL || "qwen/qwen-2.5-72b-instruct:free";
+  const contextBlock = context ? `\n\nAdditional context:\n${context}` : "";
+  const imageBlock = Array.isArray(images) && images.length
+    ? `\n\nImages attached (names only):\n${images.join(", ")}`
+    : "";
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "https://dunamiss.xyz",
+      "X-Title": process.env.OPENROUTER_SITE_NAME || "Project Dunamis",
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.2,
+      max_tokens: 800,
+      messages: [
+        { role: "system", content: systemPrompt || "" },
+        { role: "user", content: `${prompt}${contextBlock}${imageBlock}` },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(errText || `OpenRouter API error (${response.status}).`);
+  }
+
+  const data = await response.json();
+  const output = data?.choices?.[0]?.message?.content ?? "";
+  return { output, model };
+}
+
 loadLists();
 setInterval(loadLists, 24 * 60 * 60 * 1000);
 
@@ -382,9 +440,6 @@ app.post("/api/coloring/outline", upload.single("image"), async (req, res) => {
 app.post("/api/optimize", async (req, res) => {
   const requestStartedAt = Date.now();
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: "Missing GROQ_API_KEY in server environment." });
-  }
 
   const { systemPrompt, prompt, context, images, userEmail } = req.body ?? {};
   if (!prompt || typeof prompt !== "string") {
@@ -486,6 +541,50 @@ app.post("/api/optimize", async (req, res) => {
     ? "We detected a VPN/proxy IP. Access is allowed, but this may trigger review."
     : null;
 
+  const tryOpenRouterFallback = async (reason = "Groq unavailable") => {
+    const fallbackRecord = getOpenRouterUsageRecord(usageKey);
+    if (fallbackRecord.count >= OPENROUTER_DAILY_LIMIT && !isAllowlisted) {
+      return res.status(503).json({
+        error: `${reason}. Free backup model already used today. Try again tomorrow.`,
+      });
+    }
+
+    try {
+      const fallbackStartedAt = Date.now();
+      const fallback = await callOpenRouter({ systemPrompt, prompt, context, images });
+      const fallbackMs = Date.now() - fallbackStartedAt;
+      if (!fallback || !fallback.output) {
+        return res.status(503).json({ error: `${reason}. Backup model unavailable.` });
+      }
+      if (!isAllowlisted) {
+        fallbackRecord.count += 1;
+      }
+      const totalMs = Date.now() - requestStartedAt;
+      return res.json({
+        output: fallback.output,
+        remaining,
+        limit,
+        unlimited: isAllowlisted,
+        vpnWarning,
+        warningMessage,
+        fallbackUsed: true,
+        timing: {
+          totalMs,
+          fallbackMs,
+          model: fallback.model,
+          provider: "openrouter",
+        },
+      });
+    } catch (fallbackError) {
+      const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : "Backup model failed.";
+      return res.status(503).json({ error: `${reason}. Backup failed: ${fallbackMessage}` });
+    }
+  };
+
+  if (!apiKey) {
+    return tryOpenRouterFallback("Missing GROQ_API_KEY");
+  }
+
   try {
     const groqStartedAt = Date.now();
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -507,7 +606,6 @@ app.post("/api/optimize", async (req, res) => {
     const groqFinishedAt = Date.now();
 
     if (!response.ok) {
-      const errText = await response.text();
       const totalMs = Date.now() - requestStartedAt;
       const groqMs = groqFinishedAt - groqStartedAt;
       console.warn("Groq error", {
@@ -516,7 +614,7 @@ app.post("/api/optimize", async (req, res) => {
         groqMs,
         model,
       });
-      return res.status(response.status).json({ error: errText || "Groq API error." });
+      return tryOpenRouterFallback(`Groq error ${response.status}`);
     }
 
     const data = await response.json();
@@ -534,11 +632,11 @@ app.post("/api/optimize", async (req, res) => {
         totalMs,
         groqMs,
         model,
+        provider: "groq",
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return res.status(500).json({ error: message });
+    return tryOpenRouterFallback("Groq request failed");
   }
 });
 
