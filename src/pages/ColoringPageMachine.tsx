@@ -245,7 +245,13 @@ export default function ColoringPageMachine() {
       setPrintImageUrl(objectUrl);
       setGenMessage("Outline generated from your uploaded photo.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Conversion failed. Please try again.";
+      const defaultMessage = `Conversion failed. Check API deploy and VITE_API_BASE (${coloringApiUrl}).`;
+      const message =
+        error instanceof TypeError
+          ? `Cannot reach coloring API. Check backend deploy and CORS. Endpoint: ${coloringApiUrl}`
+          : error instanceof Error
+            ? error.message
+            : defaultMessage;
       setGenMessage(message);
     } finally {
       setGeneratingImage(false);

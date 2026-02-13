@@ -338,6 +338,11 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
   } else if (allowed.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+  } else if (/^https:\/\/[a-z0-9-]+\.web\.app$/i.test(origin)) {
+    // Allow Firebase Hosting default domains to reduce deployment friction.
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else if (/^https:\/\/[a-z0-9-]+\.firebaseapp\.com$/i.test(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -345,6 +350,10 @@ app.use((req, res, next) => {
     return res.sendStatus(204);
   }
   next();
+});
+
+app.get("/api/health", (req, res) => {
+  return res.json({ ok: true, service: "dunamis-api" });
 });
 
 app.post("/api/coloring/outline", upload.single("image"), async (req, res) => {
