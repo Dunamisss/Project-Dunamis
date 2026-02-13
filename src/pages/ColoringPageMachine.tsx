@@ -119,7 +119,20 @@ export default function ColoringPageMachine() {
   const [pictureDescription, setPictureDescription] = useState("");
   const [originalPrompt, setOriginalPrompt] = useState("");
   const [result, setResult] = useState<OutputBlock | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [printImageUrl, setPrintImageUrl] = useState("");
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [freeGenUsed, setFreeGenUsed] = useState(() => {
+    try {
+      const key = localStorage.getItem("dunamis_coloring_free_gen_date");
+      const today = new Date().toISOString().slice(0, 10);
+      return key === today;
+    } catch {
+      return false;
+    }
+  });
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [genMessage, setGenMessage] = useState<string | null>(null);
 
   const ageGuidance = useMemo(() => getAgeGuidance(ageGroup), [ageGroup]);
 
@@ -172,7 +185,45 @@ export default function ColoringPageMachine() {
 
   const handlePrintPdf = () => {
     if (!result) return;
+    setPrintImageUrl(imageUrl.trim());
     window.print();
+  };
+
+  const generateFreeOutline = async () => {
+    if (!result || freeGenUsed || generatingImage) return;
+    setGeneratingImage(true);
+    setGenMessage(null);
+    try {
+      const seed = Math.floor(Math.random() * 1000000);
+      const prompt = encodeURIComponent(result.finalPrompt);
+      const generatedUrl = `https://image.pollinations.ai/prompt/${prompt}?model=flux&width=1024&height=1024&seed=${seed}&nologo=true`;
+
+      const probe = new Image();
+      const loaded = await new Promise<boolean>((resolve) => {
+        probe.onload = () => resolve(true);
+        probe.onerror = () => resolve(false);
+        probe.src = generatedUrl;
+      });
+
+      if (!loaded) {
+        throw new Error("Free provider failed to generate this time.");
+      }
+
+      setImageUrl(generatedUrl);
+      setPrintImageUrl(generatedUrl);
+      const today = new Date().toISOString().slice(0, 10);
+      try {
+        localStorage.setItem("dunamis_coloring_free_gen_date", today);
+      } catch {
+        // ignore storage issues
+      }
+      setFreeGenUsed(true);
+      setGenMessage("Free outline generated. Daily free generation used.");
+    } catch {
+      setGenMessage("Free generation failed. Try again later or use external image tool.");
+    } finally {
+      setGeneratingImage(false);
+    }
   };
 
   return (
@@ -272,6 +323,16 @@ export default function ColoringPageMachine() {
             </label>
 
             <label className="space-y-2 block">
+              <span className="text-xs text-gray-300">Generated image URL (optional, for print/download sheet)</span>
+              <Input
+                value={imageUrl}
+                onChange={(event) => setImageUrl(event.target.value)}
+                placeholder="https://... (paste generated coloring page image URL)"
+                className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
+              />
+            </label>
+
+            <label className="space-y-2 block">
               <span className="text-xs text-gray-300">Extra details (optional)</span>
               <Textarea
                 value={details}
@@ -338,12 +399,33 @@ export default function ColoringPageMachine() {
               <p className="text-sm text-gray-400">Generate a prompt to see output sections here.</p>
             ) : (
               <>
+                {printImageUrl && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-yellow-200">Generated Coloring Page</p>
+                    <div className="rounded-md border border-yellow-500/20 bg-black/40 p-2">
+                      <img
+                        src={printImageUrl}
+                        alt="Generated coloring page"
+                        className="w-full max-h-[560px] object-contain bg-white rounded"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="no-print flex items-center gap-3 flex-wrap">
+                  <Button
+                    variant="outline"
+                    className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                    onClick={generateFreeOutline}
+                    disabled={freeGenUsed || generatingImage}
+                  >
+                    {generatingImage ? "Generating..." : freeGenUsed ? "Free Generation Used" : "Generate Free Outline (Beta)"}
+                  </Button>
                   <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={handlePrintPdf}>
                     Print to PDF
                   </Button>
                   <p className="text-xs text-gray-400">Saves this output as a printable worksheet/prompt sheet.</p>
                 </div>
+                {genMessage && <p className="no-print text-xs text-yellow-200">{genMessage}</p>}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs text-yellow-200">1) FINAL IMAGE PROMPT</p>
