@@ -1,6 +1,15 @@
 import { Link } from "wouter";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
+import { useChat } from "@/contexts/ChatContext";
+import { useLocation } from "wouter";
 
 type StarterPack = {
   id: string;
@@ -158,7 +167,29 @@ const STARTER_PACKS: StarterPack[] = [
 ];
 
 export default function AIToolFinds() {
+  const { loadPrompt } = useChat();
+  const [, setLocation] = useLocation();
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [tryInProvider, setTryInProvider] = useState<{
+    id: string;
+    label: string;
+    url: string;
+  }>({
+    id: "chatgpt",
+    label: "ChatGPT",
+    url: "https://chatgpt.com/",
+  });
+
+  const tryInProviders = [
+    { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com/" },
+    { id: "grok", label: "Grok (xAI)", url: "https://grok.com/" },
+    { id: "gemini", label: "Gemini", url: "https://gemini.google.com/" },
+    { id: "claude", label: "Claude", url: "https://claude.ai/" },
+    { id: "perplexity", label: "Perplexity", url: "https://www.perplexity.ai/" },
+    { id: "poe", label: "Poe", url: "https://poe.com/" },
+    { id: "qwen", label: "Qwen", url: "https://chat.qwen.ai/" },
+    { id: "deepseek", label: "DeepSeek", url: "https://chat.deepseek.com/" },
+  ];
 
   const showCopyFeedback = (message: string) => {
     setCopyFeedback(message);
@@ -169,6 +200,21 @@ export default function AIToolFinds() {
     try {
       await navigator.clipboard.writeText(value);
       showCopyFeedback("Template copied.");
+    } catch {
+      showCopyFeedback("Copy failed. Please copy manually.");
+    }
+  };
+
+  const optimizeInHome = (text: string) => {
+    loadPrompt(text);
+    setLocation("/?focus=optimizer");
+  };
+
+  const tryInProviderSite = async (text: string, provider = tryInProvider) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showCopyFeedback(`Copied. Opening ${provider.label}...`);
+      window.open(provider.url, "_blank", "noopener,noreferrer");
     } catch {
       showCopyFeedback("Copy failed. Please copy manually.");
     }
@@ -304,30 +350,67 @@ export default function AIToolFinds() {
               </div>
 
               <div className="pt-2 flex items-center gap-3 flex-wrap">
+                <Button
+                  className="bg-yellow-400 text-black hover:bg-yellow-300"
+                  onClick={() => optimizeInHome(pack.after)}
+                >
+                  Optimize This Pack
+                </Button>
                 {pack.id.startsWith("suno-") ? (
                   <Link href="/suno-song-machine">
-                    <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                    <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                       Use Song Machine
                     </Button>
                   </Link>
                 ) : pack.id === "json-architect" ? (
                   <Link href="/json-prompt-architect">
-                    <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                    <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                       Open JSON Architect
                     </Button>
                   </Link>
-                ) : (
-                  <Link href="/#optimizer">
-                    <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                      Optimize This Pack
-                    </Button>
-                  </Link>
-                )}
-                <a href={pack.platformUrl} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                    Try in {pack.platformLabel}
+                ) : null}
+                <div className="w-full sm:w-auto overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
+                  <Button
+                    variant="outline"
+                    className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
+                    onClick={() => {
+                      void tryInProviderSite(pack.after);
+                    }}
+                  >
+                    <span className="truncate">Try in {tryInProvider.label}</span>
                   </Button>
-                </a>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
+                        aria-label="Choose a provider"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      side="bottom"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
+                    >
+                      {tryInProviders.map((provider) => (
+                        <DropdownMenuItem
+                          key={provider.id}
+                          className="cursor-pointer focus:bg-yellow-500/20"
+                          onClick={() => {
+                            setTryInProvider(provider);
+                            void tryInProviderSite(pack.after, provider);
+                          }}
+                        >
+                          Try in {provider.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
                 {pack.id.startsWith("suno-") && (
                   <a href="https://suno.com/" target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">

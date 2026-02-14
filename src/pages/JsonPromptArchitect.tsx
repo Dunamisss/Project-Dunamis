@@ -1,8 +1,17 @@
 import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
+import AddToPackDialog from "@/components/AddToPackDialog";
+import { useChat } from "@/contexts/ChatContext";
 
 type PromptSchema = {
   subject: {
@@ -202,9 +211,31 @@ function toPlainPrompt(state: PromptSchema): string {
 }
 
 export default function JsonPromptArchitect() {
+  const { loadPrompt } = useChat();
+  const [, setLocation] = useLocation();
   const [state, setState] = useState<PromptSchema>(emptyState());
   const [necklaceInput, setNecklaceInput] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [tryInProvider, setTryInProvider] = useState<{
+    id: string;
+    label: string;
+    url: string;
+  }>({
+    id: "chatgpt",
+    label: "ChatGPT",
+    url: "https://chatgpt.com/",
+  });
+
+  const tryInProviders = [
+    { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com/" },
+    { id: "grok", label: "Grok (xAI)", url: "https://grok.com/" },
+    { id: "gemini", label: "Gemini", url: "https://gemini.google.com/" },
+    { id: "claude", label: "Claude", url: "https://claude.ai/" },
+    { id: "perplexity", label: "Perplexity", url: "https://www.perplexity.ai/" },
+    { id: "poe", label: "Poe", url: "https://poe.com/" },
+    { id: "qwen", label: "Qwen", url: "https://chat.qwen.ai/" },
+    { id: "deepseek", label: "DeepSeek", url: "https://chat.deepseek.com/" },
+  ];
 
   useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -243,6 +274,23 @@ export default function JsonPromptArchitect() {
 
   const loadPreset = (key: keyof typeof PRESETS) => setState(PRESETS[key]);
   const clearAll = () => setState(emptyState());
+
+  const optimizeInHome = () => {
+    loadPrompt(plainOutput);
+    setLocation("/?focus=optimizer");
+  };
+
+  const tryInProviderSite = async (provider = tryInProvider) => {
+    try {
+      await navigator.clipboard.writeText(plainOutput);
+      setFeedback(`Copied. Opening ${provider.label}...`);
+      window.setTimeout(() => setFeedback(null), 1800);
+      window.open(provider.url, "_blank", "noopener,noreferrer");
+    } catch {
+      setFeedback("Copy failed.");
+      window.setTimeout(() => setFeedback(null), 1800);
+    }
+  };
 
   const addNecklace = () => {
     const clean = necklaceInput.trim();
@@ -370,6 +418,73 @@ export default function JsonPromptArchitect() {
               </div>
               <Textarea value={plainOutput} readOnly className="min-h-[220px] bg-black/40 border-yellow-500/20 text-white" />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Button
+                variant="outline"
+                className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                onClick={optimizeInHome}
+              >
+                Optimize Prompt
+              </Button>
+              <AddToPackDialog
+                promptText={plainOutput}
+                suggestedTitle="JSON Architect Result"
+                onDone={(msg) => {
+                  setFeedback(msg);
+                  window.setTimeout(() => setFeedback(null), 1600);
+                }}
+                trigger={(
+                  <Button
+                    variant="outline"
+                    className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                  >
+                    Add to Pack
+                  </Button>
+                )}
+              />
+              <div className="w-full overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
+                <Button
+                  variant="outline"
+                  className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
+                  onClick={() => {
+                    void tryInProviderSite();
+                  }}
+                >
+                  <span className="truncate">Try in {tryInProvider.label}</span>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
+                      aria-label="Choose a provider"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    side="bottom"
+                    sideOffset={8}
+                    collisionPadding={12}
+                    className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
+                  >
+                    {tryInProviders.map((provider) => (
+                      <DropdownMenuItem
+                        key={provider.id}
+                        className="cursor-pointer focus:bg-yellow-500/20"
+                        onClick={() => {
+                          setTryInProvider(provider);
+                          void tryInProviderSite(provider);
+                        }}
+                      >
+                        Try in {provider.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
             {feedback && <p className="text-xs text-yellow-200">{feedback}</p>}
           </div>
         </div>
@@ -377,4 +492,3 @@ export default function JsonPromptArchitect() {
     </div>
   );
 }
-
