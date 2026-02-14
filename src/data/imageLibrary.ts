@@ -1584,6 +1584,20 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
     "createdAt": 1770745038
   },
   {
+    "id": "half-lion-half-glass-8409ac9e",
+    "title": "half lion half glass 8409ac9e",
+    "description": "Original artwork: half lion half glass 8409ac9e.",
+    "tags": [
+      "half",
+      "lion",
+      "glass",
+      "8409ac9e"
+    ],
+    "full": "/images/library/full/half-lion-half-glass-8409ac9e.webp",
+    "thumb": "/images/library/thumbs/half-lion-half-glass-8409ac9e.webp",
+    "createdAt": 1770639318
+  },
+  {
     "id": "id-almost-organi-1c341db6",
     "title": "id almost organi 1c341db6",
     "description": "Original artwork: id almost organi 1c341db6.",
@@ -1666,6 +1680,19 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
     "full": "/images/library/full/kong2-42e23666.webp",
     "thumb": "/images/library/thumbs/kong2-42e23666.webp",
     "createdAt": 1770463211
+  },
+  {
+    "id": "lightning-sea-women-d98d20d8",
+    "title": "lightning sea women d98d20d8",
+    "description": "Original artwork: lightning sea women d98d20d8.",
+    "tags": [
+      "lightning",
+      "women",
+      "d98d20d8"
+    ],
+    "full": "/images/library/full/lightning-sea-women-d98d20d8.webp",
+    "thumb": "/images/library/thumbs/lightning-sea-women-d98d20d8.webp",
+    "createdAt": 1771070866
   },
   {
     "id": "lineart-2-a5b28184",
@@ -2236,6 +2263,17 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
     "createdAt": 1770852497
   },
   {
+    "id": "sea-god-c5fffd32",
+    "title": "sea god c5fffd32",
+    "description": "Original artwork: sea god c5fffd32.",
+    "tags": [
+      "c5fffd32"
+    ],
+    "full": "/images/library/full/sea-god-c5fffd32.webp",
+    "thumb": "/images/library/thumbs/sea-god-c5fffd32.webp",
+    "createdAt": 1771070866
+  },
+  {
     "id": "shogun-4-d5ad3341",
     "title": "shogun 4 d5ad3341",
     "description": "Original artwork: shogun 4 d5ad3341.",
@@ -2282,6 +2320,20 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
     "full": "/images/library/full/shogun3-39bb3591.webp",
     "thumb": "/images/library/thumbs/shogun3-39bb3591.webp",
     "createdAt": 1770463220
+  },
+  {
+    "id": "snuggled-up-super-heroes-6896f35d",
+    "title": "snuggled up super heroes 6896f35d",
+    "description": "Original artwork: snuggled up super heroes 6896f35d.",
+    "tags": [
+      "snuggled",
+      "super",
+      "heroes",
+      "6896f35d"
+    ],
+    "full": "/images/library/full/snuggled-up-super-heroes-6896f35d.webp",
+    "thumb": "/images/library/thumbs/snuggled-up-super-heroes-6896f35d.webp",
+    "createdAt": 1771070867
   },
   {
     "id": "space-scene-af969314",
