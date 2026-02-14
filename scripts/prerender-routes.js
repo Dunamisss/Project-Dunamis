@@ -8,7 +8,7 @@ const indexPath = path.join(distDir, "index.html");
 const promptLibraryPath = path.resolve(__dirname, "..", "src", "data", "promptLibrary.ts");
 const imageLibraryPath = path.resolve(__dirname, "..", "src", "data", "imageLibrary.ts");
 
-const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/starter-packs", "/tools", "/suno-song-machine", "/coloring-page-machine", "/profile"];
+const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/starter-packs", "/tools", "/json-prompt-architect", "/suno-song-machine", "/coloring-page-machine", "/profile"];
 
 async function ensureFileExists(filePath) {
   try {
@@ -352,6 +352,13 @@ function buildRouteMeta({
       ...base,
       title: "Suno Song Machine (Beta) — DUNAMIS",
       description: "Generate structured Suno-ready songs with preview lyrics, full sections, and paste-ready style prompts.",
+    };
+  }
+  if (route === "/json-prompt-architect") {
+    return {
+      ...base,
+      title: "JSON Prompt Architect — DUNAMIS",
+      description: "Build image prompts with structured JSON blueprints and convert them into plain prompts for production use.",
     };
   }
   if (route === "/profile") {

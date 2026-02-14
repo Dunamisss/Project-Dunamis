@@ -14,6 +14,7 @@ import SubmitPrompt from "@/pages/SubmitPrompt";
 import AdminSubmissions from "@/pages/AdminSubmissions";
 import AIToolFinds from "@/pages/AIToolFinds";
 import SunoSongMachine from "@/pages/SunoSongMachine";
+import JsonPromptArchitect from "@/pages/JsonPromptArchitect";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
               <Route path="/admin/submissions" component={AdminSubmissions} />
               <Route path="/starter-packs" component={AIToolFinds} />
               <Route path="/tools" component={AIToolFinds} />
+              <Route path="/json-prompt-architect" component={JsonPromptArchitect} />
               <Route path="/suno-song-machine" component={SunoSongMachine} />
               <Route path="/coloring-page-machine" component={SunoSongMachine} />
             </Switch>

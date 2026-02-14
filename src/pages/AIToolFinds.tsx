@@ -19,6 +19,28 @@ type StarterPack = {
 
 const STARTER_PACKS: StarterPack[] = [
   {
+    id: "json-architect",
+    title: "JSON Prompt Architect Pack",
+    subtitle: "Build precision image prompts with structured JSON instead of messy paragraphs.",
+    problem: "Long paragraph prompts drift. Models skip details in the middle and output becomes inconsistent.",
+    before: "a stylish woman in a city at night with cool lighting and nice clothes",
+    after:
+      "Use structured JSON fields for subject, apparel, accessories, environment, and technical settings so every detail has a defined slot and survives generation.",
+    templates: [
+      "{\"subject\":{\"gender\":\"\",\"age_group\":\"\",\"hair\":\"\",\"expression\":\"\",\"skin\":\"\"},\"apparel\":{\"item\":\"\",\"color\":\"\",\"fit\":\"\",\"style\":\"\"},\"accessories\":{\"necklaces\":[],\"wristwear\":{\"right_wrist\":\"\",\"left_wrist\":\"\"},\"bag\":{\"type\":\"\",\"color\":\"\",\"texture\":\"\",\"details\":\"\"}},\"environment\":{\"location\":\"\",\"flooring\":\"\",\"background_details\":\"\"},\"technical\":{\"lighting\":\"\",\"framing\":\"\",\"vibe\":\"\",\"aspect_ratio\":\"4:5\",\"seed\":\"\"},\"negative_prompt\":\"\"}",
+      "Streetwear preset: cinematic urban subject, wet asphalt reflections, neon rim light, full-body low-angle framing, high contrast mood.",
+      "Luxury preset: old money styling, structured tailoring, warm interior glow, medium-close framing, elegant high-end vibe.",
+    ],
+    whyItWorks: [
+      "Each visual detail gets a dedicated field, reducing skipped instructions.",
+      "JSON improves consistency across reruns.",
+      "Easier to debug and tweak than single-block prompts.",
+    ],
+    accent: "from-indigo-300/25 via-sky-300/15 to-cyan-200/20",
+    platformLabel: "Dunamis Architect",
+    platformUrl: "https://dunamiss.xyz/json-prompt-architect",
+  },
+  {
     id: "suno-v5",
     title: "Suno Song Starter Pack",
     subtitle: "From rough song idea to Suno-ready structure with fewer bad generations.",
@@ -154,6 +176,14 @@ export default function AIToolFinds() {
 
   const toSongMachineLink = (template: string) =>
     `/suno-song-machine?idea=${encodeURIComponent(template)}`;
+  const toJsonArchitectLink = (template: string) =>
+    `/json-prompt-architect?preset=${encodeURIComponent(
+      template.toLowerCase().includes("streetwear")
+        ? "streetwear"
+        : template.toLowerCase().includes("luxury")
+          ? "luxury"
+          : "vintage90s",
+    )}`;
 
   return (
     <div className="min-h-screen relative overflow-x-hidden">
@@ -240,6 +270,17 @@ export default function AIToolFinds() {
                             </Button>
                           </Link>
                         )}
+                        {pack.id === "json-architect" && (
+                          <Link href={toJsonArchitectLink(template)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
+                            >
+                              Use in JSON Tool
+                            </Button>
+                          </Link>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
@@ -269,6 +310,12 @@ export default function AIToolFinds() {
                       Use Song Machine
                     </Button>
                   </Link>
+                ) : pack.id === "json-architect" ? (
+                  <Link href="/json-prompt-architect">
+                    <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                      Open JSON Architect
+                    </Button>
+                  </Link>
                 ) : (
                   <Link href="/#optimizer">
                     <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
@@ -288,6 +335,13 @@ export default function AIToolFinds() {
                     </Button>
                   </a>
                 )}
+                {pack.id === "json-architect" && (
+                  <Link href="/json-prompt-architect">
+                    <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                      Open Tool
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/frameworks">
                   <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                     View Frameworks
@@ -301,6 +355,11 @@ export default function AIToolFinds() {
                   <>
                     <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Use Song Machine</span>.</p>
                     <p className="text-sm text-gray-300">3. Tweak details, generate preview, then copy into Suno.</p>
+                  </>
+                ) : pack.id === "json-architect" ? (
+                  <>
+                    <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Open JSON Architect</span>.</p>
+                    <p className="text-sm text-gray-300">3. Fill slots, copy JSON or converted plain prompt.</p>
                   </>
                 ) : (
                   <>
