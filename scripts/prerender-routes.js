@@ -8,7 +8,7 @@ const indexPath = path.join(distDir, "index.html");
 const promptLibraryPath = path.resolve(__dirname, "..", "src", "data", "promptLibrary.ts");
 const imageLibraryPath = path.resolve(__dirname, "..", "src", "data", "imageLibrary.ts");
 
-const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/starter-packs", "/tools", "/json-prompt-architect", "/suno-song-machine", "/coloring-page-machine", "/profile"];
+const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/starter-packs", "/tools", "/json-prompt-architect", "/suno-song-machine", "/coloring-studio", "/coloring-page-machine", "/profile"];
 
 async function ensureFileExists(filePath) {
   try {
@@ -170,7 +170,7 @@ function canonicalizeRoute(route) {
   if (route === "/library") return "/prompts";
   if (route === "/gallery") return "/images";
   if (route === "/tools") return "/starter-packs";
-  if (route === "/coloring-page-machine") return "/suno-song-machine";
+  if (route === "/coloring-page-machine") return "/coloring-studio";
   return route;
 }
 
@@ -347,11 +347,18 @@ function buildRouteMeta({
       description: "Platform-specific starter packs with before/after examples and copy-ready templates.",
     };
   }
-  if (route === "/suno-song-machine" || route === "/coloring-page-machine") {
+  if (route === "/suno-song-machine") {
     return {
       ...base,
       title: "Suno Song Machine (Beta) — DUNAMIS",
       description: "Generate structured Suno-ready songs with preview lyrics, full sections, and paste-ready style prompts.",
+    };
+  }
+  if (route === "/coloring-studio" || route === "/coloring-page-machine") {
+    return {
+      ...base,
+      title: "Coloring Studio — DUNAMIS",
+      description: "Turn photos into printable black-and-white line art in your browser, then download high-contrast coloring pages for free.",
     };
   }
   if (route === "/json-prompt-architect") {

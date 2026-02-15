@@ -15,6 +15,7 @@ import AdminSubmissions from "@/pages/AdminSubmissions";
 import AIToolFinds from "@/pages/AIToolFinds";
 import SunoSongMachine from "@/pages/SunoSongMachine";
 import JsonPromptArchitect from "@/pages/JsonPromptArchitect";
+import ColoringPageMachine from "@/pages/ColoringPageMachine";
 
 function App() {
   return (
@@ -39,7 +40,8 @@ function App() {
               <Route path="/tools" component={AIToolFinds} />
               <Route path="/json-prompt-architect" component={JsonPromptArchitect} />
               <Route path="/suno-song-machine" component={SunoSongMachine} />
-              <Route path="/coloring-page-machine" component={SunoSongMachine} />
+              <Route path="/coloring-studio" component={ColoringPageMachine} />
+              <Route path="/coloring-page-machine" component={ColoringPageMachine} />
             </Switch>
           </Router>
         </ChatProvider>

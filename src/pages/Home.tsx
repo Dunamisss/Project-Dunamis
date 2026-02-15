@@ -666,6 +666,11 @@ export default function Home() {
                   JSON Architect
                 </Button>
               </Link>
+              <Link href="/coloring-studio">
+                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
+                  Coloring Studio
+                </Button>
+              </Link>
               <Link href="/submit">
                 <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
                   Submit
@@ -758,6 +763,11 @@ export default function Home() {
                   JSON Architect
                 </Button>
               </Link>
+              <Link href="/coloring-studio">
+                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                  Coloring Studio
+                </Button>
+              </Link>
             </div>
           </div>
           <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
@@ -814,6 +824,25 @@ export default function Home() {
               <Link href="/json-prompt-architect">
                 <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
                   Open JSON Architect
+                </Button>
+              </Link>
+            </div>
+          </section>
+          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-2 max-w-3xl">
+                <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">New Tool</p>
+                <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
+                  Coloring Studio
+                </h2>
+                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed">
+                  Upload any photo, convert it into printable line art directly in-browser, and download
+                  it as a clean black-and-white coloring page. No API keys and no paid credits required.
+                </p>
+              </div>
+              <Link href="/coloring-studio">
+                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                  Open Coloring Studio
                 </Button>
               </Link>
             </div>
