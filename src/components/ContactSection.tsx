@@ -4,14 +4,48 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Send, Heart } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export default function ContactSection() {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [company, setCompany] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Message sent", {
-      description: "We'll get back to you shortly."
-    });
-    // Reset form logic would go here
+    if (isSending) return;
+
+    const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim().replace(/\/+$/, "");
+    const url = apiBase ? `${apiBase}/api/contact` : "/api/contact";
+
+    setIsSending(true);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, message, company }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || "Could not send your message.");
+      }
+
+      toast.success("Message sent", {
+        description: "We'll get back to you shortly.",
+      });
+      setName("");
+      setEmail("");
+      setMessage("");
+      setCompany("");
+    } catch (error) {
+      toast.error("Send failed", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -70,17 +104,53 @@ export default function ContactSection() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Input placeholder="Your Name" className="bg-black/20 border-white/10" required />
+                <div className="hidden">
+                  <Input
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    placeholder="Company"
+                    autoComplete="off"
+                    tabIndex={-1}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Input type="email" placeholder="Email Address" className="bg-black/20 border-white/10" required />
+                  <Input
+                    placeholder="Your Name"
+                    className="bg-black/20 border-white/10"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    maxLength={80}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Textarea placeholder="How can we help?" className="bg-black/20 border-white/10 min-h-[120px]" required />
+                  <Input
+                    type="email"
+                    placeholder="Email Address"
+                    className="bg-black/20 border-white/10"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    maxLength={120}
+                  />
                 </div>
-                <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                  <Send className="mr-2 h-4 w-4" /> Send Message
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="How can we help?"
+                    className="bg-black/20 border-white/10 min-h-[120px]"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    required
+                    minLength={10}
+                    maxLength={4000}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={isSending}
+                >
+                  <Send className="mr-2 h-4 w-4" /> {isSending ? "Sending..." : "Send Message"}
                 </Button>
               </form>
             </CardContent>

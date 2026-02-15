@@ -58,6 +58,7 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
   const turnstileSiteKey = (((import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "") as string).trim();
   const apiBase = (((import.meta as any).env?.VITE_API_BASE || "") as string).trim().replace(/\/+$/, "");
   const turnstileVerifyUrl = apiBase ? `${apiBase}/api/turnstile-verify` : "/api/turnstile-verify";
+  const emailCheckUrl = apiBase ? `${apiBase}/api/email-check` : "/api/email-check";
 
   useEffect(() => {
     if (!open || !turnstileSiteKey) return;
@@ -165,6 +166,28 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
     }
   };
 
+  const verifyEmailAllowed = async (value: string) => {
+    try {
+      const response = await fetch(emailCheckUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value.trim().toLowerCase() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.valid !== true) {
+        throw new Error(
+          typeof data?.error === "string"
+            ? data.error
+            : "Email not allowed. Please use a non-temporary email."
+        );
+      }
+      return true;
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Email check failed.");
+      return false;
+    }
+  };
+
   const handleLogin = async (provider: "google" | "github" | "email") => {
     if (isAuthenticating) return;
     setIsAuthenticating(true);
@@ -223,6 +246,10 @@ export function AuthModal({ trigger }: { trigger?: React.ReactNode }) {
       }
       if (!password || password.length < 6) {
         throw new Error("Password must be at least 6 characters.");
+      }
+      const emailAllowed = await verifyEmailAllowed(email.trim());
+      if (!emailAllowed) {
+        return;
       }
       if (!verifyHumanCheck()) {
         return;

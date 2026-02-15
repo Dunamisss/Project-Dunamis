@@ -36,6 +36,7 @@ const VPN_IPV4_URL =
 
 const usageByKey = new Map();
 const openRouterUsageByKey = new Map();
+const contactSubmissionsByIp = new Map();
 let disposableBlocklist = new Set();
 let disposableAllowlist = new Set();
 let vpnIpv4Cidrs = [];
@@ -234,6 +235,16 @@ function isLikelyVpnIp(ip) {
   for (const { base, mask } of vpnIpv4Cidrs) {
     if ((ipInt & mask) === base) return true;
   }
+  return false;
+}
+
+function isContactRateLimited(ip) {
+  if (!ip) return false;
+  const now = Date.now();
+  const windowMs = Number.parseInt(process.env.CONTACT_MIN_INTERVAL_MS || "60000", 10);
+  const last = contactSubmissionsByIp.get(ip) || 0;
+  if (now - last < windowMs) return true;
+  contactSubmissionsByIp.set(ip, now);
   return false;
 }
 
@@ -488,6 +499,134 @@ app.post("/api/turnstile-verify", async (req, res) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Turnstile verification error.";
     return res.status(500).json({ success: false, error: message });
+  }
+});
+
+app.post("/api/email-check", async (req, res) => {
+  try {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ valid: false, error: "Invalid email format." });
+    }
+
+    const domain = email.split("@").pop()?.trim().toLowerCase() || "";
+    if (!domain) {
+      return res.status(400).json({ valid: false, error: "Invalid email domain." });
+    }
+
+    if (isDisposableEmail(email)) {
+      return res.status(400).json({ valid: false, disposable: true, error: "Disposable email addresses are not allowed." });
+    }
+
+    if (SUPABASE_ENABLED) {
+      const blocked = await supabaseDomainBlocked(domain);
+      if (blocked) {
+        return res.status(400).json({ valid: false, blocked: true, error: "Email domain is blocked." });
+      }
+    }
+
+    return res.json({ valid: true, disposable: false, blocked: false });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Email validation failed.";
+    return res.status(500).json({ valid: false, error: message });
+  }
+});
+
+app.post("/api/contact", async (req, res) => {
+  try {
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    const company = typeof req.body?.company === "string" ? req.body.company.trim() : "";
+
+    if (company) {
+      // Honeypot: silently accept to avoid teaching bots.
+      return res.json({ ok: true });
+    }
+
+    if (!name || name.length < 2 || name.length > 80) {
+      return res.status(400).json({ error: "Please enter a valid name." });
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "Please enter a valid email address." });
+    }
+    if (isDisposableEmail(email)) {
+      return res.status(400).json({ error: "Temporary email addresses are not allowed." });
+    }
+    if (SUPABASE_ENABLED) {
+      const domain = email.split("@").pop()?.trim().toLowerCase();
+      if (domain) {
+        const blocked = await supabaseDomainBlocked(domain);
+        if (blocked) {
+          return res.status(400).json({ error: "Email domain is blocked." });
+        }
+      }
+    }
+    if (!message || message.length < 10 || message.length > 4000) {
+      return res.status(400).json({ error: "Message must be between 10 and 4000 characters." });
+    }
+
+    const clientIp = getClientIp(req);
+    if (isContactRateLimited(clientIp)) {
+      return res.status(429).json({ error: "Please wait a moment before sending another message." });
+    }
+
+    const resendApiKey = process.env.RESEND_API_KEY || "";
+    const contactFrom = process.env.CONTACT_FROM_EMAIL || "";
+    const contactTo = process.env.CONTACT_TO_EMAIL || "";
+    const contactWebhook = process.env.CONTACT_WEBHOOK_URL || "";
+
+    if (resendApiKey && contactFrom && contactTo) {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: contactFrom,
+          to: [contactTo],
+          reply_to: email,
+          subject: `Dunamis Contact: ${name}`,
+          text: `Name: ${name}\nEmail: ${email}\nIP: ${clientIp || "unknown"}\n\nMessage:\n${message}`,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        return res.status(502).json({ error: `Email delivery failed. ${errorText || ""}`.trim() });
+      }
+
+      return res.json({ ok: true });
+    }
+
+    if (contactWebhook) {
+      const webhookPayload = {
+        source: "dunamiss.xyz contact form",
+        submittedAt: new Date().toISOString(),
+        name,
+        email,
+        message,
+        ip: clientIp || "unknown",
+      };
+      const webhookResponse = await fetch(contactWebhook, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(webhookPayload),
+      });
+      if (!webhookResponse.ok) {
+        const errorText = await webhookResponse.text().catch(() => "");
+        return res.status(502).json({ error: `Webhook delivery failed. ${errorText || ""}`.trim() });
+      }
+      return res.json({ ok: true });
+    }
+
+    return res.status(503).json({
+      error: "Contact form is not configured yet. Add RESEND or CONTACT_WEBHOOK settings on backend.",
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Contact request failed.";
+    return res.status(500).json({ error: message });
   }
 });
 
