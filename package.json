@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "compare-models": "node scripts/compare-groq-models.js",
-    "import-prompts": "node scripts/import-prompts-bulk.js",
+    "import-prompts": "python scripts/library_sync.py prompts --on-duplicate ask --default-category Other",
     "cleanup-duplicates": "node scripts/cleanup-duplicates.js"
   },
   "dependencies": {
