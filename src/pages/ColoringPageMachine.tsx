@@ -20,14 +20,14 @@ type SvgTemplate = {
 };
 
 const SVG_TEMPLATES: SvgTemplate[] = [
-  { id: "teddy", name: "Teddy Bear", path: "/coloring-studio/teddy.svg", level: "Easy" },
-  { id: "bunny", name: "Bunny", path: "/coloring-studio/bunny.svg", level: "Easy" },
-  { id: "panda", name: "Panda Character", path: "/coloring-studio/panda.svg", level: "Medium" },
-  { id: "unicorn", name: "Unicorn", path: "/coloring-studio/unicorn.svg", level: "Medium" },
-  { id: "dinosaur", name: "Dinosaur", path: "/coloring-studio/dinosaur.svg", level: "Medium" },
-  { id: "cat", name: "Cat", path: "/coloring-studio/cat.svg", level: "Medium" },
-  { id: "bulldog", name: "Bulldog", path: "/coloring-studio/bulldog.svg", level: "Advanced" },
-  { id: "robot", name: "Robot Mascot", path: "/coloring-studio/robot.svg", level: "Advanced" },
+  { id: "bunny-1", name: "Bunny Classic", path: "/coloring-studio/bunny-1.svg", level: "Easy" },
+  { id: "bunny-2", name: "Bunny Smile", path: "/coloring-studio/bunny-2.svg", level: "Easy" },
+  { id: "bunny-3", name: "Bunny Bow", path: "/coloring-studio/bunny-3.svg", level: "Easy" },
+  { id: "bunny-4", name: "Bunny Hoodie", path: "/coloring-studio/bunny-4.svg", level: "Medium" },
+  { id: "bunny-5", name: "Bunny Star", path: "/coloring-studio/bunny-5.svg", level: "Medium" },
+  { id: "bunny-6", name: "Bunny Heart", path: "/coloring-studio/bunny-6.svg", level: "Medium" },
+  { id: "bunny-7", name: "Bunny Explorer", path: "/coloring-studio/bunny-7.svg", level: "Advanced" },
+  { id: "bunny-8", name: "Bunny Crown", path: "/coloring-studio/bunny-8.svg", level: "Advanced" },
 ];
 
 const PROMPT_PRESETS: PromptPreset[] = [
