@@ -228,6 +228,9 @@ function upsertTag(html, regex, replacement, insertBefore = "</head>") {
 
 function upsertBodyHeading(html, headingText) {
   const heading = `<h1 data-route-h1 style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;white-space:nowrap;">${escapeAttr(headingText)}</h1>`;
+  if (/<h1\b/i.test(html) && !/<h1[^>]*data-route-h1/i.test(html)) {
+    return html;
+  }
   if (/<h1[^>]*data-route-h1[^>]*>[\s\S]*?<\/h1>/i.test(html)) {
     return html.replace(/<h1[^>]*data-route-h1[^>]*>[\s\S]*?<\/h1>/i, heading);
   }
