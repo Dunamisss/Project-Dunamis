@@ -50,6 +50,28 @@ const STARTER_PACKS: StarterPack[] = [
     platformUrl: "https://dunamiss.xyz/json-prompt-architect",
   },
   {
+    id: "coloring-studio",
+    title: "Coloring Studio Starter Pack",
+    subtitle: "Create printable line-art prompts for kids, older kids, and adults.",
+    problem: "Most image prompts produce shaded or noisy images that are bad for coloring pages.",
+    before: "a lion for kids coloring page",
+    after:
+      "Kawaii plushie lion, very thick black outlines, wide white spaces, simple shapes, high contrast, white background --no grey, shadows, gradients, textures",
+    templates: [
+      "Kawaii plushie [SUBJECT], very thick black outlines, wide open white spaces, simple shapes, no shading, no textures, high contrast, white background --no grey, shadows",
+      "Stylized vinyl toy [SUBJECT], bold outlines, street art aesthetic, clean vector lines, minimal hatching, high energy, white background --no gradients, realistic fur",
+      "Intricate [SUBJECT] Zentangle art, highly detailed patterns, thin and thick line variation, ornate paisley and geometric fills, professional ink drawing style, white background --no shading, no colors",
+    ],
+    whyItWorks: [
+      "Strict negative constraints stop muddy grayscale output.",
+      "Age-based template tiers control complexity from easy to advanced.",
+      "Works with both prompt-based generation and photo-to-line-art workflows.",
+    ],
+    accent: "from-rose-300/25 via-orange-300/15 to-amber-200/20",
+    platformLabel: "Coloring Studio",
+    platformUrl: "https://dunamiss.xyz/coloring-studio",
+  },
+  {
     id: "suno-v5",
     title: "Suno Song Starter Pack",
     subtitle: "From rough song idea to Suno-ready structure with fewer bad generations.",
@@ -327,6 +349,17 @@ export default function AIToolFinds() {
                             </Button>
                           </Link>
                         )}
+                        {pack.id === "coloring-studio" && (
+                          <Link href="/coloring-studio">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
+                            >
+                              Use in Coloring Studio
+                            </Button>
+                          </Link>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
@@ -366,6 +399,12 @@ export default function AIToolFinds() {
                   <Link href="/json-prompt-architect">
                     <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                       Open JSON Architect
+                    </Button>
+                  </Link>
+                ) : pack.id === "coloring-studio" ? (
+                  <Link href="/coloring-studio">
+                    <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                      Open Coloring Studio
                     </Button>
                   </Link>
                 ) : null}
@@ -425,6 +464,13 @@ export default function AIToolFinds() {
                     </Button>
                   </Link>
                 )}
+                {pack.id === "coloring-studio" && (
+                  <Link href="/coloring-studio">
+                    <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                      Open Tool
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/frameworks">
                   <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                     View Frameworks
@@ -443,6 +489,11 @@ export default function AIToolFinds() {
                   <>
                     <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Open JSON Architect</span>.</p>
                     <p className="text-sm text-gray-300">3. Fill slots, copy JSON or converted plain prompt.</p>
+                  </>
+                ) : pack.id === "coloring-studio" ? (
+                  <>
+                    <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Open Coloring Studio</span>.</p>
+                    <p className="text-sm text-gray-300">3. Choose Photo-to-Line-Art or Starter Prompts by difficulty.</p>
                   </>
                 ) : (
                   <>

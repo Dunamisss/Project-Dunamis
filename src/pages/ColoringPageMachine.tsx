@@ -380,7 +380,26 @@ export default function ColoringPageMachine() {
           <p className="text-xs text-gray-400">Tip: clear photos with strong contrast produce the best outlines.</p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="rounded-xl border border-yellow-500/30 bg-black/60 p-5 md:p-6 shadow-lg space-y-3">
+          <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Choose Your Mode</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href="#photo-to-line-art">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Photo to Line Art
+              </Button>
+            </a>
+            <a href="#toy-factory-frameworks">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Use Starter Prompts
+              </Button>
+            </a>
+          </div>
+          <p className="text-xs text-gray-400">
+            You have two options here: convert your own image, or use prebuilt prompt frameworks by age group.
+          </p>
+        </div>
+
+        <div id="photo-to-line-art" className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
             <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Photo to Line Art</p>
 
@@ -471,7 +490,7 @@ export default function ColoringPageMachine() {
           </div>
         </div>
 
-        <section className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
+        <section id="toy-factory-frameworks" className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Toy Factory Frameworks</p>
             <p className="text-xs text-gray-400">{chosenPresetLabel}</p>
