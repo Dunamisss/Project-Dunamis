@@ -22,11 +22,11 @@ type SvgTemplate = {
 const SVG_TEMPLATES: SvgTemplate[] = [
   { id: "teddy", name: "Teddy Bear", path: "/coloring-studio/teddy.svg", level: "Easy" },
   { id: "bunny", name: "Bunny", path: "/coloring-studio/bunny.svg", level: "Easy" },
-  { id: "bulldog", name: "Bulldog Hoodie", path: "/coloring-studio/bulldog.svg", level: "Easy" },
-  { id: "cat", name: "Street Cat", path: "/coloring-studio/cat.svg", level: "Easy" },
   { id: "panda", name: "Panda Character", path: "/coloring-studio/panda.svg", level: "Medium" },
   { id: "unicorn", name: "Unicorn", path: "/coloring-studio/unicorn.svg", level: "Medium" },
   { id: "dinosaur", name: "Dinosaur", path: "/coloring-studio/dinosaur.svg", level: "Medium" },
+  { id: "cat", name: "Cat", path: "/coloring-studio/cat.svg", level: "Medium" },
+  { id: "bulldog", name: "Bulldog", path: "/coloring-studio/bulldog.svg", level: "Advanced" },
   { id: "robot", name: "Robot Mascot", path: "/coloring-studio/robot.svg", level: "Advanced" },
 ];
 
