@@ -357,8 +357,9 @@ function buildRouteMeta({
   if (route === "/coloring-studio" || route === "/coloring-page-machine") {
     return {
       ...base,
-      title: "Coloring Studio — DUNAMIS",
-      description: "Turn photos into printable black-and-white line art in your browser, then download high-contrast coloring pages for free.",
+      title: "Coloring Studio (Coming Soon) — DUNAMIS",
+      description: "Coloring Studio is currently being rebuilt. A new printable coloring-page generator is coming soon.",
+      robots: "noindex,follow",
     };
   }
   if (route === "/json-prompt-architect") {
