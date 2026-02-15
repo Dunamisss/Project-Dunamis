@@ -14,6 +14,10 @@ type SongOutput = {
   fullLyrics: string;
   stylePrompt: string;
   sunoPasteBlock: string;
+  readiness: {
+    score: number;
+    checks: Array<{ label: string; pass: boolean }>;
+  };
 };
 
 type SongPreset = {
@@ -26,6 +30,8 @@ type SongPreset = {
   energy: string;
   bpm: string;
   length: "standard" | "extended";
+  perspective: "first-person" | "third-person";
+  themeKeywords: string;
 };
 
 const PRESETS: SongPreset[] = [
@@ -39,6 +45,8 @@ const PRESETS: SongPreset[] = [
     energy: "high",
     bpm: "118",
     length: "standard",
+    perspective: "first-person",
+    themeKeywords: "comeback, confidence, growth",
   },
   {
     id: "reggae-fusion",
@@ -50,6 +58,8 @@ const PRESETS: SongPreset[] = [
     energy: "medium",
     bpm: "96",
     length: "extended",
+    perspective: "first-person",
+    themeKeywords: "resilience, pressure, calm strength",
   },
   {
     id: "trap-soul",
@@ -57,14 +67,16 @@ const PRESETS: SongPreset[] = [
     idea: "late-night honesty about trust and ambition",
     genre: "trap soul with atmospheric pads and punchy 808s",
     mood: "dark",
-    voice: "intimate male lead with soft harmonies",
+    voice: "intimate lead with soft harmonies",
     energy: "medium",
     bpm: "134",
     length: "standard",
+    perspective: "first-person",
+    themeKeywords: "trust, ambition, confession",
   },
   {
-    id: "cinematic",
-    label: "Cinematic",
+    id: "cinematic-alt",
+    label: "Cinematic Alt",
     idea: "fighting through chaos to protect what matters",
     genre: "cinematic alternative with hybrid orchestral drums",
     mood: "energetic",
@@ -72,12 +84,22 @@ const PRESETS: SongPreset[] = [
     energy: "high",
     bpm: "110",
     length: "extended",
+    perspective: "third-person",
+    themeKeywords: "protection, chaos, purpose",
   },
 ];
 
+const SUNO_RULESET = [
+  "Keep hook short and memorable (1-2 concise lines).",
+  "Use clear section labels: Verse, Chorus, Bridge, Outro.",
+  "Style prompt must include genre, mood, energy, BPM, vocal style.",
+  "Avoid artist-name imitation and filler lines.",
+  "Keep lyric language singable and direct.",
+];
+
 const MOOD_WORDS: Record<string, string[]> = {
-  uplifting: ["rising", "golden", "hopeful", "wide-open", "steady"],
-  dark: ["shadowed", "heavy", "neon-night", "cold", "restless"],
+  uplifting: ["rising", "golden", "hopeful", "steady", "open-sky"],
+  dark: ["shadowed", "heavy", "cold", "restless", "neon-night"],
   romantic: ["warm", "close", "midnight", "soft", "timeless"],
   energetic: ["driving", "fast", "electric", "punchy", "explosive"],
   chill: ["smooth", "lazy", "sunset", "floating", "calm"],
@@ -108,30 +130,71 @@ function pick<T>(items: T[], seed: number): T {
   return items[Math.abs(seed) % items.length];
 }
 
-function line(seed: number, mood: string, theme: string) {
+function uniqueLines(text: string): string {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const line of text.split("\n")) {
+    const key = line.trim().toLowerCase();
+    if (!key) {
+      out.push(line);
+      continue;
+    }
+    if (seen.has(key)) {
+      out.push(`${line} (variation)`);
+      continue;
+    }
+    seen.add(key);
+    out.push(line);
+  }
+  return out.join("\n");
+}
+
+function line(seed: number, mood: string, theme: string, perspective: string) {
   const moodPool = MOOD_WORDS[mood] || MOOD_WORDS.reflective;
   const moodWord = pick(moodPool, seed + 3);
   const opener = pick(OPENERS, seed + 5);
-  return `${opener}, ${moodWord} around the edges, still chasing ${theme}.`;
+  const framing = perspective === "third-person" ? "they keep" : "I keep";
+  return `${opener}, ${moodWord} around the edges, ${framing} chasing ${theme}.`;
 }
 
-function makeVerse(seed: number, mood: string, theme: string, voice: string) {
+function makeVerse(seed: number, mood: string, theme: string, voice: string, perspective: string) {
   return [
-    line(seed, mood, theme),
+    line(seed, mood, theme, perspective),
     `Every step is ${pick(["measured", "reckless", "careful", "hungry"], seed + 11)}, but the vision stays clear.`,
     `I hear ${voice} in the static, telling me not to disappear.`,
     `If this is the cost of becoming, then we pay and persevere.`,
   ].join("\n");
 }
 
-function makeChorus(seed: number, theme: string) {
+function makeChorus(seed: number, theme: string, hookStyle: string) {
   const hook = pick(HOOKS, seed + 7);
-  return [
+  const chorus = [
     `${hook},`,
-    "hands up to the sky, we don't fold tonight,",
+    hookStyle === "short" ? "hands up, we do not fold tonight," : "hands up to the sky, we do not fold tonight,",
     "all this weight turns light when we call it by name,",
     `we came too far to leave without a flame for ${theme}.`,
   ].join("\n");
+  return chorus;
+}
+
+function buildReadiness(params: {
+  genre: string;
+  mood: string;
+  voice: string;
+  bpm: string;
+  chorus: string;
+  fullLyrics: string;
+}): SongOutput["readiness"] {
+  const checks = [
+    { label: "Genre set", pass: Boolean(sanitize(params.genre)) },
+    { label: "Mood set", pass: Boolean(sanitize(params.mood)) },
+    { label: "Vocal style set", pass: Boolean(sanitize(params.voice)) },
+    { label: "BPM set", pass: Boolean(sanitize(params.bpm)) },
+    { label: "Hook is concise", pass: params.chorus.split("\n")[0].split(" ").length <= 12 },
+    { label: "Sections included", pass: /\[Verse 1\]/.test(params.fullLyrics) && /\[Chorus\]/.test(params.fullLyrics) && /\[Bridge\]/.test(params.fullLyrics) },
+  ];
+  const passCount = checks.filter((c) => c.pass).length;
+  return { score: Math.round((passCount / checks.length) * 100), checks };
 }
 
 function buildSong(params: {
@@ -142,6 +205,9 @@ function buildSong(params: {
   energy: string;
   bpm: string;
   length: "standard" | "extended";
+  perspective: "first-person" | "third-person";
+  hookStyle: "short" | "anthemic";
+  themeKeywords: string;
   variant: number;
 }): SongOutput {
   const idea = sanitize(params.idea) || "a comeback story";
@@ -150,13 +216,14 @@ function buildSong(params: {
   const voice = sanitize(params.voice) || "raw lead vocal";
   const energy = sanitize(params.energy) || "medium";
   const bpm = sanitize(params.bpm) || "118";
-  const seed = `${idea}|${genre}|${mood}|${voice}|${energy}|${params.variant}`
+  const keywords = sanitize(params.themeKeywords);
+  const seed = `${idea}|${genre}|${mood}|${voice}|${energy}|${params.variant}|${keywords}`
     .split("")
     .reduce((a, c) => a + c.charCodeAt(0), 0);
 
-  const verse1 = makeVerse(seed, mood, idea, voice);
-  const chorus = makeChorus(seed, idea);
-  const verse2 = makeVerse(seed + 13, mood, idea, voice);
+  const verse1 = makeVerse(seed, mood, idea, voice, params.perspective);
+  const chorus = makeChorus(seed, idea, params.hookStyle);
+  const verse2 = makeVerse(seed + 13, mood, idea, voice, params.perspective);
   const bridge = [
     "Strip it back, let the room breathe.",
     "One note, one truth, one reason we stayed.",
@@ -167,7 +234,7 @@ function buildSong(params: {
     "Repeat the hook softly, then end clean.",
   ].join("\n");
 
-  const fullLyrics = [
+  const fullLyricsRaw = [
     "[Verse 1]",
     verse1,
     "",
@@ -187,7 +254,7 @@ function buildSong(params: {
     chorus,
     "",
     params.length === "extended"
-      ? "[Verse 3]\n" + makeVerse(seed + 29, mood, idea, voice) + "\n\n[Final Chorus]\n" + chorus
+      ? "[Verse 3]\n" + makeVerse(seed + 29, mood, idea, voice, params.perspective) + "\n\n[Final Chorus]\n" + chorus
       : "",
     "",
     "[Outro]",
@@ -195,6 +262,8 @@ function buildSong(params: {
   ]
     .filter(Boolean)
     .join("\n");
+
+  const fullLyrics = uniqueLines(fullLyricsRaw);
 
   const titles = [
     `${pick(["Neon", "Midnight", "Gold", "Static", "Afterlight"], seed)} ${pick(["Promise", "Signal", "Drive", "Echo", "Rise"], seed + 2)}`,
@@ -205,9 +274,12 @@ function buildSong(params: {
   const stylePrompt = [
     `${genre}, ${mood} mood, ${energy} energy, ${bpm} BPM.`,
     `Lead voice style: ${voice}.`,
+    keywords ? `Theme keywords: ${keywords}.` : "",
     "Modern radio-ready mix, clean hook, strong emotional build.",
     "Avoid generic filler lines and avoid artist-name imitation.",
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const sunoPasteBlock = [
     "STYLE / PROMPT:",
@@ -222,7 +294,16 @@ function buildSong(params: {
     "- Avoid clipping or muddy low-end.",
   ].join("\n");
 
-  return { titles, verse1, chorus, fullLyrics, stylePrompt, sunoPasteBlock };
+  const readiness = buildReadiness({
+    genre,
+    mood,
+    voice,
+    bpm,
+    chorus,
+    fullLyrics,
+  });
+
+  return { titles, verse1, chorus, fullLyrics, stylePrompt, sunoPasteBlock, readiness };
 }
 
 export default function SunoSongMachine() {
@@ -234,6 +315,9 @@ export default function SunoSongMachine() {
   const [energy, setEnergy] = useState("medium");
   const [bpm, setBpm] = useState("118");
   const [length, setLength] = useState<"standard" | "extended">("standard");
+  const [perspective, setPerspective] = useState<"first-person" | "third-person">("first-person");
+  const [hookStyle, setHookStyle] = useState<"short" | "anthemic">("short");
+  const [themeKeywords, setThemeKeywords] = useState("");
   const [variant, setVariant] = useState(0);
   const [result, setResult] = useState<SongOutput | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -288,7 +372,7 @@ export default function SunoSongMachine() {
       await navigator.clipboard.writeText(value);
       setMessage(ok);
       window.setTimeout(() => setMessage(null), 1600);
-      await trackEvent(eventType, { mode: "song-machine" });
+      await trackEvent(eventType, { mode: "song-architect-v2" });
     } catch {
       setMessage("Copy failed.");
       window.setTimeout(() => setMessage(null), 1600);
@@ -304,14 +388,18 @@ export default function SunoSongMachine() {
       energy,
       bpm,
       length,
+      perspective,
+      hookStyle,
+      themeKeywords,
       variant: nextVariant,
     });
     setResult(output);
     await trackEvent("generate_preview", {
-      preset: "custom",
       mood: sanitize(mood),
       energy: sanitize(energy),
       length,
+      perspective,
+      hookStyle,
     });
   };
 
@@ -326,6 +414,9 @@ export default function SunoSongMachine() {
       energy,
       bpm,
       length,
+      perspective,
+      hookStyle,
+      themeKeywords,
       variant: next,
     });
     setResult(output);
@@ -344,6 +435,8 @@ export default function SunoSongMachine() {
     setEnergy(preset.energy);
     setBpm(preset.bpm);
     setLength(preset.length);
+    setPerspective(preset.perspective);
+    setThemeKeywords(preset.themeKeywords);
     setVariant(0);
     setMessage(`${preset.label} preset loaded.`);
     window.setTimeout(() => setMessage(null), 1500);
@@ -368,6 +461,9 @@ export default function SunoSongMachine() {
         energy: sanitize(energy),
         bpm: sanitize(bpm),
         length,
+        perspective,
+        hookStyle,
+        themeKeywords: sanitize(themeKeywords),
         verse1: result.verse1,
         chorus: result.chorus,
         fullLyrics: result.fullLyrics,
@@ -393,46 +489,31 @@ export default function SunoSongMachine() {
       <div className="relative z-10 px-4 py-10 max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis Beta</p>
-            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Suno Song Machine</h1>
+            <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis Architect</p>
+            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Suno Song Architect v2</h1>
             <p className="text-sm text-gray-300 max-w-3xl">
-              Tell us what song you want. Get Verse 1 + Chorus first, tweak it, then copy a full
-              Suno-ready song pack.
+              Structured song building for Suno: setup, preview, full lyrics, style prompt, and a paste-ready final block.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href="https://suno.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                void trackEvent("open_suno", { source: "song-machine-header" });
-              }}
-            >
+            <a href="https://suno.com/" target="_blank" rel="noopener noreferrer" onClick={() => { void trackEvent("open_suno", { source: "header" }); }}>
               <Button className="bg-yellow-400 text-black hover:bg-yellow-300">Open Suno</Button>
             </a>
             <Link href="/">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Back to Home
-              </Button>
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">Back Home</Button>
             </Link>
           </div>
         </div>
 
-        <div className="rounded-xl border border-yellow-500/30 bg-black/65 p-5 md:p-6 shadow-lg space-y-1">
+        <div className="rounded-xl border border-yellow-500/30 bg-black/65 p-5 md:p-6 shadow-lg space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs uppercase tracking-[0.25em] text-yellow-200/80">How To Use</p>
-            <span className="text-[10px] uppercase tracking-[0.2em] rounded-full border border-yellow-500/40 px-2 py-1 text-yellow-200">
-              Suno Free 4.5 Ready
-            </span>
-            <span className="text-[10px] uppercase tracking-[0.2em] rounded-full border border-yellow-500/40 px-2 py-1 text-yellow-200">
-              Suno Pro v5 Ready
-            </span>
+            <p className="text-xs uppercase tracking-[0.25em] text-yellow-200/80">Knowledge Rules</p>
+            <span className="text-[10px] uppercase tracking-[0.2em] rounded-full border border-yellow-500/40 px-2 py-1 text-yellow-200">Suno Free 4.5 Ready</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] rounded-full border border-yellow-500/40 px-2 py-1 text-yellow-200">Suno Pro v5 Ready</span>
           </div>
-          <p className="text-sm text-gray-300">1. Choose a preset or type your own song idea.</p>
-          <p className="text-sm text-gray-300">2. Click Generate Preview (Verse + Chorus).</p>
-          <p className="text-sm text-gray-300">3. Regenerate variation until it feels right.</p>
-          <p className="text-sm text-gray-300">4. Copy the Suno Paste Block and generate in Suno.</p>
+          {SUNO_RULESET.map((rule, index) => (
+            <p key={`${rule}-${index}`} className="text-sm text-gray-300">{index + 1}. {rule}</p>
+          ))}
         </div>
 
         <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-4 shadow-lg">
@@ -443,9 +524,7 @@ export default function SunoSongMachine() {
                 key={preset.id}
                 variant="outline"
                 className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                onClick={() => {
-                  void applyPreset(preset);
-                }}
+                onClick={() => { void applyPreset(preset); }}
               >
                 {preset.label}
               </Button>
@@ -457,7 +536,7 @@ export default function SunoSongMachine() {
           <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
             <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Song Setup</p>
             <label className="space-y-2 block">
-              <span className="text-xs text-gray-300">What song do you want?</span>
+              <span className="text-xs text-gray-300">Song idea</span>
               <Textarea
                 value={idea}
                 onChange={(event) => setIdea(event.target.value)}
@@ -466,7 +545,7 @@ export default function SunoSongMachine() {
               />
             </label>
             <label className="space-y-2 block">
-              <span className="text-xs text-gray-300">Genre/style</span>
+              <span className="text-xs text-gray-300">Genre / style</span>
               <Input
                 value={genre}
                 onChange={(event) => setGenre(event.target.value)}
@@ -477,11 +556,7 @@ export default function SunoSongMachine() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="space-y-2 block">
                 <span className="text-xs text-gray-300">Mood</span>
-                <select
-                  value={mood}
-                  onChange={(event) => setMood(event.target.value)}
-                  className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white"
-                >
+                <select value={mood} onChange={(event) => setMood(event.target.value)} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
                   <option value="uplifting">Uplifting</option>
                   <option value="dark">Dark</option>
                   <option value="romantic">Romantic</option>
@@ -492,18 +567,14 @@ export default function SunoSongMachine() {
               </label>
               <label className="space-y-2 block">
                 <span className="text-xs text-gray-300">Energy</span>
-                <select
-                  value={energy}
-                  onChange={(event) => setEnergy(event.target.value)}
-                  className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white"
-                >
+                <select value={energy} onChange={(event) => setEnergy(event.target.value)} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
                 </select>
               </label>
               <label className="space-y-2 block">
-                <span className="text-xs text-gray-300">Voice style</span>
+                <span className="text-xs text-gray-300">Vocal style</span>
                 <Input
                   value={voice}
                   onChange={(event) => setVoice(event.target.value)}
@@ -521,43 +592,46 @@ export default function SunoSongMachine() {
                 />
               </label>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="space-y-2 block">
+                <span className="text-xs text-gray-300">Length</span>
+                <select value={length} onChange={(event) => setLength(event.target.value as "standard" | "extended")} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
+                  <option value="standard">Standard</option>
+                  <option value="extended">Extended</option>
+                </select>
+              </label>
+              <label className="space-y-2 block">
+                <span className="text-xs text-gray-300">Perspective</span>
+                <select value={perspective} onChange={(event) => setPerspective(event.target.value as "first-person" | "third-person")} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
+                  <option value="first-person">First-person</option>
+                  <option value="third-person">Third-person</option>
+                </select>
+              </label>
+              <label className="space-y-2 block">
+                <span className="text-xs text-gray-300">Hook style</span>
+                <select value={hookStyle} onChange={(event) => setHookStyle(event.target.value as "short" | "anthemic")} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
+                  <option value="short">Short hook</option>
+                  <option value="anthemic">Anthemic</option>
+                </select>
+              </label>
+            </div>
             <label className="space-y-2 block">
-              <span className="text-xs text-gray-300">Song length</span>
-              <select
-                value={length}
-                onChange={(event) => setLength(event.target.value as "standard" | "extended")}
-                className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white"
-              >
-                <option value="standard">Standard (2 verses + bridge)</option>
-                <option value="extended">Extended (adds verse 3)</option>
-              </select>
+              <span className="text-xs text-gray-300">Theme keywords (optional)</span>
+              <Input
+                value={themeKeywords}
+                onChange={(event) => setThemeKeywords(event.target.value)}
+                className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
+                placeholder="Example: resilience, redemption, late-night drive"
+              />
             </label>
             <div className="pt-2 flex flex-wrap gap-3">
-              <Button
-                className="bg-yellow-400 text-black hover:bg-yellow-300"
-                onClick={() => {
-                  void generate();
-                }}
-                disabled={!canGenerate}
-              >
-                Generate Preview
+              <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={() => { void generate(); }} disabled={!canGenerate}>
+                Generate Song Pack
               </Button>
-              <Button
-                variant="outline"
-                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                onClick={() => {
-                  void regenerate();
-                }}
-                disabled={!result}
-              >
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10" onClick={() => { void regenerate(); }} disabled={!result}>
                 Regenerate Variation
               </Button>
-              <Button
-                variant="outline"
-                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                onClick={saveDraft}
-                disabled={!result || savingDraft}
-              >
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10" onClick={saveDraft} disabled={!result || savingDraft}>
                 {savingDraft ? "Saving..." : "Save Draft"}
               </Button>
             </div>
@@ -566,68 +640,57 @@ export default function SunoSongMachine() {
           <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
             <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Output</p>
             {!result ? (
-              <p className="text-sm text-gray-400">Generate a preview to see lyrics and Suno paste block.</p>
+              <p className="text-sm text-gray-400">Generate a song pack to see titles, lyrics, style prompt, and final Suno block.</p>
             ) : (
               <>
+                <div className="rounded-md border border-yellow-500/20 bg-black/30 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-yellow-200">Suno readiness score</p>
+                    <span className="text-xs text-yellow-200">{result.readiness.score}/100</span>
+                  </div>
+                  {result.readiness.checks.map((check, index) => (
+                    <p key={`${check.label}-${index}`} className={`text-xs ${check.pass ? "text-emerald-300" : "text-red-300"}`}>
+                      {check.pass ? "PASS" : "FAIL"} - {check.label}
+                    </p>
+                  ))}
+                </div>
                 <div className="space-y-2 rounded-md border border-yellow-500/20 bg-black/35 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs text-yellow-200">Title options</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
-                      onClick={() => {
-                        void copy(result.titles.join("\n"), "Titles copied.", "copy_titles");
-                      }}
-                    >
+                    <Button size="sm" variant="outline" className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2" onClick={() => { void copy(result.titles.join("\n"), "Titles copied.", "copy_titles"); }}>
                       Copy
                     </Button>
                   </div>
                   {result.titles.map((title, idx) => (
-                    <p key={`${title}-${idx}`} className="text-sm text-gray-200">
-                      {idx + 1}. {title}
-                    </p>
+                    <p key={`${title}-${idx}`} className="text-sm text-gray-200">{idx + 1}. {title}</p>
                   ))}
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs text-yellow-200">Preview: Verse 1 + Chorus</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
-                      onClick={() => {
-                        void copy(`[Verse 1]\n${result.verse1}\n\n[Chorus]\n${result.chorus}`, "Preview copied.", "copy_preview");
-                      }}
-                    >
+                    <Button size="sm" variant="outline" className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2" onClick={() => { void copy(`[Verse 1]\n${result.verse1}\n\n[Chorus]\n${result.chorus}`, "Preview copied.", "copy_preview"); }}>
                       Copy
                     </Button>
                   </div>
-                  <Textarea
-                    value={`[Verse 1]\n${result.verse1}\n\n[Chorus]\n${result.chorus}`}
-                    readOnly
-                    className="min-h-[220px] bg-black/40 border-yellow-500/20 text-white"
-                  />
+                  <Textarea value={`[Verse 1]\n${result.verse1}\n\n[Chorus]\n${result.chorus}`} readOnly className="min-h-[190px] bg-black/40 border-yellow-500/20 text-white" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-yellow-200">Suno Paste Block</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
-                      onClick={() => {
-                        void copy(result.sunoPasteBlock, "Suno block copied.", "copy_suno_block");
-                      }}
-                    >
+                    <p className="text-xs text-yellow-200">Style prompt</p>
+                    <Button size="sm" variant="outline" className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2" onClick={() => { void copy(result.stylePrompt, "Style prompt copied.", "copy_style_prompt"); }}>
                       Copy
                     </Button>
                   </div>
-                  <Textarea
-                    value={result.sunoPasteBlock}
-                    readOnly
-                    className="min-h-[260px] bg-black/40 border-yellow-500/20 text-white"
-                  />
+                  <Textarea value={result.stylePrompt} readOnly className="min-h-[120px] bg-black/40 border-yellow-500/20 text-white" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-yellow-200">Suno paste block</p>
+                    <Button size="sm" variant="outline" className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2" onClick={() => { void copy(result.sunoPasteBlock, "Suno block copied.", "copy_suno_block"); }}>
+                      Copy
+                    </Button>
+                  </div>
+                  <Textarea value={result.sunoPasteBlock} readOnly className="min-h-[250px] bg-black/40 border-yellow-500/20 text-white" />
                 </div>
                 <div className="rounded-md border border-yellow-500/20 bg-black/30 p-3">
                   <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80 mb-1">Paste Steps</p>
@@ -645,4 +708,3 @@ export default function SunoSongMachine() {
     </div>
   );
 }
-
