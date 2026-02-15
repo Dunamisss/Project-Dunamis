@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +20,13 @@ type SvgTemplate = {
 };
 
 const SVG_TEMPLATES: SvgTemplate[] = [
+  { id: "teddy", name: "Teddy Bear", path: "/coloring-studio/teddy.svg", level: "Easy" },
+  { id: "bunny", name: "Bunny", path: "/coloring-studio/bunny.svg", level: "Easy" },
   { id: "bulldog", name: "Bulldog Hoodie", path: "/coloring-studio/bulldog.svg", level: "Easy" },
   { id: "cat", name: "Street Cat", path: "/coloring-studio/cat.svg", level: "Easy" },
   { id: "panda", name: "Panda Character", path: "/coloring-studio/panda.svg", level: "Medium" },
+  { id: "unicorn", name: "Unicorn", path: "/coloring-studio/unicorn.svg", level: "Medium" },
+  { id: "dinosaur", name: "Dinosaur", path: "/coloring-studio/dinosaur.svg", level: "Medium" },
   { id: "robot", name: "Robot Mascot", path: "/coloring-studio/robot.svg", level: "Advanced" },
 ];
 
@@ -274,6 +278,19 @@ export default function ColoringPageMachine() {
   const [thickness, setThickness] = useState(2);
   const [isWorking, setIsWorking] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(SVG_TEMPLATES[0].id);
+  const [brushColor, setBrushColor] = useState("#f59e0b");
+  const [brushSize, setBrushSize] = useState(16);
+  const [isEraser, setIsEraser] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const paintCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const outlineImageRef = useRef<HTMLImageElement | null>(null);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+
+  const selectedTemplate = useMemo(
+    () => SVG_TEMPLATES.find((item) => item.id === selectedTemplateId) || SVG_TEMPLATES[0],
+    [selectedTemplateId],
+  );
 
   useEffect(() => {
     return () => {
@@ -293,6 +310,82 @@ export default function ColoringPageMachine() {
       return a.label.localeCompare(b.label);
     });
   }, []);
+
+  useEffect(() => {
+    const canvas = paintCanvasRef.current;
+    if (!canvas) return;
+    canvas.width = 1000;
+    canvas.height = 1000;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }, [selectedTemplateId]);
+
+  const getCanvasPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = paintCanvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (event.clientX - rect.left) * (canvas.width / rect.width),
+      y: (event.clientY - rect.top) * (canvas.height / rect.height),
+    };
+  };
+
+  const startDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = paintCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const point = getCanvasPoint(event);
+    if (!point) return;
+    event.preventDefault();
+    canvas.setPointerCapture(event.pointerId);
+    setIsDrawing(true);
+    lastPointRef.current = point;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = brushSize;
+    ctx.globalCompositeOperation = isEraser ? "destination-out" : "source-over";
+    ctx.strokeStyle = brushColor;
+    ctx.beginPath();
+    ctx.moveTo(point.x, point.y);
+  };
+
+  const draw = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = paintCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const point = getCanvasPoint(event);
+    if (!point) return;
+    event.preventDefault();
+    ctx.lineWidth = brushSize;
+    ctx.globalCompositeOperation = isEraser ? "destination-out" : "source-over";
+    ctx.strokeStyle = brushColor;
+    const last = lastPointRef.current || point;
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+    lastPointRef.current = point;
+  };
+
+  const stopDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = paintCanvasRef.current;
+    if (canvas) {
+      try {
+        if (canvas.hasPointerCapture(event.pointerId)) {
+          canvas.releasePointerCapture(event.pointerId);
+        }
+      } catch {
+        // ignore capture release errors
+      }
+    }
+    setIsDrawing(false);
+    lastPointRef.current = null;
+  };
 
   const onSelectFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const next = event.target.files?.[0] || null;
@@ -351,6 +444,39 @@ export default function ColoringPageMachine() {
     URL.revokeObjectURL(url);
   };
 
+  const clearColoring = () => {
+    const canvas = paintCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setFeedback("Canvas cleared.");
+  };
+
+  const downloadColored = async () => {
+    const paint = paintCanvasRef.current;
+    const outline = outlineImageRef.current;
+    if (!paint || !outline) return;
+
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = 1000;
+    exportCanvas.height = 1000;
+    const ctx = exportCanvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    ctx.drawImage(paint, 0, 0, exportCanvas.width, exportCanvas.height);
+    if (outline.complete) {
+      ctx.drawImage(outline, 0, 0, exportCanvas.width, exportCanvas.height);
+    }
+    exportCanvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, `dunamis-colored-${selectedTemplate.id}-${Date.now()}.png`);
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  };
+
   const downloadSvgTemplate = (template: SvgTemplate) => {
     triggerDownload(template.path, `${template.id}.svg`);
   };
@@ -401,9 +527,9 @@ export default function ColoringPageMachine() {
 
         <div className="rounded-xl border border-yellow-500/30 bg-black/60 p-5 md:p-6 shadow-lg space-y-2">
           <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">How to use</p>
-          <p className="text-sm text-gray-300">1. Upload a photo.</p>
-          <p className="text-sm text-gray-300">2. Click Convert.</p>
-          <p className="text-sm text-gray-300">3. Download your line-art page.</p>
+          <p className="text-sm text-gray-300">1. Pick a teddy/bunny style image in Live Coloring.</p>
+          <p className="text-sm text-gray-300">2. Color directly in your browser and download.</p>
+          <p className="text-sm text-gray-300">3. Or upload your own photo and convert to line art.</p>
           <p className="text-xs text-gray-400">Tip: clear photos with strong contrast produce the best outlines.</p>
         </div>
 
@@ -415,6 +541,11 @@ export default function ColoringPageMachine() {
                 Photo to Line Art
               </Button>
             </a>
+            <a href="#live-coloring-book">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Live Coloring Book
+              </Button>
+            </a>
             <a href="#toy-factory-frameworks">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                 Use Starter Prompts
@@ -422,9 +553,92 @@ export default function ColoringPageMachine() {
             </a>
           </div>
           <p className="text-xs text-gray-400">
-            You have two options here: convert your own image, or use prebuilt prompt frameworks by age group.
+            You have three options: color live, convert your own image, or use prebuilt prompt frameworks.
           </p>
         </div>
+
+        <section id="live-coloring-book" className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Live Coloring Book</p>
+            <p className="text-xs text-gray-400">Pick a template, color it, download it</p>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {SVG_TEMPLATES.map((template) => (
+                  <Button
+                    key={`pick-${template.id}`}
+                    size="sm"
+                    variant={template.id === selectedTemplateId ? "default" : "outline"}
+                    className={
+                      template.id === selectedTemplateId
+                        ? "bg-yellow-400 text-black hover:bg-yellow-300"
+                        : "border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                    }
+                    onClick={() => setSelectedTemplateId(template.id)}
+                  >
+                    {template.name}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="text-xs text-gray-300 flex items-center gap-2">
+                  Color
+                  <input type="color" value={brushColor} onChange={(e) => setBrushColor(e.target.value)} />
+                </label>
+                <label className="text-xs text-gray-300 flex items-center gap-2">
+                  Brush
+                  <input
+                    type="range"
+                    min={4}
+                    max={48}
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(Number(e.target.value))}
+                    className="accent-yellow-400"
+                  />
+                  <span>{brushSize}</span>
+                </label>
+                <Button
+                  size="sm"
+                  variant={isEraser ? "default" : "outline"}
+                  className={isEraser ? "bg-yellow-400 text-black hover:bg-yellow-300" : "border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"}
+                  onClick={() => setIsEraser((prev) => !prev)}
+                >
+                  {isEraser ? "Eraser On" : "Eraser Off"}
+                </Button>
+                <Button size="sm" variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10" onClick={clearColoring}>
+                  Clear
+                </Button>
+                <Button size="sm" className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={downloadColored}>
+                  Download Colored PNG
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-md border border-yellow-500/20 bg-black/35 p-2">
+              <div className="relative aspect-square bg-white rounded-md overflow-hidden">
+                <canvas
+                  ref={paintCanvasRef}
+                  className="absolute inset-0 h-full w-full touch-none"
+                  onPointerDown={startDrawing}
+                  onPointerMove={draw}
+                  onPointerUp={stopDrawing}
+                  onPointerLeave={stopDrawing}
+                  onPointerCancel={stopDrawing}
+                />
+                <img
+                  ref={outlineImageRef}
+                  src={selectedTemplate.path}
+                  alt={`${selectedTemplate.name} outline`}
+                  className="absolute inset-0 h-full w-full object-contain pointer-events-none select-none"
+                  draggable={false}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div id="photo-to-line-art" className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
@@ -582,6 +796,14 @@ export default function ColoringPageMachine() {
                   onClick={() => downloadSvgTemplate(template)}
                 >
                   Download SVG
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-8 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                  onClick={() => setSelectedTemplateId(template.id)}
+                >
+                  Color This
                 </Button>
               </div>
             ))}
