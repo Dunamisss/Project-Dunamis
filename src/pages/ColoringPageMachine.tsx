@@ -12,6 +12,20 @@ type PromptPreset = {
   prompt: string;
 };
 
+type SvgTemplate = {
+  id: string;
+  name: string;
+  path: string;
+  level: "Easy" | "Medium" | "Advanced";
+};
+
+const SVG_TEMPLATES: SvgTemplate[] = [
+  { id: "bulldog", name: "Bulldog Hoodie", path: "/coloring-studio/bulldog.svg", level: "Easy" },
+  { id: "cat", name: "Street Cat", path: "/coloring-studio/cat.svg", level: "Easy" },
+  { id: "panda", name: "Panda Character", path: "/coloring-studio/panda.svg", level: "Medium" },
+  { id: "robot", name: "Robot Mascot", path: "/coloring-studio/robot.svg", level: "Advanced" },
+];
+
 const PROMPT_PRESETS: PromptPreset[] = [
   {
     id: "kids-kawaii",
@@ -77,6 +91,15 @@ function badgeClass(level: PromptPreset["difficulty"]): string {
   if (level === "Easy") return "border-emerald-400/40 text-emerald-200 bg-emerald-500/10";
   if (level === "Medium") return "border-yellow-400/40 text-yellow-200 bg-yellow-500/10";
   return "border-orange-400/40 text-orange-200 bg-orange-500/10";
+}
+
+function triggerDownload(url: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 function createCanvas(width: number, height: number): HTMLCanvasElement {
@@ -328,6 +351,10 @@ export default function ColoringPageMachine() {
     URL.revokeObjectURL(url);
   };
 
+  const downloadSvgTemplate = (template: SvgTemplate) => {
+    triggerDownload(template.path, `${template.id}.svg`);
+  };
+
   const copyPrompt = async (prompt: string) => {
     try {
       await navigator.clipboard.writeText(prompt);
@@ -529,6 +556,44 @@ export default function ColoringPageMachine() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Starter SVG Collection</p>
+            <p className="text-xs text-gray-400">Ready to download and upload</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {SVG_TEMPLATES.map((template) => (
+              <div key={template.id} className="rounded-md border border-yellow-500/20 bg-black/35 p-3 space-y-2">
+                <div className="aspect-square rounded-md bg-white overflow-hidden border border-yellow-500/20">
+                  <img src={template.path} alt={`${template.name} coloring template`} className="w-full h-full object-contain" />
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm text-yellow-200">{template.name}</p>
+                  <span className={`text-[10px] uppercase tracking-[0.15em] rounded-full border px-2 py-0.5 ${badgeClass(template.level)}`}>
+                    {template.level}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-8 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                  onClick={() => downloadSvgTemplate(template)}
+                >
+                  Download SVG
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-3">
+          <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Free Workflow</p>
+          <p className="text-sm text-gray-300">1. Generate line art (Bing / Playground / Leonardo / Mage).</p>
+          <p className="text-sm text-gray-300">2. Clean black-white contrast (Photopea Threshold).</p>
+          <p className="text-sm text-gray-300">3. Export SVG and fix gaps (Inkscape).</p>
+          <p className="text-sm text-gray-300">4. Upload final SVG to your Dunamis Coloring Studio collection.</p>
         </section>
       </div>
     </div>
