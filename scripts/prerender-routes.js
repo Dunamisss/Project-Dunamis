@@ -226,6 +226,14 @@ function upsertTag(html, regex, replacement, insertBefore = "</head>") {
   return html.replace(insertBefore, `${replacement}\n${insertBefore}`);
 }
 
+function upsertBodyHeading(html, headingText) {
+  const heading = `<h1 data-route-h1 style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;white-space:nowrap;">${escapeAttr(headingText)}</h1>`;
+  if (/<h1[^>]*data-route-h1[^>]*>[\s\S]*?<\/h1>/i.test(html)) {
+    return html.replace(/<h1[^>]*data-route-h1[^>]*>[\s\S]*?<\/h1>/i, heading);
+  }
+  return html.replace(/<body([^>]*)>/i, `<body$1>\n${heading}`);
+}
+
 function injectRouteMeta(html, meta) {
   const titleTag = `<title>${escapeAttr(meta.title)}</title>`;
   html = upsertTag(html, /<title>[\s\S]*?<\/title>/i, titleTag);
@@ -289,6 +297,8 @@ function injectRouteMeta(html, meta) {
     html = upsertTag(html, /<script\s+type="application\/ld\+json"[^>]*data-route="page"[^>]*>[\s\S]*?<\/script>/i, jsonLd.replace("<script", "<script data-route=\"page\""));
   }
 
+  html = upsertBodyHeading(html, meta.h1 || "DUNAMIS");
+
   return html;
 }
 
@@ -302,6 +312,7 @@ function buildRouteMeta({
   const canonicalRoute = canonicalizeRoute(route);
   const base = {
     title: defaultMeta.title,
+    h1: "DUNAMIS",
     description: defaultMeta.description,
     image: defaultMeta.image,
     url: canonicalRoute === "/" ? `${siteUrl}/` : `${siteUrl}${canonicalRoute}`,
@@ -323,6 +334,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: "Prompt Library — DUNAMIS",
+      h1: "Prompt Library",
       description: "Browse the Dunamis prompt library: curated prompts for creators who ship.",
     };
   }
@@ -330,6 +342,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: "Image Library — DUNAMIS",
+      h1: "Image Library",
       description: "Explore the Dunamis image library and reverse-engineer prompts.",
     };
   }
@@ -337,6 +350,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: "Prompting Frameworks — DUNAMIS",
+      h1: "Prompting Frameworks",
       description: "Practical prompting frameworks with clear structure, examples, and best-use guidance.",
     };
   }
@@ -344,6 +358,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: "Starter Packs — DUNAMIS",
+      h1: "Starter Packs",
       description: "Platform-specific starter packs with before/after examples and copy-ready templates.",
     };
   }
@@ -351,6 +366,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: "Suno Song Machine (Beta) — DUNAMIS",
+      h1: "Suno Song Machine",
       description: "Generate structured Suno-ready songs with preview lyrics, full sections, and paste-ready style prompts.",
     };
   }
@@ -358,6 +374,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: "Coloring Studio (Coming Soon) — DUNAMIS",
+      h1: "Coloring Studio Coming Soon",
       description: "Coloring Studio is currently being rebuilt. A new printable coloring-page generator is coming soon.",
       robots: "noindex,follow",
     };
@@ -366,6 +383,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: "JSON Prompt Architect — DUNAMIS",
+      h1: "JSON Prompt Architect",
       description: "Build image prompts with structured JSON blueprints and convert them into plain prompts for production use.",
     };
   }
@@ -373,6 +391,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: "Profile — DUNAMIS",
+      h1: "Profile",
       description: "Manage your Dunamis profile and avatar.",
       robots: "noindex,follow",
     };
@@ -386,6 +405,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: `${title} — DUNAMIS`,
+      h1: title,
       description,
       jsonLd: {
         "@context": "https://schema.org",
@@ -411,6 +431,7 @@ function buildRouteMeta({
     return {
       ...base,
       title: `${title} — DUNAMIS`,
+      h1: title,
       description,
       image: imageUrl,
       jsonLd: {
