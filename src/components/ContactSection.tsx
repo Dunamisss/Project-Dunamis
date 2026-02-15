@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Send, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -97,12 +96,12 @@ export default function ContactSection() {
             </div>
           </div>
 
-          <Card className="bg-background/50 border-white/10 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Send a Message</CardTitle>
-              <CardDescription>We typically respond within 24 hours.</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="rounded-xl border border-pink-500/30 bg-pink-500/5 p-5 backdrop-blur-sm">
+            <div className="mb-4 space-y-1">
+              <h3 className="text-lg font-semibold text-foreground">Send a Message</h3>
+              <p className="text-sm text-muted-foreground">We typically respond within 24 hours.</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="hidden">
                   <Input
@@ -116,7 +115,7 @@ export default function ContactSection() {
                 <div className="space-y-2">
                   <Input
                     placeholder="Your Name"
-                    className="bg-black/20 border-white/10"
+                    className="bg-black/40 border-white/15"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -127,7 +126,7 @@ export default function ContactSection() {
                   <Input
                     type="email"
                     placeholder="Email Address"
-                    className="bg-black/20 border-white/10"
+                    className="bg-black/40 border-white/15"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -137,7 +136,7 @@ export default function ContactSection() {
                 <div className="space-y-2">
                   <Textarea
                     placeholder="How can we help?"
-                    className="bg-black/20 border-white/10 min-h-[120px]"
+                    className="bg-black/40 border-white/15 min-h-[120px]"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     required
@@ -153,8 +152,8 @@ export default function ContactSection() {
                   <Send className="mr-2 h-4 w-4" /> {isSending ? "Sending..." : "Send Message"}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </section>
