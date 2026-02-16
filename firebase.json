@@ -6,6 +6,14 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      { "source": "/library", "destination": "/prompts", "type": 301 },
+      { "source": "/gallery", "destination": "/images", "type": 301 },
+      { "source": "/starter-packs", "destination": "/", "type": 301 },
+      { "source": "/tools", "destination": "/", "type": 301 },
+      { "source": "/coloring-studio", "destination": "/", "type": 301 },
+      { "source": "/coloring-page-machine", "destination": "/", "type": 301 }
+    ],
     "rewrites": [
       { "source": "**", "destination": "/index.html" }
     ]
