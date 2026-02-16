@@ -634,8 +634,8 @@ export default function Home() {
             style={{ backgroundImage: `url(${baseUrl}cyber_hacker.png)` }}
           />
           <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
-          <div className="absolute top-6 right-6 z-20">
-            <div className="flex items-center gap-2">
+          <div className="absolute top-6 right-6 z-20 max-w-[calc(100vw-2rem)]">
+            <div className="flex items-center justify-end gap-2 flex-wrap">
               <Link href="/prompts">
                 <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
                   Prompt Library
@@ -651,11 +651,6 @@ export default function Home() {
                   Frameworks
                 </Button>
               </Link>
-              <Link href="/starter-packs">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Starter Packs
-                </Button>
-              </Link>
               <Link href="/suno-song-machine">
                 <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
                   Song Machine
@@ -669,11 +664,6 @@ export default function Home() {
               <Link href="/toy-figure-studio">
                 <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
                   Toy Figure Studio
-                </Button>
-              </Link>
-              <Link href="/coloring-studio">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Coloring Studio
                 </Button>
               </Link>
               <Link href="/submit">
@@ -737,7 +727,7 @@ export default function Home() {
             <div className="rounded-lg border border-yellow-500/40 bg-black/70 px-5 py-4 text-center text-base md:text-lg 2xl:text-xl font-semibold text-yellow-200 shadow-lg max-w-5xl mx-auto">
               Prompt Optimizer: describe what you want, and we’ll craft a production-ready prompt for you.
             </div>
-            <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <Link href="/prompts">
                 <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                   Browse Prompt Library
@@ -751,11 +741,6 @@ export default function Home() {
               <Link href="/frameworks">
                 <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                   View Frameworks
-                </Button>
-              </Link>
-              <Link href="/starter-packs">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Starter Packs
                 </Button>
               </Link>
               <Link href="/suno-song-machine">
@@ -773,35 +758,10 @@ export default function Home() {
                   Toy Figure Studio
                 </Button>
               </Link>
-              <Link href="/coloring-studio">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Coloring Studio
-                </Button>
-              </Link>
             </div>
           </div>
           <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="space-y-2 max-w-3xl">
-                <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">New Section</p>
-                <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
-                  Starter Packs For Real-World Platforms
-                </h2>
-                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed">
-                  We replaced AI tool listings with focused starter packs that teach users exactly how to
-                  structure prompts for specific platforms. Each pack includes a problem statement,
-                  before/after prompt example, copy-ready templates, and a direct path into the optimizer.
-                </p>
-              </div>
-              <Link href="/starter-packs">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                  Open Starter Packs
-                </Button>
-              </Link>
-            </div>
-          </section>
-          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2 max-w-3xl">
                 <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Beta Tool</p>
                 <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
@@ -820,7 +780,7 @@ export default function Home() {
             </div>
           </section>
           <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2 max-w-3xl">
                 <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">New Tool</p>
                 <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
@@ -839,7 +799,7 @@ export default function Home() {
             </div>
           </section>
           <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2 max-w-3xl">
                 <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">New Tool</p>
                 <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
@@ -858,26 +818,7 @@ export default function Home() {
             </div>
           </section>
           <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="space-y-2 max-w-3xl">
-                <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">New Tool</p>
-                <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
-                  Coloring Studio
-                </h2>
-                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed">
-                  Upload any photo, convert it into printable line art directly in-browser, and download
-                  it as a clean black-and-white coloring page. No API keys and no paid credits required.
-                </p>
-              </div>
-              <Link href="/coloring-studio">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                  Open Coloring Studio
-                </Button>
-              </Link>
-            </div>
-          </section>
-          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2">
                 <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Frameworks</p>
                 <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">

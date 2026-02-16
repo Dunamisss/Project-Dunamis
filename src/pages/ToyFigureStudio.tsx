@@ -231,11 +231,6 @@ export default function ToyFigureStudio() {
                 Back to Homepage
               </Button>
             </Link>
-            <Link href="/starter-packs">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Starter Packs
-              </Button>
-            </Link>
             <Link href="/json-prompt-architect">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                 JSON Architect

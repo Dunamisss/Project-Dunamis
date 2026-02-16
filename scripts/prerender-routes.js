@@ -8,7 +8,7 @@ const indexPath = path.join(distDir, "index.html");
 const promptLibraryPath = path.resolve(__dirname, "..", "src", "data", "promptLibrary.ts");
 const imageLibraryPath = path.resolve(__dirname, "..", "src", "data", "imageLibrary.ts");
 
-const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/starter-packs", "/tools", "/json-prompt-architect", "/suno-song-machine", "/toy-figure-studio", "/coloring-studio", "/coloring-page-machine", "/profile"];
+const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/json-prompt-architect", "/suno-song-machine", "/toy-figure-studio", "/profile"];
 
 async function ensureFileExists(filePath) {
   try {
@@ -169,8 +169,6 @@ function buildLastmodMap(promptRecords, imageRecords) {
 function canonicalizeRoute(route) {
   if (route === "/library") return "/prompts";
   if (route === "/gallery") return "/images";
-  if (route === "/tools") return "/starter-packs";
-  if (route === "/coloring-page-machine") return "/coloring-studio";
   return route;
 }
 
@@ -357,14 +355,6 @@ function buildRouteMeta({
       description: "Practical prompting frameworks with clear structure, examples, and best-use guidance.",
     };
   }
-  if (route === "/starter-packs" || route === "/tools") {
-    return {
-      ...base,
-      title: "Starter Packs — DUNAMIS",
-      h1: "Starter Packs",
-      description: "Platform-specific starter packs with before/after examples and copy-ready templates.",
-    };
-  }
   if (route === "/suno-song-machine") {
     return {
       ...base,
@@ -379,15 +369,6 @@ function buildRouteMeta({
       title: "Toy Figure Studio — DUNAMIS",
       h1: "Toy Figure Studio",
       description: "Turn uploaded-photo ideas into pro collectible action-figure prompts and JSON blueprints with packaging and accessory controls.",
-    };
-  }
-  if (route === "/coloring-studio" || route === "/coloring-page-machine") {
-    return {
-      ...base,
-      title: "Coloring Studio (Coming Soon) — DUNAMIS",
-      h1: "Coloring Studio Coming Soon",
-      description: "Coloring Studio is currently being rebuilt. A new printable coloring-page generator is coming soon.",
-      robots: "noindex,follow",
     };
   }
   if (route === "/json-prompt-architect") {

@@ -12,10 +12,8 @@ import Frameworks from "@/pages/Frameworks";
 import Profile from "@/pages/Profile";
 import SubmitPrompt from "@/pages/SubmitPrompt";
 import AdminSubmissions from "@/pages/AdminSubmissions";
-import AIToolFinds from "@/pages/AIToolFinds";
 import SunoSongMachine from "@/pages/SunoSongMachine";
 import JsonPromptArchitect from "@/pages/JsonPromptArchitect";
-import ColoringComingSoon from "@/pages/ColoringComingSoon";
 import ToyFigureStudio from "@/pages/ToyFigureStudio";
 
 function App() {
@@ -37,13 +35,9 @@ function App() {
               <Route path="/profile" component={Profile} />
               <Route path="/submit" component={SubmitPrompt} />
               <Route path="/admin/submissions" component={AdminSubmissions} />
-              <Route path="/starter-packs" component={AIToolFinds} />
-              <Route path="/tools" component={AIToolFinds} />
               <Route path="/json-prompt-architect" component={JsonPromptArchitect} />
               <Route path="/suno-song-machine" component={SunoSongMachine} />
               <Route path="/toy-figure-studio" component={ToyFigureStudio} />
-              <Route path="/coloring-studio" component={ColoringComingSoon} />
-              <Route path="/coloring-page-machine" component={ColoringComingSoon} />
             </Switch>
           </Router>
         </ChatProvider>

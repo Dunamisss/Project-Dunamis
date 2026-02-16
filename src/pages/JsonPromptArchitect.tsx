@@ -329,11 +329,6 @@ export default function JsonPromptArchitect() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/starter-packs">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Starter Packs
-              </Button>
-            </Link>
             <Link href="/">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                 Back to Homepage
