@@ -1622,6 +1622,17 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
     "createdAt": 1770852489
   },
   {
+    "id": "image-1-c08120be",
+    "title": "image 1 c08120be",
+    "description": "Original artwork: image 1 c08120be.",
+    "tags": [
+      "c08120be"
+    ],
+    "full": "/images/library/full/image-1-c08120be.webp",
+    "thumb": "/images/library/thumbs/image-1-c08120be.webp",
+    "createdAt": 1771267592
+  },
+  {
     "id": "image-4-e14103d0",
     "title": "image 4 e14103d0",
     "description": "Original artwork: image 4 e14103d0.",
