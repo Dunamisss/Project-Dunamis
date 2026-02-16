@@ -21,7 +21,7 @@ export default function ColoringComingSoon() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Link href="/">
-              <Button className="bg-yellow-400 text-black hover:bg-yellow-300">Back Home</Button>
+              <Button className="bg-yellow-400 text-black hover:bg-yellow-300">Back to Homepage</Button>
             </Link>
             <Link href="/starter-packs">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
@@ -34,4 +34,3 @@ export default function ColoringComingSoon() {
     </div>
   );
 }
-

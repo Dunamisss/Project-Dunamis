@@ -500,7 +500,7 @@ export default function SunoSongMachine() {
               <Button className="bg-yellow-400 text-black hover:bg-yellow-300">Open Suno</Button>
             </a>
             <Link href="/">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">Back Home</Button>
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">Back to Homepage</Button>
             </Link>
           </div>
         </div>

@@ -269,7 +269,7 @@ export default function AIToolFinds() {
           </div>
           <Link href="/">
             <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-              Back to Home
+              Back to Homepage
             </Button>
           </Link>
         </div>

@@ -336,7 +336,7 @@ export default function JsonPromptArchitect() {
             </Link>
             <Link href="/">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Back Home
+                Back to Homepage
               </Button>
             </Link>
           </div>
