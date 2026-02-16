@@ -8,7 +8,7 @@ const indexPath = path.join(distDir, "index.html");
 const promptLibraryPath = path.resolve(__dirname, "..", "src", "data", "promptLibrary.ts");
 const imageLibraryPath = path.resolve(__dirname, "..", "src", "data", "imageLibrary.ts");
 
-const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/starter-packs", "/tools", "/json-prompt-architect", "/suno-song-machine", "/coloring-studio", "/coloring-page-machine", "/profile"];
+const staticRoutes = ["/", "/prompts", "/library", "/images", "/gallery", "/frameworks", "/starter-packs", "/tools", "/json-prompt-architect", "/suno-song-machine", "/toy-figure-studio", "/coloring-studio", "/coloring-page-machine", "/profile"];
 
 async function ensureFileExists(filePath) {
   try {
@@ -371,6 +371,14 @@ function buildRouteMeta({
       title: "Suno Song Machine (Beta) — DUNAMIS",
       h1: "Suno Song Machine",
       description: "Generate structured Suno-ready songs with preview lyrics, full sections, and paste-ready style prompts.",
+    };
+  }
+  if (route === "/toy-figure-studio") {
+    return {
+      ...base,
+      title: "Toy Figure Studio — DUNAMIS",
+      h1: "Toy Figure Studio",
+      description: "Turn uploaded-photo ideas into pro collectible action-figure prompts and JSON blueprints with packaging and accessory controls.",
     };
   }
   if (route === "/coloring-studio" || route === "/coloring-page-machine") {

@@ -16,6 +16,7 @@ import AIToolFinds from "@/pages/AIToolFinds";
 import SunoSongMachine from "@/pages/SunoSongMachine";
 import JsonPromptArchitect from "@/pages/JsonPromptArchitect";
 import ColoringComingSoon from "@/pages/ColoringComingSoon";
+import ToyFigureStudio from "@/pages/ToyFigureStudio";
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
               <Route path="/tools" component={AIToolFinds} />
               <Route path="/json-prompt-architect" component={JsonPromptArchitect} />
               <Route path="/suno-song-machine" component={SunoSongMachine} />
+              <Route path="/toy-figure-studio" component={ToyFigureStudio} />
               <Route path="/coloring-studio" component={ColoringComingSoon} />
               <Route path="/coloring-page-machine" component={ColoringComingSoon} />
             </Switch>
