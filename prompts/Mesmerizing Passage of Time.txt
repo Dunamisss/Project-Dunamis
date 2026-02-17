@@ -1,7 +1,17 @@
-Passage of time | Hyper-realistic digital illustration of {Scene}
+Passage of Time Panorama | One scene flowing through all four seasons
 
-Hyper-realistic digital illustration of {Scene}, presented as a single continuous composition showcasing the cycle of seasons. The scene flows seamlessly from left to right in a natural progression: Winter, Spring, Summer, and Autumn. 
+Create a hyper-realistic panoramic composition of {Scene} that transitions smoothly through the seasons from left to right.
 
-The left side features cold snowy winter elements, gradually thawing into the fresh green buds and blooms of spring, then morphing into the lush vibrant vegetation and bright sunlight of summer, and finally transitioning into the golden, orange, and red hues of autumn on the far right. 
+Flow order:
+- Winter -> Spring -> Summer -> Autumn
 
-There are no visible dividing lines between seasons; the weather, lighting, and vegetation blend smoothly to create a unified and harmonious panorama. Rich in detail, symbolic of the passage of time, cinematic lighting, 8k resolution, highly detailed textures.
+Transition rules:
+- No hard dividing lines
+- Weather, lighting, vegetation, and atmosphere blend naturally between zones
+- Strong symbolic sense of time passing in one continuous frame
+
+Visual quality:
+- Rich environmental detail and texture
+- Cinematic lighting and tonal contrast
+- Unified composition with clear seasonal storytelling
+- 8K photorealistic output

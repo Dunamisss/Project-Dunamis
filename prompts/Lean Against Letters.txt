@@ -1,4 +1,18 @@
-Leaning Against A Word | Leaning Against A Word
+Leaning Against a Word | Bold studio portrait with custom 3D text sculpture
 
+Create a high-end studio portrait using the provided person reference.
 
-Create a photo of a person [Photograph attached] in a modern studio setting, leaning casually against a large, Gold sculptural object shaped like the word [TEXT GOES HERE]" horizontal behind The person captured from the front resemling a 3d effect, with their weight resting on one leg, in a relaxed yet confident posture. They have their arms crossed and their head looking forward, casting a calm gaze out of the frame. The overall style is monochromatic, minimalist, and contemporary streetwear, with a focus on clean lines and bold typography. The image should be captured from a low angle, emphasizing height and presence, with controlled studio lighting and a dark gray gradient background high quality.
+Composition:
+- Subject stands in front view, leaning casually against a large gold 3D word sculpture: "{TEXT}"
+- Relaxed confident stance, weight on one leg, arms crossed
+- Controlled gaze toward camera or slightly off-frame
+
+Styling:
+- Monochrome-inspired outfit with modern streetwear edge
+- Minimalist dark gray gradient studio background
+- Low-angle camera for strong presence
+
+Lighting and quality:
+- Precise studio lighting with clean highlights and shadows
+- Sharp detail and polished commercial finish
+- Photorealistic, high resolution

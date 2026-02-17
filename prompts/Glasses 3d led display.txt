@@ -1,3 +1,20 @@
-Images On Billboards | Bring them to life
+3D Billboard Breakout | Glasses-free LED illusion for urban intersections
 
-An enormous L-shaped glasses-free 3D LED screen situated prominently at a bustling urban intersection, designed in an iconic architectural style reminiscent of Shinjuku in Tokyo or Taikoo Li in Chengdu. The screen displays a captivating glasses-free 3D animation featuring [Lions]. The characters and objects possess striking depth and appear to break through the screen’s boundaries, extending outward or floating vividly in mid-air. Under realistic daylight conditions, these elements cast lifelike shadows onto the screen’s surface and surrounding buildings. Rich in intricate detail and vibrant colors, the animation seamlessly integrates with the urban setting and the bright sky overhead.
+Create a photorealistic city-scene image featuring a giant L-shaped glasses-free 3D LED billboard at a busy urban intersection.
+
+Display content:
+- The screen shows {SUBJECT} in dramatic glasses-free 3D
+- Elements appear to break out beyond the screen edges
+- Strong depth illusion with realistic perspective and parallax
+
+Environment:
+- Daylight city atmosphere with reflective surfaces
+- Natural shadows from billboard elements onto nearby structures
+- Dense urban detail, vivid colors, high realism
+
+Style:
+- Inspired by iconic 3D billboard districts (Tokyo/Shinjuku or Chengdu style energy)
+- Cinematic, high-detail, 8K output
+
+Variable:
+- {SUBJECT}: e.g., lions, dragons, futuristic robots

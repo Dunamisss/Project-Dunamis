@@ -1,0 +1,20 @@
+Brand Architecture Booth | Hyper-real 3D exhibition stand concept generator
+
+Create a hyper-realistic 3D architectural visualization of a two-story exhibition booth for {BRAND}.
+
+Template variables:
+- {STYLE}: modern, luxury, industrial, minimal, cyber, etc.
+- {FORM}: geometric, curved, modular, sculptural
+- {MATERIAL}: glass, steel, timber, composite, acrylic
+- {COLOR}: primary accent palette
+- {GROUND_FEATURE}: reception zone, hero product display, demo stage
+- {STAIRS_TYPE}: floating, spiral, enclosed, straight
+- {UPPER_FEATURE}: lounge, meeting zone, VIP deck, interactive gallery
+- {LIGHTING}: soft studio, dramatic spotlights, mixed ambient
+- {VIBE}: premium, futuristic, elegant, bold
+
+Output style:
+- Solid dark grey studio background
+- Wide-angle elevated perspective
+- Realistic materials, shadows, and depth
+- Clean photoreal render quality

@@ -1,23 +1,27 @@
-Commercial Style Products | Can be used to show of a product
+Commercial Product Shot Engine | Premium floating product ads with cinematic realism
 
+Create a hyper-realistic 3D commercial product shot of {PRODUCT} floating mid-air.
 
-Create a hyper-realistic 3D commercial-style product shot of a Fanta orange bottle, floating mid-air with detailed cold condensation on its surface. Surround it with dynamic elements like orange splash and floating pulp, frozen in high-speed motion with vibrant clarity and natural physics. Add sharp droplets, orange peel swirls, and vivid details to convey freshness and energy. Use sunset-orange gradient background to amplify the brand tone, and emphasize a clean, luxurious, premium look. Studio-style cinematic lighting with bright highlights, crisp reflections, and high contrast. Product must always be centered, upright or slightly angled in mid-air, casting subtle shadows or reflections.
-Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.
+Core visual rules:
+- Product centered and clearly visible
+- Cold condensation on surface
+- Dynamic splash elements related to product flavor/type
+- High-speed frozen motion with realistic fluid physics
+- Premium studio lighting: crisp highlights, controlled reflections, strong contrast
 
-Create a hyper-realistic 3D commercial-style product shot of a San Pellegrino glass bottle, floating mid-air with detailed cold condensation on its surface. Surround it with dynamic elements like citrus splash and carbonated bubbles, frozen in high-speed motion with vibrant clarity and natural physics. Add sharp droplets, floating orange slices, and vivid details to convey freshness and energy. Use fresh lime-green gradient background to amplify the brand tone, and emphasize a clean, luxurious, premium look. Studio-style cinematic lighting with bright highlights, crisp reflections, and high contrast. Product must always be centered, upright or slightly angled in mid-air, casting subtle shadows or reflections.
-Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.
+Background:
+- Use a clean gradient color theme aligned with product identity
+- Keep scene minimal, luxurious, and ad-ready
 
-Create a hyper-realistic 3D commercial-style product shot of a Pepsi aluminum can, floating mid-air with detailed cold condensation on its surface. Surround it with dynamic elements like carbonated splash and crushed ice, frozen in high-speed motion with vibrant clarity and natural physics. Add sharp droplets, blue sparks, and vivid details to convey freshness and energy. Use midnight blue gradient background to amplify the brand tone, and emphasize a clean, luxurious, premium look. Studio-style cinematic lighting with bright highlights, crisp reflections, and high contrast. Product must always be centered, upright or slightly angled in mid-air, casting subtle shadows or reflections.
-Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.
+Detail boosts:
+- Sharp droplets, ingredient accents, micro textures
+- Subtle contact shadow or reflection for depth
 
-Create a hyper-realistic 3D commercial-style product shot of a Heineken beer bottle, floating mid-air with detailed cold condensation on its surface. Surround it with dynamic elements like beer foam splash and water drops, frozen in high-speed motion with vibrant clarity and natural physics. Add sharp droplets, floating hops, and vivid details to convey freshness and energy. Use dark emerald-green gradient background to amplify the brand tone, and emphasize a clean, luxurious, premium look. Studio-style cinematic lighting with bright highlights, crisp reflections, and high contrast. Product must always be centered, upright or slightly angled in mid-air, casting subtle shadows or reflections.
-Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.
+Output:
+- Photorealistic, ultra-HD
+- Aspect ratio: 3:4
 
-Create a hyper-realistic 3D commercial-style product shot of a Evian glass bottle, floating mid-air with detailed cold condensation on its surface. Surround it with dynamic elements like icy splash and snow dust, frozen in high-speed motion with vibrant clarity and natural physics. Add sharp droplets, crystal ice particles, and vivid details to convey freshness and energy. Use frost-white and arctic blue gradient background to amplify the brand tone, and emphasize a clean, luxurious, premium look. Studio-style cinematic lighting with bright highlights, crisp reflections, and high contrast. Product must always be centered, upright or slightly angled in mid-air, casting subtle shadows or reflections.
-Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.
-
-Create a hyper-realistic 3D commercial-style product shot of a Coca-Cola glass bottle, floating mid-air with detailed cold condensation on its surface. Surround it with dynamic elements like cola splash and crushed ice, frozen in high-speed motion with vibrant clarity and natural physics. Add sharp droplets, lemon slices, and vivid details to convey freshness and energy. Use dark red-black gradient background to amplify the brand tone, and emphasize a clean, luxurious, premium look. Studio-style cinematic lighting with bright highlights, crisp reflections, and high contrast. Product must always be centered, upright or slightly angled in mid-air, casting subtle shadows or reflections.
-Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.
-
-Create a hyper-realistic 3D commercial-style product shot of a glass Perrier bottle, floating mid-air with detailed cold condensation on its surface. Surround it with dynamic elements like splashing water and lime slices, frozen in high-speed motion with vibrant clarity and natural physics. Add sharp droplets, mint leaves, and vivid details to convey freshness and energy. Use teal-blue gradient background to amplify the brand tone, and emphasize a clean, luxurious, premium look. Studio-style cinematic lighting with bright highlights, crisp reflections, and high contrast. Product must always be centered, upright or slightly angled in mid-air, casting subtle shadows or reflections.
-Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.
+Examples:
+- Sparkling orange soda bottle with citrus splash
+- Glass water bottle with ice particles and mist
+- Aluminum cola can with crushed ice and carbonated spray

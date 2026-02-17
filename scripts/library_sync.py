@@ -16,7 +16,9 @@ except Exception:  # pragma: no cover
 ROOT = Path(__file__).resolve().parents[1]
 PROMPT_SRC_DIR = ROOT / "prompts"
 IMAGE_SRC_DIR = ROOT / "Images"
-PROMPT_ARCHIVE_DIR = PROMPT_SRC_DIR / "_archive"
+PROMPT_USED_DIR = PROMPT_SRC_DIR / "used"
+PROMPT_LEGACY_ARCHIVE_DIR = PROMPT_SRC_DIR / "_archive"
+PROMPT_ARCHIVE_DIR = PROMPT_USED_DIR
 IMAGE_ARCHIVE_DIR = IMAGE_SRC_DIR / "_archive"
 PROMPT_OUT = ROOT / "src" / "data" / "promptLibrary.ts"
 IMAGE_OUT = ROOT / "src" / "data" / "imageLibrary.ts"
@@ -121,6 +123,24 @@ def load_existing_prompts(out_path: Path) -> tuple[str, set[str]]:
     return text, {t.strip().lower() for t in titles}
 
 
+def normalize_prompt_content(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip().lower()
+
+
+def content_fingerprint(value: str) -> str:
+    return hashlib.sha1(normalize_prompt_content(value).encode("utf-8")).hexdigest()
+
+
+def extract_existing_content_hashes(ts_text: str) -> set[str]:
+    # prompt entries store content using template literals: content: `...`,
+    pattern = re.compile(r"content:\s*`([\s\S]*?)`,", re.MULTILINE)
+    hashes = set()
+    for match in pattern.finditer(ts_text):
+        raw = match.group(1).replace("\\`", "`").replace("\\${", "${")
+        hashes.add(content_fingerprint(raw))
+    return hashes
+
+
 def _to_ts_object(entry: dict) -> str:
     def _escape_ts_string(value: str) -> str:
         return value.replace("\\", "\\\\").replace("\"", "\\\"")
@@ -147,6 +167,7 @@ def sync_prompts(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     text, existing_titles = load_existing_prompts(PROMPT_OUT)
+    existing_content_hashes = extract_existing_content_hashes(text) if text else set()
     if not text:
         print("promptLibrary.ts not found or empty. Aborting to avoid overwrite.")
         sys.exit(1)
@@ -162,11 +183,14 @@ def sync_prompts(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     incoming = read_prompt_files(src_dir)
+    seen_batch_titles = set()
+    seen_batch_content_hashes = set()
     new_blocks = []
     archived_paths = []
     added = 0
     for item in incoming:
         key = item["title"].strip().lower()
+        body_hash = content_fingerprint(item["content"])
         slug = slugify(item["title"])
         source_name = item.get("source")
         source_path = (src_dir / source_name) if source_name else None
@@ -201,10 +225,23 @@ def sync_prompts(args: argparse.Namespace) -> None:
             else:
                 continue
 
+        if body_hash in existing_content_hashes:
+            print(f"Duplicate content detected for '{item['title']}'. Skipping.")
+            continue
+        if key in seen_batch_titles:
+            print(f"Duplicate title in this upload batch: '{item['title']}'. Skipping.")
+            continue
+        if body_hash in seen_batch_content_hashes:
+            print(f"Duplicate content in this upload batch: '{item['title']}'. Skipping.")
+            continue
+
         new_blocks.append(_to_ts_object(new_entry))
         if source_path and source_path.exists():
             archived_paths.append(source_path)
         existing_titles.add(new_entry["title"].strip().lower())
+        existing_content_hashes.add(body_hash)
+        seen_batch_titles.add(key)
+        seen_batch_content_hashes.add(body_hash)
         added += 1
 
     if not new_blocks:

@@ -1,14 +1,18 @@
-Face The Beast | Come face to face with a lion emotional scene
+Face the Beast | Emotional portrait of trust between human and lion
 
-Create a realistic and emotional scene showing a man (use the provided image for accurate facial features) and a lion face to face in a moment of connection and respect. The man's eyes are closed, with a serene expression, while the lion gently rests its forehead and muzzle against his, conveying trust and a spiritual bond.
-Both are standing on ground covered in light snow, with snowflakes gently falling. The man wears a dark coat and hair slightly tousled by the wind, and the lion displays a thick, majestic mane.
-In the background, a cold, misty natural landscape with blurred mountains and gray tones reinforces the calm and powerful atmosphere.
-The lighting is soft and diffuse, highlighting the textures of the skin, fur, and coat, creating a cinematic and poetic atmosphere.
-The composition should convey friendship, courage, and harmony between man and nature.
+Create an ultra-realistic cinematic portrait of a man and a lion in a calm face-to-face connection.
 
-Suggested settings:
-Style: Ultra-realistic, cinematic, 8K
-Lighting: Soft, diffuse, natural winter light
-Camera: Medium close-up, focus on expressions
-Emotion: Connection, respect, tranquility
-Setting: Falling snow, blurred background with mountains
+Scene:
+- The man (based on provided reference photo) has eyes closed with a peaceful expression
+- The lion gently rests its forehead and muzzle against his
+- Light snowfall on the ground and in the air
+- Cold misty backdrop with soft mountains and muted winter tones
+
+Visual direction:
+- Medium close-up focused on facial emotion
+- Soft diffuse winter lighting
+- Detailed textures: skin, fur, coat fabric, snow particles
+- Mood: trust, respect, courage, harmony with nature
+
+Quality:
+- Cinematic realism, 8K detail
