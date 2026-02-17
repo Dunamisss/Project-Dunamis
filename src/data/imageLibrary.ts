@@ -1791,6 +1791,19 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
     "createdAt": 1770852493
   },
   {
+    "id": "lions-on-billboards-147bddd3",
+    "title": "lions on billboards 147bddd3",
+    "description": "Original artwork: lions on billboards 147bddd3.",
+    "tags": [
+      "lions",
+      "billboards",
+      "147bddd3"
+    ],
+    "full": "/images/library/full/lions-on-billboards-147bddd3.webp",
+    "thumb": "/images/library/thumbs/lions-on-billboards-147bddd3.webp",
+    "createdAt": 1771355725
+  },
+  {
     "id": "locopic1-f800bb8f",
     "title": "locopic1 f800bb8f",
     "description": "Original artwork: locopic1 f800bb8f.",
@@ -2283,6 +2296,18 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
     "full": "/images/library/full/sea-god-c5fffd32.webp",
     "thumb": "/images/library/thumbs/sea-god-c5fffd32.webp",
     "createdAt": 1771070866
+  },
+  {
+    "id": "seasons-579a3fa2",
+    "title": "seasons 579a3fa2",
+    "description": "Original artwork: seasons 579a3fa2.",
+    "tags": [
+      "seasons",
+      "579a3fa2"
+    ],
+    "full": "/images/library/full/seasons-579a3fa2.webp",
+    "thumb": "/images/library/thumbs/seasons-579a3fa2.webp",
+    "createdAt": 1771355725
   },
   {
     "id": "shogun-4-d5ad3341",

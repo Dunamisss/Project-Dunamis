@@ -680,4 +680,382 @@ After completing the search:
 - Suggest what to watch next in this ecosystem`,
     createdAt: 1771117997,
   },
+  {
+    id: "black-pearl-in-a-bottle",
+    title: "Black Pearl in a Bottle",
+    category: "Other",
+    description: "Cinematic miniature pirate ship trapped in a stormy glass world",
+    tags: ["black", "pearl", "bottle"],
+    content: `Create an ultra-detailed, photorealistic image of a glass bottle containing a miniature ocean scene.
+
+Inside the bottle:
+- A weathered pirate ship inspired by the Black Pearl
+- Torn black sails with pirate insignia
+- Rough turquoise waves with white foam and swirling motion
+
+Outside the bottle:
+- Realistic water droplets on the glass surface
+- A rustic wet wooden table with reflective highlights
+- Bright sunlight, soft clouds, and distant seagulls
+
+Style and quality:
+- Photorealistic, cinematic lighting
+- Strong texture detail (glass, wood, water, sails)
+- High dynamic range and dramatic contrast
+- 8K quality`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "split-screen-time-travel",
+    title: "Split Screen Time Travel",
+    category: "Other",
+    description: "One scene blending two eras with cinematic interaction",
+    tags: ["split", "screen", "time", "travel"],
+    content: `Create a horizontal split-screen cinematic image of {Scene}, where two eras coexist and interact.
+
+Left side ({Era_A}):
+- Historically accurate architecture, clothing, props, and atmosphere
+- People styled authentically for that era
+
+Right side ({Era_B}):
+- Modern version of the same location with contemporary design, technology, and fashion
+
+Center merge:
+- No hard dividing line
+- Organic transition where old and new overlap
+- Characters from each era visibly react to one another
+- Buildings and environmental elements morph naturally across time
+
+Requirements:
+- Photorealistic, cinematic composition
+- Rich storytelling through gestures, props, and environment
+- Wide-angle framing, high detail textures, 8K quality
+
+Usage:
+- {Scene}: e.g., Times Square, concert hall, university gate, market street
+- {Era_A}: e.g., 1920s
+- {Era_B}: e.g., present day`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "commercial-product-shot-engine",
+    title: "Commercial Product Shot Engine",
+    category: "Other",
+    description: "Premium floating product ads with cinematic realism",
+    tags: ["commercial", "product", "shot", "engine"],
+    content: `Create a hyper-realistic 3D commercial product shot of {PRODUCT} floating mid-air.
+
+Core visual rules:
+- Product centered and clearly visible
+- Cold condensation on surface
+- Dynamic splash elements related to product flavor/type
+- High-speed frozen motion with realistic fluid physics
+- Premium studio lighting: crisp highlights, controlled reflections, strong contrast
+
+Background:
+- Use a clean gradient color theme aligned with product identity
+- Keep scene minimal, luxurious, and ad-ready
+
+Detail boosts:
+- Sharp droplets, ingredient accents, micro textures
+- Subtle contact shadow or reflection for depth
+
+Output:
+- Photorealistic, ultra-HD
+- Aspect ratio: 3:4
+
+Examples:
+- Sparkling orange soda bottle with citrus splash
+- Glass water bottle with ice particles and mist
+- Aluminum cola can with crushed ice and carbonated spray`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "face-the-beast",
+    title: "Face the Beast",
+    category: "Other",
+    description: "Emotional portrait of trust between human and lion",
+    tags: ["face", "beast"],
+    content: `Create an ultra-realistic cinematic portrait of a man and a lion in a calm face-to-face connection.
+
+Scene:
+- The man (based on provided reference photo) has eyes closed with a peaceful expression
+- The lion gently rests its forehead and muzzle against his
+- Light snowfall on the ground and in the air
+- Cold misty backdrop with soft mountains and muted winter tones
+
+Visual direction:
+- Medium close-up focused on facial emotion
+- Soft diffuse winter lighting
+- Detailed textures: skin, fur, coat fabric, snow particles
+- Mood: trust, respect, courage, harmony with nature
+
+Quality:
+- Cinematic realism, 8K detail`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "3d-billboard-breakout",
+    title: "3D Billboard Breakout",
+    category: "Other",
+    description: "Glasses-free LED illusion for urban intersections",
+    tags: ["billboard", "breakout"],
+    content: `Create a photorealistic city-scene image featuring a giant L-shaped glasses-free 3D LED billboard at a busy urban intersection.
+
+Display content:
+- The screen shows {SUBJECT} in dramatic glasses-free 3D
+- Elements appear to break out beyond the screen edges
+- Strong depth illusion with realistic perspective and parallax
+
+Environment:
+- Daylight city atmosphere with reflective surfaces
+- Natural shadows from billboard elements onto nearby structures
+- Dense urban detail, vivid colors, high realism
+
+Style:
+- Inspired by iconic 3D billboard districts (Tokyo/Shinjuku or Chengdu style energy)
+- Cinematic, high-detail, 8K output
+
+Variable:
+- {SUBJECT}: e.g., lions, dragons, futuristic robots`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "leaning-against-a-word",
+    title: "Leaning Against a Word",
+    category: "Other",
+    description: "Bold studio portrait with custom 3D text sculpture",
+    tags: ["leaning", "against", "word"],
+    content: `Create a high-end studio portrait using the provided person reference.
+
+Composition:
+- Subject stands in front view, leaning casually against a large gold 3D word sculpture: "{TEXT}"
+- Relaxed confident stance, weight on one leg, arms crossed
+- Controlled gaze toward camera or slightly off-frame
+
+Styling:
+- Monochrome-inspired outfit with modern streetwear edge
+- Minimalist dark gray gradient studio background
+- Low-angle camera for strong presence
+
+Lighting and quality:
+- Precise studio lighting with clean highlights and shadows
+- Sharp detail and polished commercial finish
+- Photorealistic, high resolution`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "liquid-glass-business-card",
+    title: "Liquid Glass Business Card",
+    category: "Other",
+    description: "Futuristic acrylic contact card with neon glow",
+    tags: ["liquid", "glass", "business", "card"],
+    content: `Create a realistic close-up image of a hand holding a horizontal acrylic business card (3.5 x 2 aspect ratio).
+
+Design requirements:
+- Borderless transparent card with rounded corners
+- Liquid-glass aesthetic with subtle cyan, magenta, and violet glow
+- Crystal-clear engraved text with clean hierarchy
+- Cinematic reflections on card and fingers
+
+Card fields:
+- Name: [Insert Name]
+- Title: [Insert Title]
+- Company: [Insert Company Name]
+- Logo: [Upload logo or generate a typographic logo]
+- Phone: [Phone Number]
+- Email: [Email Address]
+- Website: [Website URL]
+- X: [Username]
+- Optional: QR code, tagline, social icons
+
+Output style:
+- Premium futuristic, photoreal, print-ready composition
+- Dark blurred background for contrast`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "passage-of-time-panorama",
+    title: "Passage of Time Panorama",
+    category: "Other",
+    description: "One scene flowing through all four seasons",
+    tags: ["passage", "time", "panorama"],
+    content: `Create a hyper-realistic panoramic composition of {Scene} that transitions smoothly through the seasons from left to right.
+
+Flow order:
+- Winter -> Spring -> Summer -> Autumn
+
+Transition rules:
+- No hard dividing lines
+- Weather, lighting, vegetation, and atmosphere blend naturally between zones
+- Strong symbolic sense of time passing in one continuous frame
+
+Visual quality:
+- Rich environmental detail and texture
+- Cinematic lighting and tonal contrast
+- Unified composition with clear seasonal storytelling
+- 8K photorealistic output`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "miniature-brand-construction",
+    title: "Miniature Brand Construction",
+    category: "Other",
+    description: "Tiny workers building a giant product icon",
+    tags: ["miniature", "brand", "construction"],
+    content: `Create a surreal photoreal miniature-construction scene where tiny workers build and polish a giant branded product.
+
+Template variables:
+- {PRODUCT}: e.g., soda can, perfume bottle, sneaker, camera
+- {SURFACE}: e.g., diner tablecloth, workbench, marble counter
+- {ACTION}: e.g., polishing logo, repainting surface, cleaning droplets
+
+Requirements:
+- Product appears massive like a skyscraper relative to workers
+- Detailed scaffolding, ladders, tools, and helmets
+- Tilt-shift photography look with shallow depth of field
+- Warm cinematic tone and realistic texture detail
+- Aspect ratio: 3:4
+
+Output:
+- Photoreal, playful, ad-quality visual narrative`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "id-style-portrait-sheet",
+    title: "ID Style Portrait Sheet",
+    category: "Other",
+    description: "Standardized studio headshots in printable grid",
+    tags: ["style", "portrait", "sheet"],
+    content: `Generate an ultra-realistic ID-style portrait sheet using the uploaded reference face with accurate likeness.
+
+Visual rules:
+- Neutral expression, eyes open, clean front-facing pose
+- Balanced soft studio lighting, no harsh shadows
+- Clean plain background (default white unless specified)
+- Head and shoulders centered with natural proportions
+
+Output layout:
+- 6 identical portraits in a 2x3 grid
+- Print-friendly sheet format (6x4 inch layout)
+- Consistent spacing for easy cutting
+
+Use cases:
+- Portfolio, profile, form-ready photo sheets, non-official ID-style presentation`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "pirate-battle-in-a-coffee-cup",
+    title: "Pirate Battle in a Coffee Cup",
+    category: "Other",
+    description: "Macro cinematic war scene on a liquid ocean",
+    tags: ["pirate", "battle", "coffee"],
+    content: `Create an ultra-photoreal cinematic macro image of a white coffee cup transformed into a stormy pirate battlefield.
+
+Scene:
+- Dark coffee surface behaves like a violent ocean
+- Two detailed 18th-century pirate ships clash in combat
+- Cannon fire, smoke, sparks, and spray frozen mid-action
+- Cup rim chipped and damaged from battle impact
+
+Visual style:
+- Extreme macro perspective
+- Razor focus on ships and wave action
+- Shallow depth of field with blurred background
+- Rich textures: wood grain, sails, foam, crema, ceramic surface
+
+Mood:
+- Tense, epic, surreal but physically believable
+- Cinematic photoreal quality`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "ai-image-director-framework",
+    title: "AI Image Director Framework",
+    category: "Other",
+    description: "Expand short prompts into high-quality visual outputs",
+    tags: ["director", "framework"],
+    content: `Role:
+You are an expert visual director. Transform short user ideas into production-grade image prompts.
+
+Modes (choose one):
+- CINEMA: live-action film frame realism
+- STUDIO: clean commercial photography
+- ART: stylized expressive interpretation
+
+Expansion structure:
+1. Subject
+2. Composition (angle, lens, framing)
+3. Style (strictly follow selected mode)
+4. Lighting
+5. Color treatment
+6. Mood
+7. Detail and texture
+8. Context and narrative signal
+
+Core rules:
+- If user prompt is short, expand intelligently
+- Do not mix mode styles in one output
+- Keep output intentional, not random
+
+Universal negatives:
+low quality, blurry, pixelated, poor composition, text, logos, watermarks, UI clutter
+
+Mode-specific negatives:
+- CINEMA: cartoon, anime, plastic CGI feel
+- STUDIO: chaotic lighting, cluttered environment
+- ART: flat lifeless realism, weak color intent
+
+Output:
+- One fully expanded high-quality prompt, ready to run`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "surreal-neon-glass-world",
+    title: "Surreal Neon Glass World",
+    category: "Other",
+    description: "Reimagine creatures as luminous crystal lifeforms",
+    tags: ["surreal", "neon", "glass", "world"],
+    content: `Create an ultra-surreal reinterpretation of {SCENE} where all major subjects become transparent glass beings infused with glowing neon energy.
+
+Visual transformation:
+- Bodies made of crystal-like translucent material
+- Internal neon streams (electric blue, magenta, violet, amber) flowing through forms
+- Soft glow cast into the environment
+
+Environment response:
+- Keep original scene structure/composition
+- Add realistic reflection, refraction, glow spill, and atmospheric color shifts
+
+Style:
+- Dreamlike, futuristic, vibrant, highly detailed
+- Surreal cinematic quality with strong visual coherence`,
+    createdAt: 1771355033,
+  },
+  {
+    id: "brand-architecture-booth",
+    title: "Brand Architecture Booth",
+    category: "Other",
+    description: "Hyper-real 3D exhibition stand concept generator",
+    tags: ["brand", "architecture", "booth"],
+    content: `Create a hyper-realistic 3D architectural visualization of a two-story exhibition booth for {BRAND}.
+
+Template variables:
+- {STYLE}: modern, luxury, industrial, minimal, cyber, etc.
+- {FORM}: geometric, curved, modular, sculptural
+- {MATERIAL}: glass, steel, timber, composite, acrylic
+- {COLOR}: primary accent palette
+- {GROUND_FEATURE}: reception zone, hero product display, demo stage
+- {STAIRS_TYPE}: floating, spiral, enclosed, straight
+- {UPPER_FEATURE}: lounge, meeting zone, VIP deck, interactive gallery
+- {LIGHTING}: soft studio, dramatic spotlights, mixed ambient
+- {VIBE}: premium, futuristic, elegant, bold
+
+Output style:
+- Solid dark grey studio background
+- Wide-angle elevated perspective
+- Realistic materials, shadows, and depth
+- Clean photoreal render quality`,
+    createdAt: 1771355033,
+  },
 ];
