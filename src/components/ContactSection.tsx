@@ -50,7 +50,7 @@ export default function ContactSection() {
   return (
     <section className="py-24 bg-card/30 border-t border-white/5">
       <div className="container mx-auto px-6 max-w-5xl">
-        <div className="grid md:grid-cols-2 gap-12 items-start">
+        <div className="grid md:grid-cols-2 gap-12 items-start md:items-end">
           <div>
             <h2 className="font-display text-4xl text-primary mb-6">Get in Touch</h2>
             <p className="text-muted-foreground mb-8 leading-relaxed">
