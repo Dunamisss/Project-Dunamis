@@ -227,16 +227,16 @@ export default function ToyFigureStudio() {
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Link href="/">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+              <Button variant="outline" className="w-full sm:w-auto border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                 Back to Homepage
               </Button>
             </Link>
             <Link href="/json-prompt-architect">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+              <Button variant="outline" className="w-full sm:w-auto border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                 JSON Architect
               </Button>
             </Link>
-            <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={sendToOptimizer}>
+            <Button className="w-full sm:w-auto bg-yellow-400 text-black hover:bg-yellow-300" onClick={sendToOptimizer}>
               Open In Optimizer
             </Button>
             <div className="w-full sm:w-auto overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">

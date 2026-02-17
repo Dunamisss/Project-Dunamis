@@ -767,7 +767,7 @@ export default function Home() {
                 <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
                   Suno Song Machine
                 </h2>
-                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed">
+                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed break-words">
                   A simple song workflow for Suno users: describe your track, generate Verse 1 + Chorus,
                   tweak it, then copy a full Suno-ready paste block with structure and style notes.
                 </p>
@@ -786,7 +786,7 @@ export default function Home() {
                 <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
                   JSON Prompt Architect
                 </h2>
-                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed">
+                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed break-words">
                   Build image prompts with structured JSON to reduce AI drift and keep every detail
                   consistent. Generate both JSON blueprint and a plain converted prompt in one click.
                 </p>
@@ -805,7 +805,7 @@ export default function Home() {
                 <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
                   Toy Figure Studio
                 </h2>
-                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed">
+                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed break-words">
                   Build collectible action-figure prompts from user photos with packaging specs,
                   articulation controls, and copy-ready JSON for consistent high-quality generations.
                 </p>
@@ -1298,6 +1298,63 @@ export default function Home() {
               </div>
             </div>
             )}
+          </section>
+
+          <section className="rounded-xl border border-yellow-500/35 bg-black/75 p-6 lg:p-8 shadow-[0_0_40px_rgba(234,179,8,0.08)] space-y-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[10px] uppercase tracking-[0.28em] rounded-full border border-yellow-500/40 px-3 py-1 text-yellow-200">
+                Prompt Engineering Platform
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-r from-yellow-400/70 via-yellow-300/30 to-transparent animate-pulse" />
+            </div>
+
+            <div className="space-y-2 max-w-4xl">
+              <h2 className="text-2xl md:text-3xl font-semibold text-yellow-200">How Dunamis Works</h2>
+              <p className="text-sm text-gray-300 break-words">
+                Dunamis is built to engineer and optimize prompts. It improves your prompt quality before you run it in tools
+                like ChatGPT, Gemini, Claude, Suno, and others.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/90">What This Site Is</p>
+                <p className="text-sm text-gray-300">
+                  A practical prompt-engineering workspace for creators, not a generic chatbot wrapper.
+                </p>
+              </div>
+              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/90">What It Does</p>
+                <p className="text-sm text-gray-300">
+                  Rewrites and structures rough ideas into cleaner, stronger prompts you can copy and use immediately.
+                </p>
+              </div>
+              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/90">What It Doesn’t Do (Yet)</p>
+                <p className="text-sm text-gray-300">
+                  <span className="font-semibold text-yellow-100">Dunamis does not generate images directly on-site right now.</span> You generate in your chosen AI platform.
+                </p>
+              </div>
+              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/90">How To Use</p>
+                <p className="text-sm text-gray-300">1. Describe what you want.</p>
+                <p className="text-sm text-gray-300">2. Generate an improved prompt in the optimizer.</p>
+                <p className="text-sm text-gray-300">3. Copy and run it in your AI tool.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Link href="/prompts">
+                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                  Open Prompt Library
+                </Button>
+              </Link>
+              <Link href="/?focus=optimizer">
+                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                  Go to Optimizer
+                </Button>
+              </Link>
+            </div>
           </section>
 
           <section>

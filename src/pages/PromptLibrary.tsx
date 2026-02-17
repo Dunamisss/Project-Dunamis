@@ -149,22 +149,22 @@ export default function PromptLibrary() {
               Curated, production-ready prompts. Click Try Me to load one straight into the optimizer.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Link href="/submit">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+              <Button variant="outline" className="w-full sm:w-auto border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                 Submit Prompt
               </Button>
             </Link>
             <Link href="/">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Back to Optimizer
+              <Button variant="outline" className="w-full sm:w-auto border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Back to Homepage
               </Button>
             </Link>
           </div>
         </div>
 
         <div className="rounded-lg border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px_180px] gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(180px,220px)_minmax(140px,180px)] gap-3">
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -218,11 +218,11 @@ export default function PromptLibrary() {
               <div className="space-y-2">
                 <p className="text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">{prompt.category}</p>
                 <Link href={`/prompt/${prompt.id}`}>
-                  <h2 className="text-xl font-semibold text-yellow-100 hover:text-yellow-200 transition">
+                  <h2 className="text-xl font-semibold text-yellow-100 hover:text-yellow-200 transition break-words">
                     {prompt.title}
                   </h2>
                 </Link>
-                <p className="text-sm text-gray-300">{prompt.description}</p>
+                <p className="text-sm text-gray-300 break-words">{prompt.description}</p>
                 <div className="flex flex-wrap gap-2 text-[11px] text-gray-400">
                   {prompt.tags.map((tag) => (
                     <span key={tag} className="px-2 py-1 rounded-full border border-yellow-500/20 bg-black/40">
@@ -231,10 +231,10 @@ export default function PromptLibrary() {
                   ))}
                 </div>
               </div>
-              <div className="rounded-md border border-yellow-500/20 bg-black/40 p-3 text-xs text-gray-300 whitespace-pre-wrap max-h-40 overflow-y-auto">
+              <div className="rounded-md border border-yellow-500/20 bg-black/40 p-3 text-xs text-gray-300 whitespace-pre-wrap break-words max-h-40 overflow-y-auto overflow-x-auto">
                 {prompt.content}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   className="bg-yellow-400 text-black hover:bg-yellow-300"
                   onClick={() => handleTryMe(prompt.content)}
@@ -266,8 +266,7 @@ export default function PromptLibrary() {
                   url={`${window.location.origin}/prompt/${prompt.id}`}
                   onCopy={showCopyFeedback}
                 />
-                <div className="flex-1 min-w-0" />
-                <div className="overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
+                <div className="w-full sm:w-auto sm:ml-auto overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
                   <Button
                     variant="outline"
                     className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"

@@ -230,8 +230,8 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis</p>
-            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">{prompt.title}</h1>
-            <p className="text-sm text-gray-300 max-w-2xl">{prompt.description}</p>
+            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200 break-words">{prompt.title}</h1>
+            <p className="text-sm text-gray-300 max-w-2xl break-words">{prompt.description}</p>
             <div className="flex flex-wrap gap-2 text-[11px] text-gray-400">
               <span className="px-2 py-1 rounded-full border border-yellow-500/20 bg-black/40">
                 {prompt.category}
@@ -253,7 +253,7 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
         </div>
 
         <div className="rounded-lg border border-yellow-500/30 bg-black/70 p-5 shadow-lg space-y-4">
-          <div className="rounded-md border border-yellow-500/20 bg-black/40 p-4 text-sm text-gray-200 whitespace-pre-wrap">
+          <div className="rounded-md border border-yellow-500/20 bg-black/40 p-4 text-sm text-gray-200 whitespace-pre-wrap break-words overflow-x-auto">
             {prompt.content}
           </div>
           {copyFeedback && (
