@@ -13,11 +13,18 @@ import { collection, onSnapshot, orderBy, query as fsQuery } from "firebase/fire
 const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-simple");
 const PAGE_SIZE = 24;
 const normalizeTag = (tag: string) => tag.trim().replace(/\s+/g, " ");
+const STOP_WORDS = new Set([
+  "a", "an", "and", "the", "of", "in", "on", "with", "for", "to", "from", "by", "at", "is", "are",
+  "this", "that", "these", "those", "create", "high", "quality", "ultra", "resolution",
+]);
 const isUsefulTag = (tag: string) => {
   if (!tag) return false;
   if (/^\d+$/.test(tag)) return false; // hide numeric-only tags like "1", "203"
   if (/^[\W_]+$/.test(tag)) return false; // hide punctuation-only tags
   if (!/[a-z]/i.test(tag)) return false; // require at least one letter
+  if (/^[a-f0-9-]{6,}$/i.test(tag)) return false; // hide hash-like tokens
+  if (/^[a-z0-9_-]+$/i.test(tag) && /\d/.test(tag)) return false; // hide compact code-like tags (e.g. abc123)
+  if (tag.length > 28 && !/\s/.test(tag)) return false; // hide long token-like strings
   return tag.length >= 2;
 };
 const cleanTags = (tags: string[]) =>
@@ -28,6 +35,18 @@ const cleanTags = (tags: string[]) =>
         .filter((tag) => isUsefulTag(tag)),
     ),
   );
+const deriveFallbackTagsFromTitle = (title: string) => {
+  const words = title
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !STOP_WORDS.has(word));
+  if (words.length === 0) return ["General"];
+  const primary = words[0];
+  const secondary = words.find((word) => word !== primary);
+  const out = [primary, secondary].filter(Boolean) as string[];
+  return Array.from(new Set(out)).map((word) => word.charAt(0).toUpperCase() + word.slice(1));
+};
 
 export default function ImageLibrary() {
   const [, setLocation] = useLocation();
@@ -72,12 +91,13 @@ export default function ImageLibrary() {
 
   const libraryImages = useMemo(() => {
     const map = new Map<string, ImageLibraryItem>();
-    [...communityImages, ...IMAGE_LIBRARY].forEach((item) =>
+    [...communityImages, ...IMAGE_LIBRARY].forEach((item) => {
+      const cleaned = cleanTags(item.tags || []);
       map.set(item.id, {
         ...item,
-        tags: cleanTags(item.tags || []),
-      }),
-    );
+        tags: cleaned.length > 0 ? cleaned : deriveFallbackTagsFromTitle(item.title),
+      });
+    });
     return Array.from(map.values());
   }, [communityImages]);
 
