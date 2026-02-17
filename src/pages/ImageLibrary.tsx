@@ -17,6 +17,7 @@ const isUsefulTag = (tag: string) => {
   if (!tag) return false;
   if (/^\d+$/.test(tag)) return false; // hide numeric-only tags like "1", "203"
   if (/^[\W_]+$/.test(tag)) return false; // hide punctuation-only tags
+  if (!/[a-z]/i.test(tag)) return false; // require at least one letter
   return tag.length >= 2;
 };
 const cleanTags = (tags: string[]) =>
