@@ -1,0 +1,21 @@
+Buisness Card | Futurist buisness card, Looks great on websites  
+
+
+A realistic cyber-aesthetic futuristic business card photograph: a left hand is holding a horizontal, acrylic, borderless card the size of a standard business card (3.5" × 2" ratio), filling most of the frame. The card displays a personal business card layout without any banners or background images. It features smooth, rounded edges and emits a soft neon glow with gradients of blue, pink, and purple. The background is dark and blurred to highlight the glowing edges, while cinematic reflections of light appear on the fingertips holding the card, creating a high-tech, holographic atmosphere. The card surface is crystal-clear, and the text elements appear finely engraved.
+If a logo is provided, integrate it into the design; if not, create a clean typographic logo based on the company name.
+
+If any field is left blank, automatically fill it with visually appealing and context-appropriate design elements.
+
+The final business card should have a balanced layout, clean lines, and clear visual hierarchy, suitable for professional printing.
+
+Name: [Insert Name]
+Title: [Insert Title]
+Company Name: [Insert Company Name]
+Logo: [Use attachment / Create based on company name / Leave blank]
+Contact Information: 
+  - Phone ( icon ): [Phone Number]
+  - Email ( icon ): [Email Address]
+  - Website ( icon ): [Website Url]
+X (X logo): [X username]
+]
+Additional Elements: [Social media / QR code / Tagline / Leave blank]
