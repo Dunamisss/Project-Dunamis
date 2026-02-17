@@ -97,7 +97,7 @@ export default function PromptLibrary() {
 
   const handleTryMe = (content: string) => {
     loadPrompt(content);
-    setLocation("/");
+    setLocation("/?focus=optimizer");
   };
 
   const showCopyFeedback = (message: string) => {
@@ -146,7 +146,7 @@ export default function PromptLibrary() {
             <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis</p>
             <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Prompt Library</h1>
             <p className="text-sm text-gray-300 max-w-2xl">
-              Curated, production-ready prompts. Click Try Me to load one straight into the optimizer.
+              Curated, production-ready prompts. Start in Optimizer, then copy and run in your AI tool.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -239,7 +239,7 @@ export default function PromptLibrary() {
                   className="bg-yellow-400 text-black hover:bg-yellow-300"
                   onClick={() => handleTryMe(prompt.content)}
                 >
-                  Try Me
+                  Start in Optimizer
                 </Button>
                 <AddToPackDialog
                   promptText={prompt.content}

@@ -177,8 +177,8 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
   const handleReverseEngineer = () => {
     if (!reverseEngineerPrompt) return;
     loadPrompt(reverseEngineerPrompt.content);
-    showCopyFeedback("Reverse-engineer prompt loaded. Upload the image in the optimizer.");
-    setLocation("/");
+    showCopyFeedback("Reverse-engineer prompt loaded. Next: optimize, copy, and run in your image tool.");
+    setLocation("/?focus=optimizer");
   };
 
   if (!image) {
@@ -243,7 +243,7 @@ export default function ImageDetail({ params }: { params: { id: string } }) {
               onClick={handleReverseEngineer}
               disabled={!reverseEngineerPrompt}
             >
-              Try Me
+              Start in Optimizer
             </Button>
             <Button
               variant="outline"

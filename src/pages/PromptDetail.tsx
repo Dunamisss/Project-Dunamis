@@ -192,7 +192,7 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
   const handleTryMe = () => {
     if (!prompt) return;
     loadPrompt(prompt.content);
-    setLocation("/");
+    setLocation("/?focus=optimizer");
   };
 
   const handleTryIn = async (provider: { label: string; url: string }) => {
@@ -263,7 +263,7 @@ export default function PromptDetail({ params }: { params: { id: string } }) {
           )}
           <div className="flex flex-wrap items-center gap-3">
             <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={handleTryMe}>
-              Try Me
+              Start in Optimizer
             </Button>
             <AddToPackDialog
               promptText={prompt.content}

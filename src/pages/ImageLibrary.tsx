@@ -111,8 +111,8 @@ export default function ImageLibrary() {
   const handleReverseEngineer = () => {
     if (!reverseEngineerPrompt) return;
     loadPrompt(reverseEngineerPrompt.content);
-    showCopyFeedback("Reverse-engineer prompt loaded. Upload an image in the optimizer.");
-    setLocation("/");
+    showCopyFeedback("Reverse-engineer prompt loaded. Next: optimize, copy, and run in your image tool.");
+    setLocation("/?focus=optimizer");
   };
 
   useEffect(() => {
@@ -165,7 +165,7 @@ export default function ImageLibrary() {
             <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis</p>
             <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Image Library</h1>
             <p className="text-sm text-gray-300 max-w-2xl">
-              Original visual creations. Click an image for full size or reverse-engineer a prompt.
+              Original visual creations. Use reverse engineering to start in optimizer, then copy and run in your image tool.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -176,7 +176,7 @@ export default function ImageLibrary() {
             </Link>
             <Link href="/">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Back to Optimizer
+                Back to Homepage
               </Button>
             </Link>
           </div>
@@ -186,7 +186,7 @@ export default function ImageLibrary() {
           <div className="rounded-md border border-yellow-500/20 bg-black/50 p-4 text-sm text-gray-300">
             <p className="font-semibold text-yellow-200">How to recreate an image</p>
             <p className="mt-2 text-xs text-gray-300">
-              We don’t generate images on this site. Download the image first, then click <strong>Try Me</strong>.
+              We don’t generate images on this site. Download the image first, then click <strong>Start in Optimizer</strong>.
               The reverse‑engineer prompt will preload. Upload the image you just downloaded in the optimizer
               and click Send — you’ll receive the prompt needed to replicate it. Once you have the prompt,
               experiment and tweak it to build something similar in your own style.
@@ -227,7 +227,7 @@ export default function ImageLibrary() {
               onClick={handleReverseEngineer}
               disabled={!reverseEngineerPrompt}
             >
-              Try Me
+              Start in Optimizer
             </Button>
             <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "newest" | "oldest")}>
               <SelectTrigger className="border-yellow-500/40 bg-black/30 text-yellow-200">
@@ -293,7 +293,7 @@ export default function ImageLibrary() {
                   onClick={handleReverseEngineer}
                   disabled={!reverseEngineerPrompt}
                 >
-                  Try Me
+                  Start in Optimizer
                 </Button>
                 <Button
                   variant="outline"
