@@ -12,6 +12,21 @@ import { collection, onSnapshot, orderBy, query as fsQuery } from "firebase/fire
 
 const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-simple");
 const PAGE_SIZE = 24;
+const normalizeTag = (tag: string) => tag.trim().replace(/\s+/g, " ");
+const isUsefulTag = (tag: string) => {
+  if (!tag) return false;
+  if (/^\d+$/.test(tag)) return false; // hide numeric-only tags like "1", "203"
+  if (/^[\W_]+$/.test(tag)) return false; // hide punctuation-only tags
+  return tag.length >= 2;
+};
+const cleanTags = (tags: string[]) =>
+  Array.from(
+    new Set(
+      tags
+        .map((tag) => normalizeTag(tag))
+        .filter((tag) => isUsefulTag(tag)),
+    ),
+  );
 
 export default function ImageLibrary() {
   const [, setLocation] = useLocation();
@@ -56,7 +71,12 @@ export default function ImageLibrary() {
 
   const libraryImages = useMemo(() => {
     const map = new Map<string, ImageLibraryItem>();
-    [...communityImages, ...IMAGE_LIBRARY].forEach((item) => map.set(item.id, item));
+    [...communityImages, ...IMAGE_LIBRARY].forEach((item) =>
+      map.set(item.id, {
+        ...item,
+        tags: cleanTags(item.tags || []),
+      }),
+    );
     return Array.from(map.values());
   }, [communityImages]);
 
@@ -65,6 +85,12 @@ export default function ImageLibrary() {
     libraryImages.forEach((image) => image.tags.forEach((tag) => tagSet.add(tag)));
     return ["All", ...Array.from(tagSet).sort()];
   }, [libraryImages]);
+
+  useEffect(() => {
+    if (!availableTags.includes(tagFilter)) {
+      setTagFilter("All");
+    }
+  }, [availableTags, tagFilter]);
 
   const filteredImages = useMemo(() => {
     const q = query.trim().toLowerCase();
