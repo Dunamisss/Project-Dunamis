@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Heart } from "lucide-react";
+import { Send, Heart, Mail, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -80,17 +80,54 @@ export default function ContactSection() {
                 </div>
               </div>
               <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-5">
-                <div className="flex items-center justify-between gap-4">
+                <div className="space-y-3">
                   <div>
-                    <p className="text-sm font-medium text-foreground">Quick Access</p>
-                    <p className="text-sm text-muted-foreground">Scan to open Dunamis on your phone.</p>
+                    <p className="text-sm font-medium text-foreground">Digital Business Card</p>
+                    <p className="text-sm text-muted-foreground">Scan to open Dunamis on mobile.</p>
                   </div>
-                  <img
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://dunamiss.xyz/"
-                    alt="QR code to open dunamiss.xyz"
-                    className="h-20 w-20 rounded-md border border-yellow-500/40 bg-black/60"
-                    loading="lazy"
-                  />
+                  <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/10 p-4 backdrop-blur-xl shadow-[0_0_40px_rgba(56,189,248,0.15)]">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(56,189,248,0.28),transparent_45%),radial-gradient(circle_at_80%_80%,rgba(236,72,153,0.25),transparent_40%)]" />
+                    <div className="relative grid grid-cols-[1fr_auto] gap-4 items-end">
+                      <div className="space-y-2">
+                        <img
+                          src="/favicon-192x192.png"
+                          alt="Dunamis logo"
+                          className="h-12 w-12 rounded-full border border-yellow-400/70 bg-black/70 p-1"
+                          loading="lazy"
+                        />
+                        <p className="text-lg font-semibold tracking-wide text-white">DUNAMIS</p>
+                        <p className="text-xs uppercase tracking-[0.2em] text-white/80">Webmaster</p>
+                        <div className="pt-1 space-y-1 text-sm text-white/90">
+                          <p className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-yellow-300" />
+                            admin@dunamiss.xyz
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-yellow-300" />
+                            dunamiss.xyz
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href="https://dunamiss.xyz/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Open Dunamis website"
+                        className="rounded-lg bg-white p-2 shadow-lg"
+                      >
+                        <img
+                          src="/images/brand/dunamis-qr.png"
+                          alt="QR code to open dunamiss.xyz"
+                          className="h-24 w-24"
+                          loading="lazy"
+                          onError={(event) => {
+                            const target = event.currentTarget as HTMLImageElement;
+                            target.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https://dunamiss.xyz/";
+                          }}
+                        />
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
