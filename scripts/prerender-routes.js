@@ -203,6 +203,7 @@ async function writeRobots(siteUrl) {
   const content = [
     "User-agent: *",
     "Allow: /",
+    "Disallow: /profile",
     `Sitemap: ${siteUrl}/sitemap.xml`,
     "",
   ].join("\n");
@@ -419,7 +420,9 @@ function buildRouteMeta({
     const data = imageMeta.get(id);
     const title = data?.title || id.replace(/-/g, " ");
     const description = data?.description || base.description;
-    const imageUrl = data?.full ? `${siteUrl}${data.full}` : base.image;
+    const imageUrl = data?.full
+      ? (data.full.startsWith("http") ? data.full : `${siteUrl}${data.full}`)
+      : base.image;
     return {
       ...base,
       title: `${title} — DUNAMIS`,
@@ -469,7 +472,7 @@ async function main() {
   const defaultMeta = {
     title: "DUNAMIS — Precision Prompt Engineering",
     description: "Build, score, and refine prompts with a production-grade optimizer and auditor built for creators who ship.",
-    image: "https://dunamiss.xyz/dunamis-hero.webp",
+    image: `${siteUrl}/dunamis-hero.webp`,
   };
 
   const updated = await Promise.all(
