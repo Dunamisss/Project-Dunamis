@@ -1,11 +1,15 @@
 import argparse
 import json
+import os
 import re
 import sys
 import hashlib
 import shutil
 from datetime import datetime
 from pathlib import Path
+from urllib import error as urlerror
+from urllib import parse as urlparse
+from urllib import request as urlrequest
 
 try:
     from PIL import Image
@@ -115,6 +119,88 @@ def archive_file(src: Path, archive_dir: Path) -> None:
     src.rename(target)
 
 
+def load_dotenv_file(path: Path) -> None:
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        value = value.strip().strip('"').strip("'")
+        os.environ[key] = value
+
+
+def normalize_site_url(value: str | None) -> str:
+    site = (value or "").strip()
+    if not site:
+        return "https://dunamiss.xyz"
+    return site[:-1] if site.endswith("/") else site
+
+
+def indexnow_enabled() -> bool:
+    flag = os.environ.get("INDEXNOW_ENABLED", "").strip().lower()
+    return flag not in {"0", "false", "no", "off"}
+
+
+def submit_indexnow(routes: list[str]) -> None:
+    if not routes:
+        return
+    if not indexnow_enabled():
+        print("IndexNow disabled via INDEXNOW_ENABLED.")
+        return
+
+    key = os.environ.get("INDEXNOW_KEY", "").strip()
+    if not key:
+        print("IndexNow skipped: INDEXNOW_KEY is not set.")
+        return
+
+    site_url = normalize_site_url(
+        os.environ.get("INDEXNOW_SITE_URL") or os.environ.get("SITE_URL"),
+    )
+    parsed = urlparse.urlparse(site_url)
+    host = parsed.netloc
+    if not host:
+        print(f"IndexNow skipped: invalid site URL '{site_url}'.")
+        return
+
+    key_location = os.environ.get("INDEXNOW_KEY_LOCATION", "").strip()
+    if not key_location:
+        key_location = f"{site_url}/{key}.txt"
+
+    endpoint = os.environ.get("INDEXNOW_ENDPOINT", "").strip() or "https://api.indexnow.org/indexnow"
+    unique_routes = sorted({r for r in routes if r and r.startswith("/")})
+    if not unique_routes:
+        return
+    url_list = [f"{site_url}{route}" for route in unique_routes]
+
+    payload = {
+        "host": host,
+        "key": key,
+        "keyLocation": key_location,
+        "urlList": url_list,
+    }
+    body = json.dumps(payload).encode("utf-8")
+    req = urlrequest.Request(
+        endpoint,
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=20) as response:
+            status = getattr(response, "status", 200)
+            print(f"IndexNow submitted {len(url_list)} URL(s). Status: {status}")
+    except urlerror.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        print(f"IndexNow HTTP error {exc.code}: {detail}")
+    except Exception as exc:
+        print(f"IndexNow submission failed: {exc}")
+
+
 def load_existing_prompts(out_path: Path) -> tuple[str, set[str]]:
     if not out_path.exists():
         return "", set()
@@ -187,6 +273,7 @@ def sync_prompts(args: argparse.Namespace) -> None:
     seen_batch_content_hashes = set()
     new_blocks = []
     archived_paths = []
+    new_routes = []
     added = 0
     for item in incoming:
         key = item["title"].strip().lower()
@@ -236,6 +323,7 @@ def sync_prompts(args: argparse.Namespace) -> None:
             continue
 
         new_blocks.append(_to_ts_object(new_entry))
+        new_routes.append(f"/prompt/{new_entry['id']}")
         if source_path and source_path.exists():
             archived_paths.append(source_path)
         existing_titles.add(new_entry["title"].strip().lower())
@@ -257,6 +345,7 @@ def sync_prompts(args: argparse.Namespace) -> None:
     for path in archived_paths:
         archive_file(path, PROMPT_ARCHIVE_DIR)
     print(f"Archived {len(archived_paths)} prompt file(s) to {PROMPT_ARCHIVE_DIR}")
+    submit_indexnow(["/prompts", *new_routes])
 
 
 def load_existing_images(out_path: Path) -> list[dict]:
@@ -628,13 +717,22 @@ def sync_images(args: argparse.Namespace) -> None:
     if not src_dir.exists():
         print(f"Image folder not found: {src_dir}")
         sys.exit(1)
+    previous = load_existing_images(IMAGE_OUT)
+    previous_ids = {str(item.get("id", "")) for item in previous if item.get("id")}
     convert_images(src_dir)
     items = rebuild_images_from_webp()
     write_images(items, IMAGE_OUT)
     print(f"Processed {len(items)} images")
+    current_ids = {str(item.get("id", "")) for item in items if item.get("id")}
+    new_ids = sorted(current_ids - previous_ids)
+    if new_ids:
+        submit_indexnow(["/images", *[f"/image/{item_id}" for item_id in new_ids]])
+    else:
+        print("No new image IDs detected for IndexNow submission.")
 
 
 def main() -> None:
+    load_dotenv_file(ROOT / ".env")
     parser = argparse.ArgumentParser(description="Sync prompt and image libraries.")
     sub = parser.add_subparsers(dest="command", required=False)
 
