@@ -191,25 +191,18 @@
 }
 
 .electric-frame__layer--overlay-primary {
-  background: linear-gradient(-30deg, rgba(255, 255, 255, 0.5), transparent 30%, transparent 70%, rgba(255, 255, 255, 0.45));
-  transform: scale(1.08);
-  filter: blur(14px);
-  mix-blend-mode: soft-light;
+  display: none;
 }
 
 .electric-frame__layer--overlay-secondary {
-  opacity: 0.4;
-  background: linear-gradient(-30deg, rgba(255, 255, 255, 0.4), transparent 30%, transparent 70%, rgba(255, 255, 255, 0.35));
-  transform: scale(1.08);
-  filter: blur(14px);
-  mix-blend-mode: soft-light;
+  display: none;
 }
 
 .electric-frame__layer--background-glow {
   background: linear-gradient(-30deg, rgba(245, 192, 74, 0.75), transparent, rgba(245, 192, 74, 0.75));
-  filter: blur(26px);
-  transform: scale(1.08);
-  opacity: 0.22;
+  filter: blur(18px);
+  transform: scale(1.04);
+  opacity: 0.12;
 }
 
 .electric-frame__content {
