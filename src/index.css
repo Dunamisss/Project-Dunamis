@@ -146,3 +146,77 @@
   }
 }
 
+.electric-frame {
+  --electric-border-color: #f5c04a;
+  --electric-filter: none;
+  border-radius: 0.75rem;
+  position: relative;
+}
+
+.electric-frame__layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.electric-frame__layer--main {
+  border: 1px solid rgba(245, 192, 74, 0.4);
+}
+
+.electric-frame__layer--main::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--electric-border-color);
+  border-radius: inherit;
+  opacity: 0.85;
+  transition: all 0.25s ease;
+}
+
+.electric-frame:hover .electric-frame__layer--main::after {
+  margin-top: -3px;
+  margin-left: -3px;
+  filter: var(--electric-filter);
+}
+
+.electric-frame__layer--glow-tight {
+  border: 1px solid rgba(245, 192, 74, 0.6);
+  filter: blur(0.8px);
+}
+
+.electric-frame__layer--glow-wide {
+  border: 1px solid rgba(245, 192, 74, 0.8);
+  filter: blur(3px);
+}
+
+.electric-frame__layer--overlay-primary {
+  background: linear-gradient(-30deg, rgba(255, 255, 255, 0.5), transparent 30%, transparent 70%, rgba(255, 255, 255, 0.45));
+  transform: scale(1.08);
+  filter: blur(14px);
+  mix-blend-mode: soft-light;
+}
+
+.electric-frame__layer--overlay-secondary {
+  opacity: 0.4;
+  background: linear-gradient(-30deg, rgba(255, 255, 255, 0.4), transparent 30%, transparent 70%, rgba(255, 255, 255, 0.35));
+  transform: scale(1.08);
+  filter: blur(14px);
+  mix-blend-mode: soft-light;
+}
+
+.electric-frame__layer--background-glow {
+  background: linear-gradient(-30deg, rgba(245, 192, 74, 0.75), transparent, rgba(245, 192, 74, 0.75));
+  filter: blur(26px);
+  transform: scale(1.08);
+  opacity: 0.22;
+}
+
+.electric-frame__content {
+  position: relative;
+  z-index: 1;
+}
+
+.electric-frame__defs {
+  position: absolute;
+}

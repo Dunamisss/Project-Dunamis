@@ -8,6 +8,7 @@ import { useChat } from "@/contexts/ChatContext";
 import { AuthModal } from "@/components/AuthModal";
 import ContactSection from "@/components/ContactSection";
 import AddToPackDialog from "@/components/AddToPackDialog";
+import ElectricFrame from "@/components/ElectricFrame";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1300,7 +1301,8 @@ export default function Home() {
             )}
           </section>
 
-          <section className="rounded-xl border border-yellow-500/35 bg-black/75 p-6 lg:p-8 shadow-[0_0_40px_rgba(234,179,8,0.08)] space-y-6">
+          <section>
+            <ElectricFrame contentClassName="rounded-xl bg-black/75 p-6 lg:p-8 shadow-[0_0_40px_rgba(234,179,8,0.08)] space-y-6">
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-[10px] uppercase tracking-[0.28em] rounded-full border border-yellow-500/40 px-3 py-1 text-yellow-200">
                 Prompt Engineering Platform
@@ -1355,6 +1357,7 @@ export default function Home() {
                 </Button>
               </Link>
             </div>
+            </ElectricFrame>
           </section>
 
           <section>
