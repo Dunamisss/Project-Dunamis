@@ -16,10 +16,26 @@ service cloud.firestore {
       );
     }
 
-    // Users can read and update their own profile
+    function userSecurityFieldsValidOnCreate(userId) {
+      return request.resource.data.uid == userId
+        && request.resource.data.accessTier == "free"
+        && request.resource.data.banned == false
+        && request.resource.data.strikes == 0;
+    }
+
+    function userSecurityFieldsUnchangedOnUpdate() {
+      return request.resource.data.uid == resource.data.uid
+        && request.resource.data.accessTier == resource.data.accessTier
+        && request.resource.data.banned == resource.data.banned
+        && request.resource.data.strikes == resource.data.strikes;
+    }
+
+    // Users can read own profile; admins can read all profiles
     match /users/{userId} {
-      allow read: if true; // public profiles readable
-      allow write: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && userSecurityFieldsValidOnCreate(userId);
+      allow update: if (isOwner(userId) && userSecurityFieldsUnchangedOnUpdate()) || isAdmin();
+      allow delete: if isAdmin();
     }
 
     // Private prompt packs per user profile
