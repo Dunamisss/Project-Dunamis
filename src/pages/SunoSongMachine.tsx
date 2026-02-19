@@ -298,6 +298,61 @@ function sanitize(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+const STOP_WORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "to", "of", "in", "on", "for", "with", "by", "at",
+  "is", "are", "was", "were", "be", "been", "being", "it", "this", "that", "from", "as",
+  "we", "i", "you", "they", "he", "she", "my", "your", "our", "their", "me", "us", "them",
+]);
+
+function coreTokens(text: string): string[] {
+  return sanitize(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 2 && !STOP_WORDS.has(t));
+}
+
+function promptEchoRatio(idea: string, lyrics: string): number {
+  const ideaTokens = new Set(coreTokens(idea));
+  if (ideaTokens.size === 0) return 0;
+  const lyricTokens = new Set(coreTokens(lyrics));
+  let overlap = 0;
+  for (const token of ideaTokens) {
+    if (lyricTokens.has(token)) overlap += 1;
+  }
+  return overlap / ideaTokens.size;
+}
+
+function duplicateLineRatio(text: string): number {
+  const lines = text
+    .split("\n")
+    .map((l) => sanitize(l).toLowerCase())
+    .filter(Boolean);
+  if (lines.length === 0) return 0;
+  const seen = new Set<string>();
+  let dupes = 0;
+  for (const line of lines) {
+    if (seen.has(line)) dupes += 1;
+    else seen.add(line);
+  }
+  return dupes / lines.length;
+}
+
+function candidateQualityScore(song: SongOutput, idea: string): number {
+  const base = song.readiness.score;
+  const echoPenalty = Math.round(promptEchoRatio(idea, song.fullLyrics) * 35);
+  const duplicatePenalty = Math.round(duplicateLineRatio(song.fullLyrics) * 40);
+  return base - echoPenalty - duplicatePenalty;
+}
+
+function isWeakSongCandidate(song: SongOutput, idea: string): boolean {
+  if (candidateQualityScore(song, idea) < 78) return true;
+  if (song.readiness.score < 78) return true;
+  if (promptEchoRatio(idea, song.fullLyrics) > 0.40) return true;
+  if (duplicateLineRatio(song.fullLyrics) > 0.14) return true;
+  return false;
+}
+
 function seededPick<T>(arr: T[], seed: number, offset = 0): T {
   return arr[Math.abs(seed + offset) % arr.length];
 }
@@ -340,7 +395,7 @@ function getMoodPool(mood: string) {
 function makeVerse(
   seed: number,
   mood: string,
-  idea: string,
+  _idea: string,
   voice: string,
   perspective: string,
   offset: number
@@ -352,7 +407,7 @@ function makeVerse(
   return [
     seededPick(openers, seed, offset),
     seededPick(middles, seed, offset + 3),
-    `${framing} every word of ${idea} like it still costs something.`,
+    `${framing} every promise like it still costs something.`,
     `The ${seededPick(["weight", "truth", "light", "sound", "cost"], seed, offset + 7)} of it never really left.`,
   ].join("\n");
 }
@@ -360,9 +415,10 @@ function makeVerse(
 function makeChorus(seed: number, mood: string, idea: string, hookStyle: "short" | "anthemic"): string {
   const hooks = CHORUS_HOOKS[mood.toLowerCase()] || CHORUS_HOOKS["reflective"];
   const hook = seededPick(hooks, seed, 1);
+  const anchor = seededPick(["all the way home", "into the light", "through the fire", "past the noise", "to open sky"], seed, 11);
   const extendedLine = hookStyle === "anthemic"
-    ? `hands up to the sky, we carry ${idea} all the way home,`
-    : `hands up — we carry ${idea} all the way home,`;
+    ? `hands up to the sky, we carry this ${anchor},`
+    : `hands up — we carry this ${anchor},`;
 
   return [
     hook + ",",
@@ -717,49 +773,98 @@ export default function SunoSongMachine() {
       `Variant seed: ${nextVariant} (generate fresh phrasing, not a repeat of previous outputs)`,
     ].filter(Boolean).join("\n");
 
-    // 14-second timeout
-    const timeout = window.setTimeout(() => controller.abort(), 14000);
+    // 22-second timeout for multi-attempt quality search
+    const timeout = window.setTimeout(() => controller.abort(), 22000);
+
+    let bestSong = fallback;
+    let bestEngine = "Local engine";
+    let bestScore = candidateQualityScore(fallback, idea);
+    let gotAiResponse = false;
+    let timedOut = false;
+
+    const contexts = [
+      "Create original radio-quality Suno-ready lyrics. Singable phrasing. No clichés. No repeated filler.",
+      "Do NOT reuse key nouns from the user idea verbatim. Convert the concept into scenes and emotions. Avoid lexical overlap.",
+      "Rewrite with stronger narrative logic: clear Verse 1 setup, Verse 2 progression, Bridge contrast. Absolutely no copy/paraphrase of the prompt sentence.",
+      "Add concrete imagery and story progression. Replace abstract generic lines with scene detail. Keep hook compact and sticky.",
+      "Final polish pass: remove awkward phrasing, ban repeated filler, ensure coherent emotional arc from Verse 1 to Outro.",
+    ];
 
     try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          systemPrompt: SONG_SYSTEM_PROMPT,
-          prompt: songBrief,
-          context: "Create original radio-quality Suno-ready lyrics. Singable phrasing. No clichés. No repeated filler.",
-          userEmail: user?.email || "",
-        }),
-      });
+      for (let attempt = 0; attempt < contexts.length; attempt += 1) {
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            systemPrompt: SONG_SYSTEM_PROMPT,
+            prompt: `${songBrief}\nAttempt: ${attempt + 1}`,
+            context: contexts[attempt],
+            userEmail: user?.email || "",
+          }),
+        });
 
-      window.clearTimeout(timeout);
+        if (!response.ok) continue;
+        gotAiResponse = true;
 
-      if (!response.ok) throw new Error("API error");
+        const data = await response.json();
+        const ai = extractJsonObject(String(data?.output || ""));
+        const merged = mergeAiWithFallback(ai, fallback, {
+          genre: sanitize(genre), mood: sanitize(mood),
+          voice: sanitize(voice), bpm: sanitize(bpm),
+        });
 
-      const data = await response.json();
-      const ai = extractJsonObject(String(data?.output || ""));
-      const merged = mergeAiWithFallback(ai, fallback, {
-        genre: sanitize(genre), mood: sanitize(mood),
-        voice: sanitize(voice), bpm: sanitize(bpm),
-      });
-      setResult(merged);
-      const provider = sanitize(String(data?.provider || ""));
-      const model = sanitize(String(data?.model || ""));
-      setEngineInfo([provider, model].filter(Boolean).join(" / ") || (ai ? "AI" : "Local engine"));
-      flash(ai ? "✓ AI generation complete." : "AI format invalid — using local engine.", 2200);
-    } catch (err: any) {
-      window.clearTimeout(timeout);
-      if (err?.name === "AbortError") {
-        setResult(fallback);
-        setEngineInfo("Local engine (timeout)");
-        flash("AI timed out — using local engine.", 2200);
-      } else {
-        setResult(fallback);
-        setEngineInfo("Local engine");
-        flash("AI unavailable — using local engine.", 2200);
+        const provider = sanitize(String(data?.provider || ""));
+        const model = sanitize(String(data?.model || ""));
+        const engine = [provider, model].filter(Boolean).join(" / ") || (ai ? "AI" : "Local engine");
+        const score = candidateQualityScore(merged, idea);
+        if (score > bestScore) {
+          bestScore = score;
+          bestSong = merged;
+          bestEngine = engine;
+        }
+
+        if (!isWeakSongCandidate(merged, idea)) break;
       }
+    } catch (err: any) {
+      if (err?.name === "AbortError") timedOut = true;
     } finally {
+      if (isWeakSongCandidate(bestSong, idea)) {
+        const localRetryOffsets = [101, 211, 307];
+        for (const offset of localRetryOffsets) {
+          const localCandidate = buildSong({
+            idea,
+            genre,
+            mood,
+            voice,
+            energy,
+            bpm,
+            length,
+            perspective,
+            hookStyle,
+            themeKeywords,
+            variant: nextVariant + offset,
+          });
+          const localScore = candidateQualityScore(localCandidate, idea);
+          if (localScore > bestScore) {
+            bestScore = localScore;
+            bestSong = localCandidate;
+            bestEngine = "Local engine (rewritten)";
+          }
+          if (!isWeakSongCandidate(bestSong, idea)) break;
+        }
+      }
+
+      window.clearTimeout(timeout);
+      setResult(bestSong);
+      setEngineInfo(bestEngine);
+      if (!gotAiResponse) {
+        flash(timedOut ? "AI timed out — using local engine." : "AI unavailable — using local engine.", 2200);
+      } else if (isWeakSongCandidate(bestSong, idea)) {
+        flash("Still not strong enough. Click New Variation for another full rewrite pass.", 2400);
+      } else {
+        flash("✓ AI generation complete.", 2200);
+      }
       setIsGenerating(false);
     }
 
