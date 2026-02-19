@@ -434,6 +434,8 @@ export default function SunoSongMachine() {
   const [engineInfo, setEngineInfo] = useState<string>("");
 
   const canGenerate = useMemo(() => sanitize(idea).length > 2, [idea]);
+  const qualityScore = result?.readiness.score ?? null;
+  const isWeakResult = qualityScore !== null && qualityScore < 75;
   const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim();
   const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
 
@@ -815,6 +817,23 @@ export default function SunoSongMachine() {
                     </p>
                   ))}
                 </div>
+                {isWeakResult && (
+                  <div className="rounded-md border border-red-400/35 bg-red-500/10 p-3 space-y-2">
+                    <p className="text-xs uppercase tracking-[0.16em] text-red-200">Weak Draft Detected</p>
+                    <p className="text-sm text-red-100">
+                      This song scored {qualityScore}/100. Click regenerate to get a stronger variation.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-300/40 text-red-100 hover:bg-red-400/10"
+                      onClick={() => { void regenerate(); }}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? "Regenerating..." : "Regenerate Variation"}
+                    </Button>
+                  </div>
+                )}
                 <div className="space-y-2 rounded-md border border-yellow-500/20 bg-black/35 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs text-yellow-200">Title options</p>
