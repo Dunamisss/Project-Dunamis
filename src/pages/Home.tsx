@@ -654,11 +654,6 @@ export default function Home() {
                   Frameworks
                 </Button>
               </Link>
-              <Link href="/suno-song-machine">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Song Machine
-                </Button>
-              </Link>
               <Link href="/json-prompt-architect">
                 <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
                   JSON Architect
@@ -746,11 +741,6 @@ export default function Home() {
                   View Frameworks
                 </Button>
               </Link>
-              <Link href="/suno-song-machine">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Suno Song Machine
-                </Button>
-              </Link>
               <Link href="/json-prompt-architect">
                 <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                   JSON Architect
@@ -763,25 +753,6 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="space-y-2 max-w-3xl">
-                <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Beta Tool</p>
-                <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
-                  Suno Song Machine
-                </h2>
-                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed break-words">
-                  A simple song workflow for Suno users: describe your track, generate Verse 1 + Chorus,
-                  tweak it, then copy a full Suno-ready paste block with structure and style notes.
-                </p>
-              </div>
-              <Link href="/suno-song-machine">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                  Open Song Machine
-                </Button>
-              </Link>
-            </div>
-          </section>
           <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
             <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2 max-w-3xl">
@@ -861,6 +832,12 @@ export default function Home() {
                 {simpleMode
                   ? "Simple Mode: Type what you want and click Make My Prompt Better."
                   : "Advanced Mode: Use Frameworks, Audit mode, and provider tools for full control."}
+              </div>
+              <div className="rounded-lg border border-yellow-500/20 bg-black/50 px-4 py-3 text-xs text-gray-200">
+                <p className="text-yellow-200 font-semibold mb-1 uppercase tracking-[0.2em]">Quick Start</p>
+                <p>1. Write what you need in plain English.</p>
+                <p>2. Click <span className="text-yellow-200">Make My Prompt Better</span>.</p>
+                <p>3. Copy output and paste into ChatGPT, Gemini, Claude, or Perplexity.</p>
               </div>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="space-y-1 max-w-2xl">

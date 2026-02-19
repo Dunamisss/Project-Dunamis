@@ -242,8 +242,6 @@ export default function AIToolFinds() {
     }
   };
 
-  const toSongMachineLink = (template: string) =>
-    `/suno-song-machine?idea=${encodeURIComponent(template)}`;
   const toJsonArchitectLink = (template: string) =>
     `/json-prompt-architect?preset=${encodeURIComponent(
       template.toLowerCase().includes("streetwear")
@@ -327,17 +325,6 @@ export default function AIToolFinds() {
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-xs text-yellow-200">Template {idx + 1}</p>
                       <div className="flex items-center gap-2">
-                        {pack.id.startsWith("suno-") && (
-                          <Link href={toSongMachineLink(template)}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2"
-                            >
-                              Use in Song Machine
-                            </Button>
-                          </Link>
-                        )}
                         {pack.id === "json-architect" && (
                           <Link href={toJsonArchitectLink(template)}>
                             <Button
@@ -389,13 +376,7 @@ export default function AIToolFinds() {
                 >
                   Optimize This Pack
                 </Button>
-                {pack.id.startsWith("suno-") ? (
-                  <Link href="/suno-song-machine">
-                    <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                      Use Song Machine
-                    </Button>
-                  </Link>
-                ) : pack.id === "json-architect" ? (
+                {pack.id === "json-architect" ? (
                   <Link href="/json-prompt-architect">
                     <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
                       Open JSON Architect
@@ -480,12 +461,7 @@ export default function AIToolFinds() {
               <div className="rounded-md border border-yellow-500/20 bg-black/30 p-3 space-y-1">
                 <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">How To Use</p>
                 <p className="text-sm text-gray-300">1. Copy a template from this pack.</p>
-                {pack.id.startsWith("suno-") ? (
-                  <>
-                    <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Use Song Machine</span>.</p>
-                    <p className="text-sm text-gray-300">3. Tweak details, generate preview, then copy into Suno.</p>
-                  </>
-                ) : pack.id === "json-architect" ? (
+                {pack.id === "json-architect" ? (
                   <>
                     <p className="text-sm text-gray-300">2. Click <span className="text-yellow-200">Open JSON Architect</span>.</p>
                     <p className="text-sm text-gray-300">3. Fill slots, copy JSON or converted plain prompt.</p>

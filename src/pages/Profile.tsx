@@ -39,20 +39,6 @@ type PromptPack = {
   updatedAt: number;
 };
 
-type SongDraft = {
-  id: string;
-  title: string;
-  idea: string;
-  genre: string;
-  mood: string;
-  voice: string;
-  energy: string;
-  bpm: string;
-  length: "standard" | "extended";
-  sunoPasteBlock: string;
-  updatedAt: number;
-};
-
 const PROMPT_PACK_EXAMPLES = [
   {
     id: "social-post",
@@ -116,8 +102,6 @@ export default function Profile() {
   const [newPackTemplate, setNewPackTemplate] = useState("");
   const [editPackTitle, setEditPackTitle] = useState("");
   const [editPackTemplate, setEditPackTemplate] = useState("");
-  const [songDrafts, setSongDrafts] = useState<SongDraft[]>([]);
-  const [loadingSongDrafts, setLoadingSongDrafts] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim();
@@ -196,47 +180,6 @@ export default function Profile() {
         setProfile(fallbackProfile);
       }
     });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) {
-      setSongDrafts([]);
-      return;
-    }
-
-    setLoadingSongDrafts(true);
-    const draftsQuery = query(
-      collection(db, "users", user.uid, "songDrafts"),
-      orderBy("updatedAt", "desc"),
-    );
-    const unsubscribe = onSnapshot(
-      draftsQuery,
-      (snapshot) => {
-        const next = snapshot.docs.map((draftDoc) => {
-          const data = draftDoc.data() as Record<string, unknown>;
-          return {
-            id: draftDoc.id,
-            title: String(data.title || "Untitled Song Draft"),
-            idea: String(data.idea || ""),
-            genre: String(data.genre || ""),
-            mood: String(data.mood || "uplifting"),
-            voice: String(data.voice || ""),
-            energy: String(data.energy || "medium"),
-            bpm: String(data.bpm || "118"),
-            length: (data.length === "extended" ? "extended" : "standard") as "standard" | "extended",
-            sunoPasteBlock: String(data.sunoPasteBlock || ""),
-            updatedAt: Number(data.updatedAt || Date.now()),
-          };
-        });
-        setSongDrafts(next);
-        setLoadingSongDrafts(false);
-      },
-      () => {
-        setLoadingSongDrafts(false);
-      },
-    );
 
     return () => unsubscribe();
   }, [user]);
@@ -485,20 +428,6 @@ export default function Profile() {
     }
 
     setMessage(copied ? "Example copied to clipboard." : "Could not copy example.");
-  };
-
-  const openSongDraft = (draft: SongDraft) => {
-    const params = new URLSearchParams({
-      fromDraft: "1",
-      draftIdea: draft.idea,
-      draftGenre: draft.genre,
-      draftMood: draft.mood,
-      draftVoice: draft.voice,
-      draftEnergy: draft.energy,
-      draftBpm: draft.bpm,
-      draftLength: draft.length,
-    });
-    setLocation(`/suno-song-machine?${params.toString()}`);
   };
 
   const handlePasswordReset = async () => {
@@ -807,45 +736,6 @@ export default function Profile() {
                     </div>
                   );
                 })}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-xs text-gray-400 uppercase tracking-[0.25em]">Saved Song Drafts</p>
-            {loadingSongDrafts ? (
-              <p className="text-sm text-gray-300">Loading song drafts...</p>
-            ) : songDrafts.length === 0 ? (
-              <p className="text-sm text-gray-300">No song drafts yet. Save one from the Song Machine page.</p>
-            ) : (
-              <div className="space-y-3">
-                {songDrafts.slice(0, 12).map((draft) => (
-                  <div key={draft.id} className="rounded-md border border-yellow-500/20 bg-black/40 p-3 space-y-3">
-                    <div className="space-y-1">
-                      <p className="text-yellow-200 font-semibold">{draft.title}</p>
-                      <p className="text-[11px] text-gray-400">
-                        Updated {new Date(draft.updatedAt).toLocaleDateString()} · {draft.genre || "No genre"} · {draft.mood}
-                      </p>
-                    </div>
-                    <p className="text-[12px] text-gray-300 line-clamp-2">{draft.idea || "No idea text stored."}</p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        className="bg-yellow-400 text-black hover:bg-yellow-300"
-                        onClick={() => openSongDraft(draft)}
-                      >
-                        Open in Song Machine
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                        onClick={() => copyText(draft.sunoPasteBlock)}
-                        disabled={!draft.sunoPasteBlock}
-                      >
-                        Copy Suno Block
-                      </Button>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </div>

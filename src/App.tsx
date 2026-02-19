@@ -12,7 +12,6 @@ import Frameworks from "@/pages/Frameworks";
 import Profile from "@/pages/Profile";
 import SubmitPrompt from "@/pages/SubmitPrompt";
 import AdminSubmissions from "@/pages/AdminSubmissions";
-import SunoSongMachine from "@/pages/SunoSongMachine";
 import JsonPromptArchitect from "@/pages/JsonPromptArchitect";
 import ToyFigureStudio from "@/pages/ToyFigureStudio";
 
@@ -36,7 +35,6 @@ function App() {
               <Route path="/submit" component={SubmitPrompt} />
               <Route path="/admin/submissions" component={AdminSubmissions} />
               <Route path="/json-prompt-architect" component={JsonPromptArchitect} />
-              <Route path="/suno-song-machine" component={SunoSongMachine} />
               <Route path="/toy-figure-studio" component={ToyFigureStudio} />
             </Switch>
           </Router>
