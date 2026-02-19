@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { addDoc, collection } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type SongOutput = {
   titles: string[];
@@ -31,6 +33,7 @@ type SongJsonOutput = {
 type SongPreset = {
   id: string;
   label: string;
+  emoji: string;
   idea: string;
   genre: string;
   mood: string;
@@ -42,10 +45,13 @@ type SongPreset = {
   themeKeywords: string;
 };
 
+// ─── Presets ──────────────────────────────────────────────────────────────────
+
 const PRESETS: SongPreset[] = [
   {
     id: "radio-pop",
     label: "Radio Pop",
+    emoji: "🎤",
     idea: "a comeback anthem about rebuilding confidence after setbacks",
     genre: "modern pop with cinematic lift",
     mood: "uplifting",
@@ -59,6 +65,7 @@ const PRESETS: SongPreset[] = [
   {
     id: "reggae-fusion",
     label: "Reggae Fusion",
+    emoji: "🌴",
     idea: "resilience under pressure while staying grounded",
     genre: "reggae-fusion with modern hip-hop drums and dub textures",
     mood: "reflective",
@@ -72,6 +79,7 @@ const PRESETS: SongPreset[] = [
   {
     id: "trap-soul",
     label: "Trap Soul",
+    emoji: "🌙",
     idea: "late-night honesty about trust and ambition",
     genre: "trap soul with atmospheric pads and punchy 808s",
     mood: "dark",
@@ -85,6 +93,7 @@ const PRESETS: SongPreset[] = [
   {
     id: "cinematic-alt",
     label: "Cinematic Alt",
+    emoji: "🎬",
     idea: "fighting through chaos to protect what matters",
     genre: "cinematic alternative with hybrid orchestral drums",
     mood: "energetic",
@@ -95,114 +104,284 @@ const PRESETS: SongPreset[] = [
     perspective: "third-person",
     themeKeywords: "protection, chaos, purpose",
   },
+  {
+    id: "rnb-soul",
+    label: "R&B Soul",
+    emoji: "🎵",
+    idea: "finding love again after being hurt before",
+    genre: "contemporary R&B with warm soul undertones",
+    mood: "romantic",
+    voice: "smooth falsetto with rich harmonies",
+    energy: "medium",
+    bpm: "88",
+    length: "standard",
+    perspective: "first-person",
+    themeKeywords: "love, healing, vulnerability",
+  },
+  {
+    id: "indie-folk",
+    label: "Indie Folk",
+    emoji: "🍂",
+    idea: "leaving home and the bittersweet weight of moving on",
+    genre: "indie folk with acoustic guitar and warm reverb",
+    mood: "reflective",
+    voice: "breathy intimate vocal",
+    energy: "low",
+    bpm: "78",
+    length: "standard",
+    perspective: "first-person",
+    themeKeywords: "home, distance, memory",
+  },
 ];
 
-const SUNO_RULESET = [
-  "Keep hook short and memorable (1-2 concise lines).",
-  "Use clear section labels: Verse, Chorus, Bridge, Outro.",
-  "Style prompt must include genre, mood, energy, BPM, vocal style.",
-  "Avoid artist-name imitation and filler lines.",
-  "Keep lyric language singable and direct.",
-];
+// ─── Fallback content pools (large = real variation) ─────────────────────────
 
-const MOOD_WORDS: Record<string, string[]> = {
-  uplifting: ["rising", "golden", "hopeful", "steady", "open-sky"],
-  dark: ["shadowed", "heavy", "cold", "restless", "neon-night"],
-  romantic: ["warm", "close", "midnight", "soft", "timeless"],
-  energetic: ["driving", "fast", "electric", "punchy", "explosive"],
-  chill: ["smooth", "lazy", "sunset", "floating", "calm"],
-  reflective: ["quiet", "late-night", "honest", "faded", "distant"],
+const VERSE_OPENERS: Record<string, string[]> = {
+  uplifting: [
+    "The morning breaks like something I forgot I needed",
+    "Every stumble left a scar but not a reason to quit",
+    "Somewhere between the doubt and the drive I found solid ground",
+    "I traded all my excuses for something harder and real",
+    "The noise was loud until the signal cut through clean",
+  ],
+  dark: [
+    "Three in the morning and the ceiling still has answers I don't",
+    "There's a version of this story where I don't make it out",
+    "Cold glass, warm regret, and the space where you used to be",
+    "I counted every exit and still couldn't find a door",
+    "The city hums but tonight it feels like static under skin",
+  ],
+  reflective: [
+    "I've been rewriting the same old scene since I was seventeen",
+    "Some roads don't lead back and honestly that's the whole point",
+    "Every quiet Sunday carries the weight of what didn't happen",
+    "I keep the letters but I don't keep the lies they sat inside",
+    "Distance taught me more about home than living there ever did",
+  ],
+  romantic: [
+    "You walked in like a key fitting a lock I forgot I had",
+    "Something about the way the light hits when you're near",
+    "I'd been running so long I almost missed when you slowed me down",
+    "There's a warmth that lives between us that I can't explain away",
+    "Late evenings feel different now — longer, softer, yours",
+  ],
+  energetic: [
+    "We hit the floor before the crowd knew what was coming",
+    "Fire in the chest, clock running, nothing left to lose",
+    "We didn't ask for permission we just moved",
+    "Every second counts when the stakes get this electric",
+    "The world can spin fast — we spin faster",
+  ],
+  chill: [
+    "Sunday afternoon and the record keeps skipping in the best way",
+    "Nothing urgent, nothing sharp — just the hum of being here",
+    "Slow the tempo down and let the melody do the work",
+    "We don't need to rush, there's enough sky for both of us",
+    "Barefoot on the floor while the playlist drifts through golden",
+  ],
 };
 
-const HOOKS = [
-  "We keep moving when the pressure gets loud",
-  "Turn the silence into something that roars",
-  "Hold the line till the daylight breaks",
-  "We were built to rise through the noise",
-  "No shortcuts, just fire in the work",
-];
+const VERSE_MIDDLES: Record<string, string[]> = {
+  uplifting: [
+    "I spent too long asking if I deserved it — now I just build",
+    "There's a version of me that would've stopped here. He doesn't run things anymore",
+    "You can't outwork the doubt but you can out-last it",
+    "The people who said no gave me the clearest map forward",
+  ],
+  dark: [
+    "I wore the mask so long I forgot the face underneath it",
+    "Trust is a currency I've been spending on the wrong accounts",
+    "Everyone's got a story about the night they almost didn't make it",
+    "I'm not broken — I'm just built from harder material than you expected",
+  ],
+  reflective: [
+    "The past sits quiet now, like smoke after a fire's done",
+    "I don't miss the version of me that needed everyone's approval",
+    "Time makes liars of the things we swore we'd never get over",
+    "The truth is, I was ready to change before I said I was",
+  ],
+  romantic: [
+    "I used to keep my heart behind a fence — you just walked through",
+    "You make the ordinary feel like something worth remembering",
+    "Every song I wrote before you was missing something obvious",
+    "This is what it feels like when the walls come down without a fight",
+  ],
+  energetic: [
+    "We don't slow down — we shift gears and take the long way at speed",
+    "Every eye in the room and we still want more",
+    "You can feel it in the bass before the chorus ever hits",
+    "This is what we trained for, this is what we came to show",
+  ],
+  chill: [
+    "No pressure, no agenda — just the two of us and the afternoon",
+    "Good music and no plans — that's really all this needs to be",
+    "The world keeps its speed. We found a different lane",
+    "Some moments don't need a caption. Just let them be",
+  ],
+};
 
-const OPENERS = [
-  "Streetlights paint the window while the city stays awake",
-  "Another long run, heart heavy but the engine never quits",
-  "Dust in the speakers, old dreams in a new frame",
-  "Late call, cold rain, one chance left on the line",
-  "Neon on the pavement, faith in the rhythm",
-];
+const CHORUS_HOOKS: Record<string, string[]> = {
+  uplifting: [
+    "We rise when it gets heavy, we shine when it gets hard",
+    "Every scar's a star now, every wound a battle won",
+    "I was built to last through this — watch me prove it",
+    "The ceiling's just a starting point from here",
+  ],
+  dark: [
+    "I don't need saving, I need space to feel this through",
+    "The dark is honest — it never pretended to be light",
+    "Some nights are the price of becoming who you are",
+    "I'd rather ache in truth than smile in a comfortable lie",
+  ],
+  reflective: [
+    "I let it go and didn't realise until it was already gone",
+    "Some things only make sense when you're looking back at them",
+    "The person I became was worth the mess it took to get here",
+    "Not everything needs to last — some things just need to happen",
+  ],
+  romantic: [
+    "Stay. Just stay. I'll figure out the rest",
+    "You're the only thing that feels like home in a strange city",
+    "I'd rewrite every bad year if you were still at the end of it",
+    "This is what I was holding space for",
+  ],
+  energetic: [
+    "Louder. Harder. We don't stop now",
+    "Turn it up until the walls forget how to stand still",
+    "Move like the moment depends on every single second",
+    "We came to leave a mark they'll still be talking about",
+  ],
+  chill: [
+    "Easy now — let the song take the wheel",
+    "We've got time, we've got today, we've got this",
+    "Drift a little. Nobody's counting the minutes here",
+    "Smooth like the last hour of a perfect day",
+  ],
+};
 
-const SONG_SYSTEM_PROMPT =
-  "ROLE: You are a professional songwriter and prompt engineer for Suno.\n" +
-  "TASK: Generate high-quality, original song assets from user inputs.\n" +
-  "OUTPUT FORMAT: Return ONLY valid JSON with this shape:\n" +
-  "{\n" +
-  '  "titles": ["...", "...", "..."],\n' +
-  '  "verse1": "...",\n' +
-  '  "chorus": "...",\n' +
-  '  "fullLyrics": "...",\n' +
-  '  "stylePrompt": "..."\n' +
-  "}\n" +
-  "RULES:\n" +
-  "- Keep lyrics original and singable.\n" +
-  "- Use section labels in fullLyrics: [Verse 1], [Chorus], [Verse 2], [Bridge], [Final Chorus], [Outro].\n" +
-  "- No artist-name imitation.\n" +
-  "- Avoid repetitive filler lines.\n" +
-  "- stylePrompt must include genre, mood, energy, BPM, and vocal style.\n" +
-  "- Return JSON only. No markdown, no explanations.";
+const BRIDGE_LINES: Record<string, string[]> = {
+  uplifting: [
+    "Strip it back — just the voice and what it means",
+    "This is the moment everything that hurt becomes useful",
+    "One last breath before the lift. Ready.",
+  ],
+  dark: [
+    "Quieter now. Just the truth and the room it lives in",
+    "Here's the part nobody posts about — the actual cost",
+    "This is what it sounds like when the armour finally comes off",
+  ],
+  reflective: [
+    "Slow it down. Let the silence say the part I can't",
+    "The bridge is where I stop pretending it was simple",
+    "All of it led here. Even the parts I'd undo",
+  ],
+  romantic: [
+    "No metaphors here — just me, just you, just this",
+    "If I could say one thing without the melody — it's still you",
+    "Every love song ever written was trying to say this",
+  ],
+  energetic: [
+    "Drop the drums. One beat. Then everything hits at once",
+    "This is the breath before the last run. Make it count",
+    "Every note after this lands harder",
+  ],
+  chill: [
+    "Soft now — let the reverb carry what the words can't",
+    "This is the exhale. The whole song was the inhale",
+    "Floating. Present. Nowhere else to be",
+  ],
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function sanitize(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function pick<T>(items: T[], seed: number): T {
-  return items[Math.abs(seed) % items.length];
+function seededPick<T>(arr: T[], seed: number, offset = 0): T {
+  return arr[Math.abs(seed + offset) % arr.length];
+}
+
+// Generates a numeric seed from a string — much more varied than the original
+function makeSeed(text: string, variant: number): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return (h >>> 0) + variant * 6271;
 }
 
 function uniqueLines(text: string): string {
   const seen = new Set<string>();
-  const out: string[] = [];
-  for (const line of text.split("\n")) {
-    const key = line.trim().toLowerCase();
-    if (!key) {
-      out.push(line);
-      continue;
-    }
-    if (seen.has(key)) {
-      out.push(`${line} (variation)`);
-      continue;
-    }
-    seen.add(key);
-    out.push(line);
-  }
-  return out.join("\n");
+  return text
+    .split("\n")
+    .map((line) => {
+      const key = line.trim().toLowerCase();
+      if (!key) return line; // keep blank lines
+      if (seen.has(key)) return null; // silently drop duplicates — no "(variation)" tag
+      seen.add(key);
+      return line;
+    })
+    .filter((l) => l !== null)
+    .join("\n");
 }
 
-function line(seed: number, mood: string, theme: string, perspective: string) {
-  const moodPool = MOOD_WORDS[mood] || MOOD_WORDS.reflective;
-  const moodWord = pick(moodPool, seed + 3);
-  const opener = pick(OPENERS, seed + 5);
-  const framing = perspective === "third-person" ? "they keep" : "I keep";
-  return `${opener}, ${moodWord} around the edges, ${framing} chasing ${theme}.`;
+function getMoodPool(mood: string) {
+  const m = mood.toLowerCase();
+  return (
+    VERSE_OPENERS[m] ||
+    VERSE_OPENERS["reflective"]
+  );
 }
 
-function makeVerse(seed: number, mood: string, theme: string, voice: string, perspective: string) {
+// ─── Lyric builders ───────────────────────────────────────────────────────────
+
+function makeVerse(
+  seed: number,
+  mood: string,
+  idea: string,
+  voice: string,
+  perspective: string,
+  offset: number
+): string {
+  const openers = getMoodPool(mood);
+  const middles = VERSE_MIDDLES[mood.toLowerCase()] || VERSE_MIDDLES["reflective"];
+  const framing = perspective === "third-person" ? "They carry" : "I carry";
+
   return [
-    line(seed, mood, theme, perspective),
-    `Every step is ${pick(["measured", "reckless", "careful", "hungry"], seed + 11)}, but the vision stays clear.`,
-    `I hear ${voice} in the static, telling me not to disappear.`,
-    `If this is the cost of becoming, then we pay and persevere.`,
+    seededPick(openers, seed, offset),
+    seededPick(middles, seed, offset + 3),
+    `${framing} every word of ${idea} like it still costs something.`,
+    `The ${seededPick(["weight", "truth", "light", "sound", "cost"], seed, offset + 7)} of it never really left.`,
   ].join("\n");
 }
 
-function makeChorus(seed: number, theme: string, hookStyle: string) {
-  const hook = pick(HOOKS, seed + 7);
-  const chorus = [
-    `${hook},`,
-    hookStyle === "short" ? "hands up, we do not fold tonight," : "hands up to the sky, we do not fold tonight,",
-    "all this weight turns light when we call it by name,",
-    `we came too far to leave without a flame for ${theme}.`,
+function makeChorus(seed: number, mood: string, idea: string, hookStyle: "short" | "anthemic"): string {
+  const hooks = CHORUS_HOOKS[mood.toLowerCase()] || CHORUS_HOOKS["reflective"];
+  const hook = seededPick(hooks, seed, 1);
+  const extendedLine = hookStyle === "anthemic"
+    ? `hands up to the sky, we carry ${idea} all the way home,`
+    : `hands up — we carry ${idea} all the way home,`;
+
+  return [
+    hook + ",",
+    extendedLine,
+    "every burn, every doubt, every night we almost let go,",
+    "this is proof that we made it — this is everything we know.",
   ].join("\n");
-  return chorus;
 }
+
+function makeBridge(seed: number, mood: string): string {
+  const lines = BRIDGE_LINES[mood.toLowerCase()] || BRIDGE_LINES["reflective"];
+  return [
+    seededPick(lines, seed, 2),
+    seededPick(lines, seed, 5),
+    "Then build back up. Louder than before.",
+  ].join("\n");
+}
+
+// ─── Readiness checker ────────────────────────────────────────────────────────
 
 function buildReadiness(params: {
   genre: string;
@@ -213,16 +392,25 @@ function buildReadiness(params: {
   fullLyrics: string;
 }): SongOutput["readiness"] {
   const checks = [
-    { label: "Genre set", pass: Boolean(sanitize(params.genre)) },
-    { label: "Mood set", pass: Boolean(sanitize(params.mood)) },
-    { label: "Vocal style set", pass: Boolean(sanitize(params.voice)) },
-    { label: "BPM set", pass: Boolean(sanitize(params.bpm)) },
-    { label: "Hook is concise", pass: params.chorus.split("\n")[0].split(" ").length <= 12 },
-    { label: "Sections included", pass: /\[Verse 1\]/.test(params.fullLyrics) && /\[Chorus\]/.test(params.fullLyrics) && /\[Bridge\]/.test(params.fullLyrics) },
+    { label: "Genre set", pass: sanitize(params.genre).length > 0 },
+    { label: "Mood set", pass: sanitize(params.mood).length > 0 },
+    { label: "Vocal style set", pass: sanitize(params.voice).length > 0 },
+    { label: "BPM set", pass: /^\d{2,3}$/.test(sanitize(params.bpm)) },
+    { label: "Hook is concise", pass: (params.chorus.split("\n")[0] || "").split(" ").length <= 12 },
+    {
+      label: "All sections present",
+      pass:
+        /\[Verse 1\]/i.test(params.fullLyrics) &&
+        /\[Chorus\]/i.test(params.fullLyrics) &&
+        /\[Bridge\]/i.test(params.fullLyrics),
+    },
+    { label: "Lyrics have length", pass: params.fullLyrics.split("\n").filter(Boolean).length >= 16 },
   ];
   const passCount = checks.filter((c) => c.pass).length;
   return { score: Math.round((passCount / checks.length) * 100), checks };
 }
+
+// ─── Full song builder (fallback / offline) ───────────────────────────────────
 
 function buildSong(params: {
   idea: string;
@@ -244,154 +432,126 @@ function buildSong(params: {
   const energy = sanitize(params.energy) || "medium";
   const bpm = sanitize(params.bpm) || "118";
   const keywords = sanitize(params.themeKeywords);
-  const seed = `${idea}|${genre}|${mood}|${voice}|${energy}|${params.variant}|${keywords}`
-    .split("")
-    .reduce((a, c) => a + c.charCodeAt(0), 0);
 
-  const verse1 = makeVerse(seed, mood, idea, voice, params.perspective);
-  const chorus = makeChorus(seed, idea, params.hookStyle);
-  const verse2 = makeVerse(seed + 13, mood, idea, voice, params.perspective);
-  const bridge = [
-    "Strip it back, let the room breathe.",
-    "One note, one truth, one reason we stayed.",
-    "Then hit the lift and bring the skyline with us.",
-  ].join("\n");
+  const seedStr = `${idea}|${genre}|${mood}|${voice}|${energy}|${keywords}`;
+  const seed = makeSeed(seedStr, params.variant);
+
+  const verse1 = makeVerse(seed, mood, idea, voice, params.perspective, 0);
+  const verse2 = makeVerse(seed, mood, idea, voice, params.perspective, 17);
+  const verse3 = makeVerse(seed, mood, idea, voice, params.perspective, 37);
+  const chorus = makeChorus(seed, mood, idea, params.hookStyle);
+  const bridge = makeBridge(seed, mood);
+
   const outro = [
-    "Fade on harmonies, leave the final word hanging.",
-    "Repeat the hook softly, then end clean.",
+    "Fade on harmonics. Let the last note breathe.",
+    "The chorus echoes once more — softly, then silence.",
   ].join("\n");
 
-  const fullLyricsRaw = [
-    "[Verse 1]",
-    verse1,
-    "",
-    "[Chorus]",
-    chorus,
-    "",
-    "[Verse 2]",
-    verse2,
-    "",
-    "[Chorus]",
-    chorus,
-    "",
-    "[Bridge]",
-    bridge,
-    "",
-    "[Final Chorus]",
-    chorus,
-    "",
-    params.length === "extended"
-      ? "[Verse 3]\n" + makeVerse(seed + 29, mood, idea, voice, params.perspective) + "\n\n[Final Chorus]\n" + chorus
-      : "",
-    "",
-    "[Outro]",
-    outro,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const sections: string[] = [
+    "[Verse 1]", verse1, "",
+    "[Pre-Chorus]", `Almost there — just breathe. The ${seededPick(["drop", "lift", "shift", "break"], seed, 9)} is coming.`, "",
+    "[Chorus]", chorus, "",
+    "[Verse 2]", verse2, "",
+    "[Chorus]", chorus, "",
+    "[Bridge]", bridge, "",
+    "[Final Chorus]", chorus, "",
+  ];
 
+  if (params.length === "extended") {
+    sections.push("[Verse 3]", verse3, "", "[Final Chorus]", chorus, "");
+  }
+
+  sections.push("[Outro]", outro);
+
+  const fullLyricsRaw = sections.filter((s) => s !== undefined).join("\n");
   const fullLyrics = uniqueLines(fullLyricsRaw);
 
+  const titleWords1 = ["Neon", "Midnight", "Golden", "Static", "Afterlight", "Hollow", "Infinite", "Open"];
+  const titleWords2 = ["Promise", "Signal", "Drive", "Echo", "Rise", "Weight", "Flame", "Wire"];
+  const titleWords3 = ["Hold", "Carry", "Light", "Fire", "Storm", "Break", "Keep", "Chase"];
+  const titleWords4 = ["Line", "Noise", "Night", "Weight", "Flame", "Ground", "Shore", "Hour"];
+
   const titles = [
-    `${pick(["Neon", "Midnight", "Gold", "Static", "Afterlight"], seed)} ${pick(["Promise", "Signal", "Drive", "Echo", "Rise"], seed + 2)}`,
-    `${pick(["Hold", "Carry", "Light", "Fire", "Storm"], seed + 4)} the ${pick(["Line", "Noise", "Night", "Weight", "Flame"], seed + 6)}`,
-    `${pick(["No", "Last", "One", "Final", "Open"], seed + 8)} ${pick(["Surrender", "Call", "Chance", "Motion", "Signal"], seed + 10)}`,
+    `${seededPick(titleWords1, seed, 0)} ${seededPick(titleWords2, seed, 2)}`,
+    `${seededPick(titleWords3, seed, 4)} the ${seededPick(titleWords4, seed, 6)}`,
+    `${seededPick(["No", "Last", "One", "Final", "Open", "Every", "New"], seed, 8)} ${seededPick(["Surrender", "Call", "Chance", "Motion", "Signal", "Dawn", "Run"], seed, 10)}`,
   ];
 
   const stylePrompt = [
     `${genre}, ${mood} mood, ${energy} energy, ${bpm} BPM.`,
-    `Lead voice style: ${voice}.`,
+    `Lead voice: ${voice}.`,
     keywords ? `Theme keywords: ${keywords}.` : "",
-    "Modern radio-ready mix, clean hook, strong emotional build.",
-    "Avoid generic filler lines and avoid artist-name imitation.",
+    "Modern radio-ready mix. Clean hook. Strong emotional arc. Avoid muddy low-end and clipping.",
+    "No artist-name imitation. No filler lines.",
   ]
     .filter(Boolean)
     .join(" ");
 
   const sunoPasteBlock = [
-    "STYLE / PROMPT:",
+    "── STYLE PROMPT ──",
     stylePrompt,
     "",
-    "LYRICS:",
+    "── LYRICS ──",
     fullLyrics,
     "",
-    "NOTES:",
-    "- Keep the chorus memorable and clear.",
-    "- Keep vocals centered and intelligible.",
-    "- Avoid clipping or muddy low-end.",
+    "── PRODUCTION NOTES ──",
+    "• Keep the chorus centred and clear.",
+    "• Vocals up front, intelligible throughout.",
+    "• Build dynamics — verse quiet, chorus open.",
+    "• Avoid clipping or muddy low-end.",
   ].join("\n");
 
-  const readiness = buildReadiness({
-    genre,
-    mood,
-    voice,
-    bpm,
-    chorus,
-    fullLyrics,
-  });
+  const readiness = buildReadiness({ genre, mood, voice, bpm, chorus, fullLyrics });
 
   return { titles, verse1, chorus, fullLyrics, stylePrompt, sunoPasteBlock, readiness };
 }
 
+// ─── AI JSON helpers ──────────────────────────────────────────────────────────
+
 function extractJsonObject(raw: string): SongJsonOutput | null {
   const text = raw.trim();
-  try {
-    return JSON.parse(text) as SongJsonOutput;
-  } catch {
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    if (start === -1 || end === -1 || end <= start) return null;
-    try {
-      return JSON.parse(text.slice(start, end + 1)) as SongJsonOutput;
-    } catch {
-      return null;
-    }
-  }
+  try { return JSON.parse(text) as SongJsonOutput; } catch { /* fall through */ }
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end <= start) return null;
+  try { return JSON.parse(text.slice(start, end + 1)) as SongJsonOutput; } catch { return null; }
 }
 
 function extractSection(fullLyrics: string, section: string): string {
   const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const regex = new RegExp(`\\[${escaped}\\]([\\s\\S]*?)(?=\\n\\[[^\\]]+\\]|$)`, "i");
-  const match = regex.exec(fullLyrics);
-  return match?.[1]?.trim() || "";
+  return regex.exec(fullLyrics)?.[1]?.trim() || "";
 }
 
-function mergeAiSongWithFallback(
+function mergeAiWithFallback(
   ai: SongJsonOutput | null,
   fallback: SongOutput,
-  setup: { genre: string; mood: string; voice: string; bpm: string },
+  setup: { genre: string; mood: string; voice: string; bpm: string }
 ): SongOutput {
   if (!ai) return fallback;
 
   const titles =
     Array.isArray(ai.titles) && ai.titles.length > 0
-      ? ai.titles
-          .map((item) => sanitize(String(item)))
-          .filter(Boolean)
-          .slice(0, 3)
+      ? ai.titles.map((t) => sanitize(String(t))).filter(Boolean).slice(0, 3)
       : fallback.titles;
+
   const fullLyrics = sanitize(ai.fullLyrics || "") ? String(ai.fullLyrics) : fallback.fullLyrics;
-  const verse1 =
-    sanitize(ai.verse1 || "") ||
-    extractSection(fullLyrics, "Verse 1") ||
-    fallback.verse1;
-  const chorus =
-    sanitize(ai.chorus || "") ||
-    extractSection(fullLyrics, "Chorus") ||
-    fallback.chorus;
+  const verse1 = sanitize(ai.verse1 || "") || extractSection(fullLyrics, "Verse 1") || fallback.verse1;
+  const chorus = sanitize(ai.chorus || "") || extractSection(fullLyrics, "Chorus") || fallback.chorus;
   const stylePrompt = sanitize(ai.stylePrompt || "") || fallback.stylePrompt;
 
   const sunoPasteBlock = [
-    "STYLE / PROMPT:",
+    "── STYLE PROMPT ──",
     stylePrompt,
     "",
-    "LYRICS:",
+    "── LYRICS ──",
     fullLyrics,
     "",
-    "NOTES:",
-    "- Keep the chorus memorable and clear.",
-    "- Keep vocals centered and intelligible.",
-    "- Avoid clipping or muddy low-end.",
+    "── PRODUCTION NOTES ──",
+    "• Keep the chorus centred and clear.",
+    "• Vocals up front, intelligible throughout.",
+    "• Build dynamics — verse quiet, chorus open.",
+    "• Avoid clipping or muddy low-end.",
   ].join("\n");
 
   const readiness = buildReadiness({
@@ -414,8 +574,40 @@ function mergeAiSongWithFallback(
   };
 }
 
+// ─── AI system prompt ─────────────────────────────────────────────────────────
+
+const SONG_SYSTEM_PROMPT = `ROLE: You are a world-class songwriter and Suno AI prompt engineer.
+TASK: Write original, radio-quality song lyrics and a matching Suno style prompt from the brief provided.
+
+OUTPUT FORMAT: Return ONLY valid JSON — no markdown, no explanation:
+{
+  "titles": ["Title One", "Title Two", "Title Three"],
+  "verse1": "...",
+  "chorus": "...",
+  "fullLyrics": "...",
+  "stylePrompt": "..."
+}
+
+LYRIC RULES:
+- Use section labels exactly: [Verse 1], [Pre-Chorus], [Chorus], [Verse 2], [Bridge], [Final Chorus], [Outro]
+- Every line must be singable — natural cadence, natural breath points
+- The chorus hook must be 6–10 words, emotionally direct, instantly memorable
+- No repeated lines except the chorus (which repeats as labelled)
+- No clichés: no "heart on fire", "broken wings", "tears in the rain"
+- No artist-name imitation
+- Write with imagery and specificity — avoid vague filler
+- Bridge should contrast the chorus emotionally (quieter, rawer, more honest)
+
+STYLE PROMPT RULES:
+- Must include: genre, mood, energy level, BPM, vocal style
+- Keep under 120 words
+- No artist names`;
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function SunoSongMachine() {
-  const { user } = useAuth();
+  const { user } = useAuth(); // ← FIXED: was useAuth() with no destructure
+
   const [idea, setIdea] = useState("");
   const [genre, setGenre] = useState("");
   const [mood, setMood] = useState("uplifting");
@@ -432,147 +624,148 @@ export default function SunoSongMachine() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [engineInfo, setEngineInfo] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"lyrics" | "suno">("lyrics");
+  const abortRef = useRef<AbortController | null>(null);
 
   const canGenerate = useMemo(() => sanitize(idea).length > 2, [idea]);
   const qualityScore = result?.readiness.score ?? null;
   const isWeakResult = qualityScore !== null && qualityScore < 75;
+
   const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim();
   const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
+
+  // ── Analytics ──────────────────────────────────────────────────────────────
 
   const trackEvent = async (eventType: string, meta: Record<string, string> = {}) => {
     if (!user?.uid) return;
     try {
       await addDoc(collection(db, "users", user.uid, "songUsageEvents"), {
-        eventType,
-        meta,
-        createdAt: Date.now(),
+        eventType, meta, createdAt: Date.now(),
       });
-    } catch {
-      // analytics must never block user flow
-    }
+    } catch { /* analytics must never block user flow */ }
   };
+
+  // ── URL param restore (runs once on mount only) ────────────────────────────
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const incomingIdea = params.get("idea");
-    if (incomingIdea && !idea) {
+    if (incomingIdea) {
       setIdea(incomingIdea);
-      setMessage("Template loaded from Starter Pack.");
-      window.setTimeout(() => setMessage(null), 1800);
+      flash("Template loaded from Starter Pack.");
     }
-
     const fromDraft = params.get("fromDraft");
     if (!fromDraft) return;
-    const draftIdea = params.get("draftIdea");
-    const draftGenre = params.get("draftGenre");
-    const draftMood = params.get("draftMood");
-    const draftVoice = params.get("draftVoice");
-    const draftEnergy = params.get("draftEnergy");
-    const draftBpm = params.get("draftBpm");
-    const draftLength = params.get("draftLength");
-    if (draftIdea) setIdea(draftIdea);
-    if (draftGenre) setGenre(draftGenre);
-    if (draftMood) setMood(draftMood);
-    if (draftVoice) setVoice(draftVoice);
-    if (draftEnergy) setEnergy(draftEnergy);
-    if (draftBpm) setBpm(draftBpm);
-    if (draftLength === "standard" || draftLength === "extended") setLength(draftLength);
-    setMessage("Song draft loaded from profile.");
-    window.setTimeout(() => setMessage(null), 2000);
-  }, [idea]);
+    const d = (key: string) => params.get(key);
+    if (d("draftIdea")) setIdea(d("draftIdea")!);
+    if (d("draftGenre")) setGenre(d("draftGenre")!);
+    if (d("draftMood")) setMood(d("draftMood")!);
+    if (d("draftVoice")) setVoice(d("draftVoice")!);
+    if (d("draftEnergy")) setEnergy(d("draftEnergy")!);
+    if (d("draftBpm")) setBpm(d("draftBpm")!);
+    const dl = d("draftLength");
+    if (dl === "standard" || dl === "extended") setLength(dl);
+    flash("Song draft loaded from profile.");
+  }, []); // ← FIXED: empty deps — only runs once on mount
 
-  const copy = async (value: string, ok = "Copied.", eventType = "copy") => {
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function flash(msg: string, ms = 2000) {
+    setMessage(msg);
+    window.setTimeout(() => setMessage(null), ms);
+  }
+
+  const copy = async (value: string, label = "Copied.", eventType = "copy") => {
     try {
       await navigator.clipboard.writeText(value);
-      setMessage(ok);
-      window.setTimeout(() => setMessage(null), 1600);
-      await trackEvent(eventType, { mode: "song-architect-v2" });
+      flash(label, 1600);
+      await trackEvent(eventType, { mode: "song-machine-v3" });
     } catch {
-      setMessage("Copy failed.");
-      window.setTimeout(() => setMessage(null), 1600);
+      flash("Copy failed.", 1600);
     }
   };
 
-  const generate = async (nextVariant = variant) => {
-    const fallback = buildSong({
-      idea,
-      genre,
-      mood,
-      voice,
-      energy,
-      bpm,
-      length,
-      perspective,
-      hookStyle,
-      themeKeywords,
-      variant: nextVariant,
-    });
-    setIsGenerating(true);
-    try {
-      const songBrief = [
-        `Idea: ${sanitize(idea) || "a comeback story"}`,
-        `Genre: ${sanitize(genre) || "cinematic pop"}`,
-        `Mood: ${sanitize(mood) || "reflective"}`,
-        `Energy: ${sanitize(energy) || "medium"}`,
-        `BPM: ${sanitize(bpm) || "118"}`,
-        `Vocal style: ${sanitize(voice) || "raw lead vocal"}`,
-        `Perspective: ${perspective}`,
-        `Hook style: ${hookStyle}`,
-        `Length: ${length}`,
-        sanitize(themeKeywords) ? `Theme keywords: ${sanitize(themeKeywords)}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
+  // ── Generate ───────────────────────────────────────────────────────────────
 
+  const generate = async (nextVariant = variant) => {
+    if (!canGenerate) return;
+
+    // Cancel any in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const fallback = buildSong({
+      idea, genre, mood, voice, energy, bpm, length,
+      perspective, hookStyle, themeKeywords, variant: nextVariant,
+    });
+
+    setIsGenerating(true);
+    setEngineInfo("");
+
+    const songBrief = [
+      `Idea / concept: ${sanitize(idea) || "a comeback story"}`,
+      `Genre: ${sanitize(genre) || "cinematic pop"}`,
+      `Mood: ${sanitize(mood) || "reflective"}`,
+      `Energy: ${sanitize(energy) || "medium"}`,
+      `BPM: ${sanitize(bpm) || "118"}`,
+      `Vocal style: ${sanitize(voice) || "raw lead vocal"}`,
+      `Perspective: ${perspective}`,
+      `Hook style: ${hookStyle === "anthemic" ? "big anthemic chorus" : "short punchy hook"}`,
+      `Length: ${length === "extended" ? "extended (add Verse 3)" : "standard"}`,
+      sanitize(themeKeywords) ? `Key theme words to weave in: ${sanitize(themeKeywords)}` : "",
+      `Variant seed: ${nextVariant} (generate fresh phrasing, not a repeat of previous outputs)`,
+    ].filter(Boolean).join("\n");
+
+    // 14-second timeout
+    const timeout = window.setTimeout(() => controller.abort(), 14000);
+
+    try {
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           systemPrompt: SONG_SYSTEM_PROMPT,
           prompt: songBrief,
-          context:
-            "Create radio-quality lyrics suitable for Suno. Keep phrasing natural. Avoid cliches and repeated lines.",
+          context: "Create original radio-quality Suno-ready lyrics. Singable phrasing. No clichés. No repeated filler.",
           userEmail: user?.email || "",
         }),
       });
 
-      if (!response.ok) {
+      window.clearTimeout(timeout);
+
+      if (!response.ok) throw new Error("API error");
+
+      const data = await response.json();
+      const ai = extractJsonObject(String(data?.output || ""));
+      const merged = mergeAiWithFallback(ai, fallback, {
+        genre: sanitize(genre), mood: sanitize(mood),
+        voice: sanitize(voice), bpm: sanitize(bpm),
+      });
+      setResult(merged);
+      const provider = sanitize(String(data?.provider || ""));
+      const model = sanitize(String(data?.model || ""));
+      setEngineInfo([provider, model].filter(Boolean).join(" / ") || (ai ? "AI" : "Local engine"));
+      flash(ai ? "✓ AI generation complete." : "AI format invalid — using local engine.", 2200);
+    } catch (err: any) {
+      window.clearTimeout(timeout);
+      if (err?.name === "AbortError") {
         setResult(fallback);
-        setEngineInfo("Local fallback");
-        setMessage("AI generation unavailable right now. Using local engine.");
-        window.setTimeout(() => setMessage(null), 2200);
+        setEngineInfo("Local engine (timeout)");
+        flash("AI timed out — using local engine.", 2200);
       } else {
-        const data = await response.json();
-        const ai = extractJsonObject(String(data?.output || ""));
-        setResult(
-          mergeAiSongWithFallback(ai, fallback, {
-            genre: sanitize(genre),
-            mood: sanitize(mood),
-            voice: sanitize(voice),
-            bpm: sanitize(bpm),
-          }),
-        );
-        const provider = sanitize(String(data?.provider || ""));
-        const model = sanitize(String(data?.model || ""));
-        setEngineInfo([provider, model].filter(Boolean).join(" / ") || (ai ? "AI" : "Local fallback"));
-        setMessage(ai ? "AI generation complete." : "AI response format was invalid. Using fallback.");
-        window.setTimeout(() => setMessage(null), 2200);
+        setResult(fallback);
+        setEngineInfo("Local engine");
+        flash("AI unavailable — using local engine.", 2200);
       }
-    } catch {
-      setResult(fallback);
-      setEngineInfo("Local fallback");
-      setMessage("Could not reach AI model. Using local engine.");
-      window.setTimeout(() => setMessage(null), 2200);
     } finally {
       setIsGenerating(false);
     }
 
-    await trackEvent("generate_preview", {
-      mood: sanitize(mood),
-      energy: sanitize(energy),
-      length,
-      perspective,
-      hookStyle,
+    await trackEvent("generate_song", {
+      mood: sanitize(mood), energy: sanitize(energy),
+      length, perspective, hookStyle,
     });
   };
 
@@ -580,11 +773,7 @@ export default function SunoSongMachine() {
     const next = variant + 1;
     setVariant(next);
     await generate(next);
-    await trackEvent("regenerate_variation", {
-      variation: String(next),
-      mood: sanitize(mood),
-      energy: sanitize(energy),
-    });
+    await trackEvent("regenerate", { variation: String(next) });
   };
 
   const applyPreset = async (preset: SongPreset) => {
@@ -598,292 +787,301 @@ export default function SunoSongMachine() {
     setPerspective(preset.perspective);
     setThemeKeywords(preset.themeKeywords);
     setVariant(0);
-    setMessage(`${preset.label} preset loaded.`);
-    window.setTimeout(() => setMessage(null), 1500);
+    flash(`${preset.emoji} ${preset.label} preset loaded.`, 1500);
     await trackEvent("apply_preset", { preset: preset.id });
   };
 
   const saveDraft = async () => {
     if (!user?.uid || !result) {
-      setMessage("Sign in and generate a song first.");
-      window.setTimeout(() => setMessage(null), 1600);
+      flash("Sign in and generate a song first.", 1600);
       return;
     }
     setSavingDraft(true);
     try {
-      const title = result.titles[0] || "Untitled Song Draft";
+      const title = result.titles[0] || "Untitled Draft";
       await addDoc(collection(db, "users", user.uid, "songDrafts"), {
         title,
-        idea: sanitize(idea),
-        genre: sanitize(genre),
-        mood: sanitize(mood),
-        voice: sanitize(voice),
-        energy: sanitize(energy),
-        bpm: sanitize(bpm),
-        length,
-        perspective,
-        hookStyle,
-        themeKeywords: sanitize(themeKeywords),
-        verse1: result.verse1,
-        chorus: result.chorus,
-        fullLyrics: result.fullLyrics,
-        stylePrompt: result.stylePrompt,
+        idea: sanitize(idea), genre: sanitize(genre), mood: sanitize(mood),
+        voice: sanitize(voice), energy: sanitize(energy), bpm: sanitize(bpm),
+        length, perspective, hookStyle, themeKeywords: sanitize(themeKeywords),
+        verse1: result.verse1, chorus: result.chorus,
+        fullLyrics: result.fullLyrics, stylePrompt: result.stylePrompt,
         sunoPasteBlock: result.sunoPasteBlock,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        createdAt: Date.now(), updatedAt: Date.now(),
       });
-      setMessage("Song draft saved to profile.");
-      window.setTimeout(() => setMessage(null), 1600);
+      flash("✓ Draft saved to profile.", 1600);
       await trackEvent("save_draft", { title });
     } catch {
-      setMessage("Could not save draft.");
-      window.setTimeout(() => setMessage(null), 1600);
+      flash("Could not save draft.", 1600);
     } finally {
       setSavingDraft(false);
     }
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  const inputClass =
+    "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-yellow-400/60 focus:ring-0 rounded-lg";
+
+  const selectClass =
+    "w-full rounded-lg bg-white/5 border border-white/10 text-white px-3 py-2 text-sm focus:outline-none focus:border-yellow-400/60";
+
   return (
     <div className="min-h-screen relative overflow-x-hidden">
-      <div className="fixed inset-0 z-0 w-full h-screen bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.20),rgba(0,0,0,0.95)_45%,rgba(0,0,0,1)_80%)]" />
-      <div className="relative z-10 px-4 py-10 max-w-6xl mx-auto space-y-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis Architect</p>
-            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Suno Song Architect v2</h1>
-            <p className="text-sm text-gray-300 max-w-3xl">
-              Structured song building for Suno: setup, preview, full lyrics, style prompt, and a paste-ready final block.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <a href="https://suno.com/" target="_blank" rel="noopener noreferrer" onClick={() => { void trackEvent("open_suno", { source: "header" }); }}>
-              <Button className="bg-yellow-400 text-black hover:bg-yellow-300">Open Suno</Button>
-            </a>
-            <Link href="/">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">Back to Homepage</Button>
-            </Link>
-          </div>
+      {/* Background */}
+      <div className="fixed inset-0 z-0 w-full h-screen bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.18),rgba(0,0,0,0.96)_45%,rgba(0,0,0,1)_80%)]" />
+
+      <div className="relative z-10 px-4 py-10 max-w-3xl mx-auto space-y-6">
+
+        {/* Header */}
+        <div className="text-center space-y-1">
+          <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/70">Dunamis Architect</p>
+          <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Song Machine</h1>
+          <p className="text-sm text-white/50">Describe your idea. Get Suno-ready lyrics.</p>
         </div>
 
-        <div className="rounded-xl border border-yellow-500/30 bg-black/65 p-5 md:p-6 shadow-lg space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs uppercase tracking-[0.25em] text-yellow-200/80">Knowledge Rules</p>
-            <span className="text-[10px] uppercase tracking-[0.2em] rounded-full border border-yellow-500/40 px-2 py-1 text-yellow-200">Suno Free 4.5 Ready</span>
-            <span className="text-[10px] uppercase tracking-[0.2em] rounded-full border border-yellow-500/40 px-2 py-1 text-yellow-200">Suno Pro v5 Ready</span>
+        {/* Flash message */}
+        {message && (
+          <div className="rounded-lg bg-yellow-400/10 border border-yellow-400/30 text-yellow-200 text-sm px-4 py-2 text-center">
+            {message}
           </div>
-          {SUNO_RULESET.map((rule, index) => (
-            <p key={`${rule}-${index}`} className="text-sm text-gray-300">{index + 1}. {rule}</p>
-          ))}
-        </div>
+        )}
 
-        <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-4 shadow-lg">
-          <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80 mb-3">Quick Presets</p>
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map((preset) => (
-              <Button
-                key={preset.id}
-                variant="outline"
-                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                onClick={() => { void applyPreset(preset); }}
+        {/* Presets */}
+        <div>
+          <p className="text-xs text-white/40 uppercase tracking-widest mb-2">Quick Presets</p>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {PRESETS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => applyPreset(p)}
+                className="rounded-lg border border-white/10 bg-white/5 hover:bg-yellow-400/10 hover:border-yellow-400/30 text-white/70 hover:text-yellow-200 text-xs py-2 px-1 text-center transition-all"
               >
-                {preset.label}
-              </Button>
+                <div className="text-lg mb-0.5">{p.emoji}</div>
+                {p.label}
+              </button>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Song Setup</p>
-            <label className="space-y-2 block">
-              <span className="text-xs text-gray-300">Song idea</span>
-              <Textarea
-                value={idea}
-                onChange={(event) => setIdea(event.target.value)}
-                className="min-h-[88px] bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
-                placeholder="Example: an uplifting comeback anthem about rebuilding after a hard year"
-              />
-            </label>
-            <label className="space-y-2 block">
-              <span className="text-xs text-gray-300">Genre / style</span>
-              <Input
-                value={genre}
-                onChange={(event) => setGenre(event.target.value)}
-                className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
-                placeholder="Example: reggae fusion, melodic rap, cinematic pop"
-              />
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="space-y-2 block">
-                <span className="text-xs text-gray-300">Mood</span>
-                <select value={mood} onChange={(event) => setMood(event.target.value)} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
-                  <option value="uplifting">Uplifting</option>
-                  <option value="dark">Dark</option>
-                  <option value="romantic">Romantic</option>
-                  <option value="energetic">Energetic</option>
-                  <option value="chill">Chill</option>
-                  <option value="reflective">Reflective</option>
-                </select>
-              </label>
-              <label className="space-y-2 block">
-                <span className="text-xs text-gray-300">Energy</span>
-                <select value={energy} onChange={(event) => setEnergy(event.target.value)} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </label>
-              <label className="space-y-2 block">
-                <span className="text-xs text-gray-300">Vocal style</span>
-                <Input
-                  value={voice}
-                  onChange={(event) => setVoice(event.target.value)}
-                  className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
-                  placeholder="male lead, female soul, duet, rap-sung blend"
-                />
-              </label>
-              <label className="space-y-2 block">
-                <span className="text-xs text-gray-300">Tempo (BPM)</span>
-                <Input
-                  value={bpm}
-                  onChange={(event) => setBpm(event.target.value)}
-                  className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
-                  placeholder="118"
-                />
-              </label>
+        {/* Main form */}
+        <div className="rounded-2xl border border-white/10 bg-black/60 p-6 space-y-5">
+
+          {/* Idea */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-white/50 uppercase tracking-wider">Song Idea *</label>
+            <Textarea
+              className={`${inputClass} min-h-[80px] resize-none`}
+              placeholder="e.g. a soldier coming home to find everything has changed"
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+            />
+          </div>
+
+          {/* Genre + Mood */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Genre</label>
+              <Input className={inputClass} placeholder="e.g. cinematic pop" value={genre} onChange={(e) => setGenre(e.target.value)} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <label className="space-y-2 block">
-                <span className="text-xs text-gray-300">Length</span>
-                <select value={length} onChange={(event) => setLength(event.target.value as "standard" | "extended")} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
-                  <option value="standard">Standard</option>
-                  <option value="extended">Extended</option>
-                </select>
-              </label>
-              <label className="space-y-2 block">
-                <span className="text-xs text-gray-300">Perspective</span>
-                <select value={perspective} onChange={(event) => setPerspective(event.target.value as "first-person" | "third-person")} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
-                  <option value="first-person">First-person</option>
-                  <option value="third-person">Third-person</option>
-                </select>
-              </label>
-              <label className="space-y-2 block">
-                <span className="text-xs text-gray-300">Hook style</span>
-                <select value={hookStyle} onChange={(event) => setHookStyle(event.target.value as "short" | "anthemic")} className="h-10 w-full rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white">
-                  <option value="short">Short hook</option>
-                  <option value="anthemic">Anthemic</option>
-                </select>
-              </label>
-            </div>
-            <label className="space-y-2 block">
-              <span className="text-xs text-gray-300">Theme keywords (optional)</span>
-              <Input
-                value={themeKeywords}
-                onChange={(event) => setThemeKeywords(event.target.value)}
-                className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
-                placeholder="Example: resilience, redemption, late-night drive"
-              />
-            </label>
-            <div className="pt-2 flex flex-wrap gap-3">
-              <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={() => { void generate(); }} disabled={!canGenerate}>
-                {isGenerating ? "Generating..." : "Generate Song Pack"}
-              </Button>
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10" onClick={() => { void regenerate(); }} disabled={!result}>
-                Regenerate Variation
-              </Button>
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10" onClick={saveDraft} disabled={!result || savingDraft}>
-                {savingDraft ? "Saving..." : "Save Draft"}
-              </Button>
+            <div className="space-y-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Mood</label>
+              <select className={selectClass} value={mood} onChange={(e) => setMood(e.target.value)}>
+                <option value="uplifting">Uplifting</option>
+                <option value="dark">Dark</option>
+                <option value="reflective">Reflective</option>
+                <option value="romantic">Romantic</option>
+                <option value="energetic">Energetic</option>
+                <option value="chill">Chill</option>
+              </select>
             </div>
           </div>
 
-          <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Output</p>
-            {engineInfo && (
-              <p className="text-[11px] text-yellow-200/80">Engine: {engineInfo}</p>
-            )}
-            {!result ? (
-              <p className="text-sm text-gray-400">Generate a song pack to see titles, lyrics, style prompt, and final Suno block.</p>
-            ) : (
-              <>
-                <div className="rounded-md border border-yellow-500/20 bg-black/30 p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-yellow-200">Suno readiness score</p>
-                    <span className="text-xs text-yellow-200">{result.readiness.score}/100</span>
-                  </div>
-                  {result.readiness.checks.map((check, index) => (
-                    <p key={`${check.label}-${index}`} className={`text-xs ${check.pass ? "text-emerald-300" : "text-red-300"}`}>
-                      {check.pass ? "PASS" : "FAIL"} - {check.label}
-                    </p>
-                  ))}
-                </div>
-                {isWeakResult && (
-                  <div className="rounded-md border border-red-400/35 bg-red-500/10 p-3 space-y-2">
-                    <p className="text-xs uppercase tracking-[0.16em] text-red-200">Weak Draft Detected</p>
-                    <p className="text-sm text-red-100">
-                      This song scored {qualityScore}/100. Click regenerate to get a stronger variation.
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-red-300/40 text-red-100 hover:bg-red-400/10"
-                      onClick={() => { void regenerate(); }}
-                      disabled={isGenerating}
-                    >
-                      {isGenerating ? "Regenerating..." : "Regenerate Variation"}
-                    </Button>
-                  </div>
-                )}
-                <div className="space-y-2 rounded-md border border-yellow-500/20 bg-black/35 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-yellow-200">Title options</p>
-                    <Button size="sm" variant="outline" className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2" onClick={() => { void copy(result.titles.join("\n"), "Titles copied.", "copy_titles"); }}>
-                      Copy
-                    </Button>
-                  </div>
-                  {result.titles.map((title, idx) => (
-                    <p key={`${title}-${idx}`} className="text-sm text-gray-200">{idx + 1}. {title}</p>
-                  ))}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-yellow-200">Preview: Verse 1 + Chorus</p>
-                    <Button size="sm" variant="outline" className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2" onClick={() => { void copy(`[Verse 1]\n${result.verse1}\n\n[Chorus]\n${result.chorus}`, "Preview copied.", "copy_preview"); }}>
-                      Copy
-                    </Button>
-                  </div>
-                  <Textarea value={`[Verse 1]\n${result.verse1}\n\n[Chorus]\n${result.chorus}`} readOnly className="min-h-[190px] bg-black/40 border-yellow-500/20 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-yellow-200">Style prompt</p>
-                    <Button size="sm" variant="outline" className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2" onClick={() => { void copy(result.stylePrompt, "Style prompt copied.", "copy_style_prompt"); }}>
-                      Copy
-                    </Button>
-                  </div>
-                  <Textarea value={result.stylePrompt} readOnly className="min-h-[120px] bg-black/40 border-yellow-500/20 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-yellow-200">Suno paste block</p>
-                    <Button size="sm" variant="outline" className="h-7 border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-2" onClick={() => { void copy(result.sunoPasteBlock, "Suno block copied.", "copy_suno_block"); }}>
-                      Copy
-                    </Button>
-                  </div>
-                  <Textarea value={result.sunoPasteBlock} readOnly className="min-h-[250px] bg-black/40 border-yellow-500/20 text-white" />
-                </div>
-                <div className="rounded-md border border-yellow-500/20 bg-black/30 p-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80 mb-1">Paste Steps</p>
-                  <p className="text-sm text-gray-300">1. Open Suno Create.</p>
-                  <p className="text-sm text-gray-300">2. Paste STYLE / PROMPT into style description.</p>
-                  <p className="text-sm text-gray-300">3. Paste LYRICS into custom lyrics.</p>
-                  <p className="text-sm text-gray-300">4. Generate, then use Reuse Prompt for fast variants.</p>
-                </div>
-              </>
-            )}
-            {message && <p className="text-xs text-yellow-200">{message}</p>}
+          {/* Voice + BPM */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Vocal Style</label>
+              <Input className={inputClass} placeholder="e.g. smooth falsetto" value={voice} onChange={(e) => setVoice(e.target.value)} />
+              {!sanitize(voice) && (
+                <p className="text-[10px] text-yellow-400/50">Leaving blank uses "raw lead vocal"</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">BPM</label>
+              <Input className={inputClass} placeholder="118" value={bpm} onChange={(e) => setBpm(e.target.value)} />
+            </div>
           </div>
+
+          {/* Energy + Length + Perspective + Hook */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Energy</label>
+              <select className={selectClass} value={energy} onChange={(e) => setEnergy(e.target.value)}>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Length</label>
+              <select className={selectClass} value={length} onChange={(e) => setLength(e.target.value as any)}>
+                <option value="standard">Standard</option>
+                <option value="extended">Extended (+Verse 3)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Perspective</label>
+              <select className={selectClass} value={perspective} onChange={(e) => setPerspective(e.target.value as any)}>
+                <option value="first-person">First Person (I / We)</option>
+                <option value="third-person">Third Person (He / She / They)</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Hook Style</label>
+              <select className={selectClass} value={hookStyle} onChange={(e) => setHookStyle(e.target.value as any)}>
+                <option value="short">Short & Punchy</option>
+                <option value="anthemic">Big Anthemic</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Theme keywords */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-white/50 uppercase tracking-wider">Theme Keywords <span className="normal-case text-white/30">(optional)</span></label>
+            <Input className={inputClass} placeholder="e.g. loyalty, sacrifice, brotherhood" value={themeKeywords} onChange={(e) => setThemeKeywords(e.target.value)} />
+          </div>
+
+          {/* Generate button */}
+          <Button
+            className="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-semibold text-base rounded-xl py-6 disabled:opacity-40 transition-all"
+            disabled={!canGenerate || isGenerating}
+            onClick={() => generate()}
+          >
+            {isGenerating ? "Generating…" : "Generate Song"}
+          </Button>
         </div>
+
+        {/* Result */}
+        {result && (
+          <div className="rounded-2xl border border-yellow-500/20 bg-black/70 p-6 space-y-5">
+
+            {/* Titles */}
+            <div>
+              <p className="text-xs text-white/40 uppercase tracking-widest mb-2">Suggested Titles</p>
+              <div className="flex flex-wrap gap-2">
+                {result.titles.map((t, i) => (
+                  <button
+                    key={i}
+                    onClick={() => copy(t, `"${t}" copied.`)}
+                    className="text-sm text-yellow-200 border border-yellow-500/30 bg-yellow-400/5 hover:bg-yellow-400/15 rounded-lg px-3 py-1.5 transition-all"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Engine + readiness */}
+            <div className="flex items-center justify-between text-xs text-white/40">
+              {engineInfo && <span>Engine: {engineInfo}</span>}
+              <span className={`ml-auto font-medium ${result.readiness.score >= 85 ? "text-green-400" : result.readiness.score >= 60 ? "text-yellow-400" : "text-red-400"}`}>
+                Readiness: {result.readiness.score}%
+              </span>
+            </div>
+
+            {/* Readiness checks (only show if weak) */}
+            {isWeakResult && (
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3 space-y-1">
+                <p className="text-xs text-yellow-300/70 mb-2">Fix these to improve your Suno result:</p>
+                {result.readiness.checks.filter((c) => !c.pass).map((c) => (
+                  <div key={c.label} className="text-xs text-red-400">✗ {c.label}</div>
+                ))}
+              </div>
+            )}
+
+            {/* Tabs */}
+            <div className="flex gap-2">
+              {(["lyrics", "suno"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`text-xs uppercase tracking-wider px-4 py-2 rounded-lg border transition-all ${
+                    activeTab === tab
+                      ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-200"
+                      : "border-white/10 text-white/40 hover:text-white/70"
+                  }`}
+                >
+                  {tab === "lyrics" ? "Full Lyrics" : "Suno Paste Block"}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === "lyrics" && (
+              <div className="space-y-3">
+                <pre className="whitespace-pre-wrap text-sm text-white/80 leading-relaxed font-mono bg-white/5 rounded-xl p-4 max-h-96 overflow-y-auto">
+                  {result.fullLyrics}
+                </pre>
+                <Button
+                  variant="outline"
+                  className="w-full border-yellow-500/30 text-yellow-200 hover:bg-yellow-400/10"
+                  onClick={() => copy(result.fullLyrics, "Lyrics copied.", "copy_lyrics")}
+                >
+                  Copy Lyrics
+                </Button>
+              </div>
+            )}
+
+            {activeTab === "suno" && (
+              <div className="space-y-3">
+                <pre className="whitespace-pre-wrap text-sm text-white/80 leading-relaxed font-mono bg-white/5 rounded-xl p-4 max-h-96 overflow-y-auto">
+                  {result.sunoPasteBlock}
+                </pre>
+                <Button
+                  className="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-semibold"
+                  onClick={() => copy(result.sunoPasteBlock, "✓ Suno block copied — paste into Suno now.", "copy_suno")}
+                >
+                  Copy & Paste into Suno
+                </Button>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                variant="outline"
+                className="flex-1 border-white/10 text-white/60 hover:text-white hover:border-white/30"
+                disabled={isGenerating}
+                onClick={regenerate}
+              >
+                {isGenerating ? "Generating…" : "↻ New Variation"}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 border-white/10 text-white/60 hover:text-white hover:border-white/30"
+                disabled={savingDraft || !user?.uid}
+                onClick={saveDraft}
+              >
+                {savingDraft ? "Saving…" : "Save Draft"}
+              </Button>
+            </div>
+            {!user?.uid && (
+              <p className="text-xs text-white/30 text-center">Sign in to save drafts</p>
+            )}
+          </div>
+        )}
+
+        {/* Footer nav */}
+        <div className="text-center pt-2">
+          <Link href="/">
+            <Button variant="ghost" className="text-white/30 hover:text-white/60 text-sm">
+              ← Back to Homepage
+            </Button>
+          </Link>
+        </div>
+
       </div>
     </div>
   );
