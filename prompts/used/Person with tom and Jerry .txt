@@ -1,0 +1,36 @@
+Person with tom and Jerry | realistic photograph
+
+
+Prompt:
+
+"image_generation":(
+
+"quality": "hyper-realistic",
+
+"face": ("preserve_original": true, "reference_match\'": true),
+
+"subject":{
+
+"description": "[Photo attached]",
+
+“clothing":{
+
+"Top": ("type": "T-Shirt", "color": "light grey (Tom Theme) ". }
+
+"pants": ("type": "Tracksuit Bottoms", "color": "Black".
+
+"shoes":("type": "high-top sneakers", "color": "white")
+
+"pose": "standing with arm around a giant 3D Tom while Jerry
+
+sits on Tom\'s shoulder",
+
+"expression": "fun, mischievous"
+
+"character_element":{
+
+"name": "Tom & Jerry",
+
+"type\': "3D photorealistic duo",
+
+"interaction\': "Tom poses confident

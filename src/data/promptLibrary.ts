@@ -1058,4 +1058,92 @@ Output style:
 - Clean photoreal render quality`,
     createdAt: 1771355033,
   },
+  {
+    id: "3d-city-in-map",
+    title: "3d City In Map",
+    category: "Other",
+    description: "3d City In Map",
+    tags: ["city"],
+    content: `“Create a stylish 2:3 poster featuring a miniature 3D model of [CITY HERE], showcasing its iconic landmarks bursting through a torn, horizontally laid world map. Integrate the city into the map seamlessly with realistic shadows and depth. Add a sleek white 3D text of the city name that blends naturally into the scene. Use dramatic camera perspective, crisp lighting, and a premium travel-poster aesthetic.”`,
+    createdAt: 1771456151,
+  },
+  {
+    id: "3d-cartoon-stickers",
+    title: "3d Cartoon Stickers",
+    category: "Other",
+    description: "Create a high-quality 3D cartoon stickers",
+    tags: ["cartoon", "stickers"],
+    content: `Create a high-quality 3D cartoon sticker collage featuring one same cute girl character based on the reference image.
+Character details:
+– Young girl, big expressive eyes
+– Round black glasses
+– Brown hair in messy twin pigtails
+– Oversized green knitted sweater
+– Cute, soft Pixar / Disney-style 3D look
+Sticker set requirements:
+– 20 different reactions & emotions
+– Each sticker shows a unique facial expression and hand gesture
+– Emotions include: happy, wink, thinking, confused, surprised (OMG), crying, laughing, heart hands, thumbs up, OK sign, idea bulb 💡, shocked, sad, angry, question mark, waving bye, pointing, shy smile, excited, facepalm
+Style & quality:
+– 3D emoji / WhatsApp sticker style
+– Smooth lighting, soft shadows
+– Clean white or transparent background
+– Sticker-cut outline around each character
+– Bright colors, ultra-sharp, high resolution
+Layout:
+– All stickers arranged neatly in one single collage image
+– Consistent character face (do not change identity)
+– Cute, playful, expressive mood`,
+    createdAt: 1771438813,
+  },
+  {
+    id: "pancake-face",
+    title: "Pancake Face",
+    category: "Other",
+    description: "A face made of a pancake",
+    tags: ["pancake", "face"],
+    content: `Create an image of a three-dimensional pancake in the shape of a real human face, garnished on top with blueberries and maple syrup.`,
+    createdAt: 1771450096,
+  },
+  {
+    id: "person-with-tom-and-jerry",
+    title: "Person with tom and Jerry",
+    category: "Other",
+    description: "realistic photograph",
+    tags: ["person", "jerry"],
+    content: `Prompt:
+
+"image_generation":(
+
+"quality": "hyper-realistic",
+
+"face": ("preserve_original": true, "reference_match\'": true),
+
+"subject":{
+
+"description": "[Photo attached]",
+
+“clothing":{
+
+"Top": ("type": "T-Shirt", "color": "light grey (Tom Theme) ". }
+
+"pants": ("type": "Tracksuit Bottoms", "color": "Black".
+
+"shoes":("type": "high-top sneakers", "color": "white")
+
+"pose": "standing with arm around a giant 3D Tom while Jerry
+
+sits on Tom\'s shoulder",
+
+"expression": "fun, mischievous"
+
+"character_element":{
+
+"name": "Tom & Jerry",
+
+"type\': "3D photorealistic duo",
+
+"interaction\': "Tom poses confident`,
+    createdAt: 1771439568,
+  },
 ];
