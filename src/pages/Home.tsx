@@ -311,6 +311,8 @@ export default function Home() {
     setVpnWarning(false);
     setWarningMessage(null);
     setFrameworkId("");
+    // When a prompt is loaded from library/detail pages, expose upload/context controls immediately.
+    setShowAdvancedOptions(true);
     clearPromptToLoad();
     if (optimizerRef.current) {
       optimizerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });

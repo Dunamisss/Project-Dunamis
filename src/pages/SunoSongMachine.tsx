@@ -20,6 +20,14 @@ type SongOutput = {
   };
 };
 
+type SongJsonOutput = {
+  titles?: string[];
+  verse1?: string;
+  chorus?: string;
+  fullLyrics?: string;
+  stylePrompt?: string;
+};
+
 type SongPreset = {
   id: string;
   label: string;
@@ -121,6 +129,25 @@ const OPENERS = [
   "Late call, cold rain, one chance left on the line",
   "Neon on the pavement, faith in the rhythm",
 ];
+
+const SONG_SYSTEM_PROMPT =
+  "ROLE: You are a professional songwriter and prompt engineer for Suno.\n" +
+  "TASK: Generate high-quality, original song assets from user inputs.\n" +
+  "OUTPUT FORMAT: Return ONLY valid JSON with this shape:\n" +
+  "{\n" +
+  '  "titles": ["...", "...", "..."],\n' +
+  '  "verse1": "...",\n' +
+  '  "chorus": "...",\n' +
+  '  "fullLyrics": "...",\n' +
+  '  "stylePrompt": "..."\n' +
+  "}\n" +
+  "RULES:\n" +
+  "- Keep lyrics original and singable.\n" +
+  "- Use section labels in fullLyrics: [Verse 1], [Chorus], [Verse 2], [Bridge], [Final Chorus], [Outro].\n" +
+  "- No artist-name imitation.\n" +
+  "- Avoid repetitive filler lines.\n" +
+  "- stylePrompt must include genre, mood, energy, BPM, and vocal style.\n" +
+  "- Return JSON only. No markdown, no explanations.";
 
 function sanitize(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -306,6 +333,87 @@ function buildSong(params: {
   return { titles, verse1, chorus, fullLyrics, stylePrompt, sunoPasteBlock, readiness };
 }
 
+function extractJsonObject(raw: string): SongJsonOutput | null {
+  const text = raw.trim();
+  try {
+    return JSON.parse(text) as SongJsonOutput;
+  } catch {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end === -1 || end <= start) return null;
+    try {
+      return JSON.parse(text.slice(start, end + 1)) as SongJsonOutput;
+    } catch {
+      return null;
+    }
+  }
+}
+
+function extractSection(fullLyrics: string, section: string): string {
+  const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`\\[${escaped}\\]([\\s\\S]*?)(?=\\n\\[[^\\]]+\\]|$)`, "i");
+  const match = regex.exec(fullLyrics);
+  return match?.[1]?.trim() || "";
+}
+
+function mergeAiSongWithFallback(
+  ai: SongJsonOutput | null,
+  fallback: SongOutput,
+  setup: { genre: string; mood: string; voice: string; bpm: string },
+): SongOutput {
+  if (!ai) return fallback;
+
+  const titles =
+    Array.isArray(ai.titles) && ai.titles.length > 0
+      ? ai.titles
+          .map((item) => sanitize(String(item)))
+          .filter(Boolean)
+          .slice(0, 3)
+      : fallback.titles;
+  const fullLyrics = sanitize(ai.fullLyrics || "") ? String(ai.fullLyrics) : fallback.fullLyrics;
+  const verse1 =
+    sanitize(ai.verse1 || "") ||
+    extractSection(fullLyrics, "Verse 1") ||
+    fallback.verse1;
+  const chorus =
+    sanitize(ai.chorus || "") ||
+    extractSection(fullLyrics, "Chorus") ||
+    fallback.chorus;
+  const stylePrompt = sanitize(ai.stylePrompt || "") || fallback.stylePrompt;
+
+  const sunoPasteBlock = [
+    "STYLE / PROMPT:",
+    stylePrompt,
+    "",
+    "LYRICS:",
+    fullLyrics,
+    "",
+    "NOTES:",
+    "- Keep the chorus memorable and clear.",
+    "- Keep vocals centered and intelligible.",
+    "- Avoid clipping or muddy low-end.",
+  ].join("\n");
+
+  const readiness = buildReadiness({
+    genre: setup.genre,
+    mood: setup.mood,
+    voice: setup.voice,
+    bpm: setup.bpm,
+    chorus,
+    fullLyrics,
+  });
+
+  return {
+    titles: titles.length ? titles : fallback.titles,
+    verse1,
+    chorus,
+    fullLyrics,
+    stylePrompt,
+    sunoPasteBlock,
+    readiness,
+  };
+}
+
 export default function SunoSongMachine() {
   const { user } = useAuth();
   const [idea, setIdea] = useState("");
@@ -322,8 +430,12 @@ export default function SunoSongMachine() {
   const [result, setResult] = useState<SongOutput | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [engineInfo, setEngineInfo] = useState<string>("");
 
   const canGenerate = useMemo(() => sanitize(idea).length > 2, [idea]);
+  const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim();
+  const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
 
   const trackEvent = async (eventType: string, meta: Record<string, string> = {}) => {
     if (!user?.uid) return;
@@ -380,7 +492,7 @@ export default function SunoSongMachine() {
   };
 
   const generate = async (nextVariant = variant) => {
-    const output = buildSong({
+    const fallback = buildSong({
       idea,
       genre,
       mood,
@@ -393,7 +505,66 @@ export default function SunoSongMachine() {
       themeKeywords,
       variant: nextVariant,
     });
-    setResult(output);
+    setIsGenerating(true);
+    try {
+      const songBrief = [
+        `Idea: ${sanitize(idea) || "a comeback story"}`,
+        `Genre: ${sanitize(genre) || "cinematic pop"}`,
+        `Mood: ${sanitize(mood) || "reflective"}`,
+        `Energy: ${sanitize(energy) || "medium"}`,
+        `BPM: ${sanitize(bpm) || "118"}`,
+        `Vocal style: ${sanitize(voice) || "raw lead vocal"}`,
+        `Perspective: ${perspective}`,
+        `Hook style: ${hookStyle}`,
+        `Length: ${length}`,
+        sanitize(themeKeywords) ? `Theme keywords: ${sanitize(themeKeywords)}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemPrompt: SONG_SYSTEM_PROMPT,
+          prompt: songBrief,
+          context:
+            "Create radio-quality lyrics suitable for Suno. Keep phrasing natural. Avoid cliches and repeated lines.",
+          userEmail: user?.email || "",
+        }),
+      });
+
+      if (!response.ok) {
+        setResult(fallback);
+        setEngineInfo("Local fallback");
+        setMessage("AI generation unavailable right now. Using local engine.");
+        window.setTimeout(() => setMessage(null), 2200);
+      } else {
+        const data = await response.json();
+        const ai = extractJsonObject(String(data?.output || ""));
+        setResult(
+          mergeAiSongWithFallback(ai, fallback, {
+            genre: sanitize(genre),
+            mood: sanitize(mood),
+            voice: sanitize(voice),
+            bpm: sanitize(bpm),
+          }),
+        );
+        const provider = sanitize(String(data?.provider || ""));
+        const model = sanitize(String(data?.model || ""));
+        setEngineInfo([provider, model].filter(Boolean).join(" / ") || (ai ? "AI" : "Local fallback"));
+        setMessage(ai ? "AI generation complete." : "AI response format was invalid. Using fallback.");
+        window.setTimeout(() => setMessage(null), 2200);
+      }
+    } catch {
+      setResult(fallback);
+      setEngineInfo("Local fallback");
+      setMessage("Could not reach AI model. Using local engine.");
+      window.setTimeout(() => setMessage(null), 2200);
+    } finally {
+      setIsGenerating(false);
+    }
+
     await trackEvent("generate_preview", {
       mood: sanitize(mood),
       energy: sanitize(energy),
@@ -406,20 +577,7 @@ export default function SunoSongMachine() {
   const regenerate = async () => {
     const next = variant + 1;
     setVariant(next);
-    const output = buildSong({
-      idea,
-      genre,
-      mood,
-      voice,
-      energy,
-      bpm,
-      length,
-      perspective,
-      hookStyle,
-      themeKeywords,
-      variant: next,
-    });
-    setResult(output);
+    await generate(next);
     await trackEvent("regenerate_variation", {
       variation: String(next),
       mood: sanitize(mood),
@@ -626,7 +784,7 @@ export default function SunoSongMachine() {
             </label>
             <div className="pt-2 flex flex-wrap gap-3">
               <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={() => { void generate(); }} disabled={!canGenerate}>
-                Generate Song Pack
+                {isGenerating ? "Generating..." : "Generate Song Pack"}
               </Button>
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10" onClick={() => { void regenerate(); }} disabled={!result}>
                 Regenerate Variation
@@ -639,6 +797,9 @@ export default function SunoSongMachine() {
 
           <div className="rounded-xl border border-yellow-500/25 bg-black/65 p-5 shadow-lg space-y-4">
             <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/80">Output</p>
+            {engineInfo && (
+              <p className="text-[11px] text-yellow-200/80">Engine: {engineInfo}</p>
+            )}
             {!result ? (
               <p className="text-sm text-gray-400">Generate a song pack to see titles, lyrics, style prompt, and final Suno block.</p>
             ) : (
