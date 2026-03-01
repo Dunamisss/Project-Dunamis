@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { type DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import hackerImage from "@/assets/hacker.png";
 import TubesEffect from "@/components/TubesEffect";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChat } from "@/contexts/ChatContext";
 import { AuthModal } from "@/components/AuthModal";
 import ContactSection from "@/components/ContactSection";
 import AddToPackDialog from "@/components/AddToPackDialog";
-import ElectricFrame from "@/components/ElectricFrame";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,6 +95,25 @@ const SIMPLE_STARTER_EXAMPLES = [
   "Turn my rough notes into a clear, professional LinkedIn post.",
 ];
 
+const HOME_WORKFLOW_STEPS = [
+  {
+    title: "1. Pick A Starting Point",
+    text: "Choose a prompt from the library or type your own goal in plain English.",
+  },
+  {
+    title: "2. Add Context",
+    text: "Drop image references or add constraints, audience, tone, and must-have details.",
+  },
+  {
+    title: "3. Optimize",
+    text: "Generate a stronger structured prompt, then click Improve Again if needed.",
+  },
+  {
+    title: "4. Run In Your AI Tool",
+    text: "Use Try in ChatGPT/Gemini/etc or copy and paste manually.",
+  },
+];
+
 const OPTIMIZER_SYSTEM_PROMPT =
   "PERSONA: You are the Chief Prompt Architect, an expert in Large Language Model logic and instruction design.\n\n" +
   "CONTEXT: A user will provide a raw, unstructured idea or request. They require a rigorous, production-ready prompt that can be pasted directly into an AI model (like ChatGPT, Claude, or Gemini) to achieve a specific result.\n\n" +
@@ -159,10 +178,212 @@ const AUDITOR_REWRITE_PROMPT =
   "- Use clear delimiters (e.g., ### sections).\n" +
   "- No hidden reasoning or internal analysis.";
 
+type OptimizerQuality = {
+  score: number;
+  label: "Weak" | "Good" | "Strong";
+  notes: string[];
+};
+
+type OptimizerOutputFormat = "general" | "json" | "image-prompt" | "ad-copy";
+type PromptDragPayload = {
+  type: "prompt";
+  title?: string;
+  content: string;
+  description?: string;
+};
+type ImageDragPayload = {
+  type: "image";
+  title?: string;
+  url?: string;
+  tags?: string[];
+};
+
+type FootballPromptForm = {
+  playerName: string;
+  club: string;
+  shirtName: string;
+  shirtNumber: string;
+  action: string;
+  stadium: string;
+  mood: string;
+};
+
+function normalizeText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function isLikelyEcho(input: string, output: string): boolean {
+  const cleanInput = normalizeText(input);
+  const cleanOutput = normalizeText(output);
+  if (!cleanInput || !cleanOutput) return false;
+  if (cleanOutput.includes(cleanInput)) return true;
+  const inputWords = cleanInput.split(" ").filter(Boolean);
+  if (inputWords.length < 6) return false;
+  const outputWords = new Set(cleanOutput.split(" ").filter(Boolean));
+  const overlap = inputWords.filter((word) => outputWords.has(word)).length;
+  return overlap / inputWords.length > 0.72;
+}
+
+function evaluateOptimizerQuality(input: string, output: string): OptimizerQuality {
+  const text = output.trim();
+  if (!text) return { score: 0, label: "Weak", notes: ["No output generated."] };
+
+  let score = 0;
+  const notes: string[] = [];
+
+  if (text.length >= 280) {
+    score += 25;
+  } else {
+    notes.push("Output is short.");
+  }
+
+  if (/###\s*ROLE/i.test(text) && /###\s*OBJECTIVE/i.test(text)) {
+    score += 25;
+  } else {
+    notes.push("Missing clear role/objective headers.");
+  }
+
+  if (/###\s*CONTEXT/i.test(text) && /###\s*CONSTRAINTS/i.test(text)) {
+    score += 20;
+  } else {
+    notes.push("Missing context/constraints structure.");
+  }
+
+  if (/(^|\n)\s*1[\).\s]/.test(text) || /###\s*STEPS/i.test(text)) {
+    score += 15;
+  } else {
+    notes.push("No obvious step-by-step flow.");
+  }
+
+  if (!isLikelyEcho(input, text)) {
+    score += 15;
+  } else {
+    notes.push("Reads too close to raw input.");
+  }
+
+  const label: OptimizerQuality["label"] = score >= 80 ? "Strong" : score >= 55 ? "Good" : "Weak";
+  return { score, label, notes };
+}
+
+function formatInstructionFor(outputFormat: OptimizerOutputFormat): string {
+  switch (outputFormat) {
+    case "json":
+      return "Output format requirement: Return valid JSON only. Use clear keys, no markdown fences, no prose outside JSON.";
+    case "image-prompt":
+      return "Output format requirement: Produce an image-generation prompt with distinct sections for Subject, Style, Lighting, Composition, Camera/Render details, and Negative Prompt.";
+    case "ad-copy":
+      return "Output format requirement: Produce marketing copy with Headline, Hook, Body, Offer, and CTA. Keep it concise and conversion-focused.";
+    case "general":
+    default:
+      return "Output format requirement: Return a production-ready prompt with ROLE, OBJECTIVE, CONTEXT, STEPS, CONSTRAINTS.";
+  }
+}
+
+function buildLocalFallbackPrompt(params: {
+  raw: string;
+  context: string;
+  outputFormat: OptimizerOutputFormat;
+  improveFrom?: string;
+}): string {
+  const cleaned = params.raw.trim();
+  const extra = params.context.trim();
+  const improveSource = params.improveFrom?.trim() || "";
+  const isPromptDraft =
+    /###\s*(role|objective|context|steps|constraints)/i.test(cleaned) ||
+    /(^|\n)\s*(role|objective|context|steps|constraints)\s*:/i.test(cleaned);
+  const goalType =
+    /\b(email|newsletter|subject line)\b/i.test(cleaned) ? "email-writing" :
+    /\b(ad|campaign|cta|conversion|offer)\b/i.test(cleaned) ? "marketing-copy" :
+    /\b(image|photo|render|midjourney|sora|scene|style)\b/i.test(cleaned) ? "image-prompting" :
+    /\b(code|script|function|api|sql|bug|refactor)\b/i.test(cleaned) ? "software-tasking" :
+    "general-tasking";
+  const formatHint =
+    params.outputFormat === "json"
+      ? "Return strict JSON only."
+      : params.outputFormat === "image-prompt"
+      ? "Return an image prompt with Subject, Style, Lighting, Composition, Negative Prompt."
+      : params.outputFormat === "ad-copy"
+      ? "Return ad copy with Headline, Hook, Body, Offer, CTA."
+      : "Return a production-ready prompt format.";
+
+  return [
+    "### ROLE",
+    `You are a senior ${goalType} specialist and prompt executor.`,
+    "",
+    "### OBJECTIVE",
+    improveSource || isPromptDraft
+      ? `Refine and improve this existing draft into a stronger final prompt: ${cleaned}`
+      : `Transform this request into a high-quality result: ${cleaned}`,
+    "",
+    "### CONTEXT",
+    extra || "No extra context provided.",
+    improveSource ? `\nPrevious draft to improve:\n${improveSource}` : "",
+    "",
+    "### ASSUMPTIONS",
+    "- If user data is missing, use clear placeholders in brackets.",
+    "- Prioritize practical output over theory.",
+    "",
+    "### STEPS",
+    improveSource
+      ? "1. Diagnose weaknesses in the previous draft (clarity, constraints, output shape)."
+      : "1. Clarify intent and expected deliverable.",
+    improveSource
+      ? "2. Rewrite to improve structure, precision, and usefulness."
+      : "2. Apply structure, constraints, and quality checks.",
+    improveSource
+      ? "3. Return a stronger replacement draft, not a near-duplicate."
+      : "3. Produce a concise, practical final output.",
+    "",
+    "### CONSTRAINTS",
+    "- Do not repeat the raw request verbatim.",
+    "- Keep output direct, useful, and non-fluffy.",
+    `- ${formatHint}`,
+    "- If uncertain, produce best-effort output with explicit placeholders.",
+    "",
+    "### OUTPUT FORMAT",
+    params.outputFormat === "json"
+      ? '{"result":"...","notes":["..."]}'
+      : params.outputFormat === "image-prompt"
+      ? "Subject: ...\nStyle: ...\nLighting: ...\nComposition: ...\nNegative Prompt: ..."
+      : params.outputFormat === "ad-copy"
+      ? "Headline: ...\nHook: ...\nBody: ...\nOffer: ...\nCTA: ..."
+      : "Final Prompt:\n- Role: ...\n- Objective: ...\n- Context: ...\n- Steps: ...\n- Constraints: ...\n- Output format: ...",
+    "",
+    "### FINAL PROMPT (PASTE INTO YOUR AI TOOL)",
+    isPromptDraft
+      ? [
+          "Rewrite the draft below into one stronger, cleaner, production-ready prompt.",
+          "Keep the same intent, but remove repetition and weak structure.",
+          "",
+          "Draft to improve:",
+          cleaned,
+        ].join("\n")
+      : [
+          "You are a high-skill assistant. Follow the instructions below exactly.",
+          "",
+          `Task: ${cleaned}`,
+          extra ? `Context: ${extra}` : "Context: [ADD CONTEXT IF NEEDED]",
+          "Requirements:",
+          "- Clarify and structure before answering.",
+          "- Use concrete, actionable language.",
+          "- Avoid filler and repetition.",
+          `- ${formatHint}`,
+          "",
+          "Deliverable:",
+          params.outputFormat === "json"
+            ? "Return valid JSON only."
+            : params.outputFormat === "image-prompt"
+            ? "Return a polished image-generation prompt with a negative prompt block."
+            : params.outputFormat === "ad-copy"
+            ? "Return final copy ready to publish."
+            : "Return a final, polished response ready to use.",
+        ].join("\n"),
+  ].join("\n");
+}
+
 export default function Home() {
   const { user, logout } = useAuth();
   const { promptToLoad, clearPromptToLoad } = useChat();
-  const baseUrl = (import.meta as any).env?.BASE_URL || "/";
   const [promptInput, setPromptInput] = useState("");
   const [extraContext, setExtraContext] = useState("");
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
@@ -174,6 +395,7 @@ export default function Home() {
   const [dailyLimit, setDailyLimit] = useState<number | null>(null);
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [frameworkId, setFrameworkId] = useState<string>("");
+  const [outputFormat, setOutputFormat] = useState<OptimizerOutputFormat>("general");
   const [mode, setMode] = useState<"optimize" | "audit">("optimize");
   const [simpleMode, setSimpleMode] = useState(true);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -182,6 +404,8 @@ export default function Home() {
   const [vpnWarning, setVpnWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [promptDropActive, setPromptDropActive] = useState(false);
+  const [imageDropActive, setImageDropActive] = useState(false);
   const [timingInfo, setTimingInfo] = useState<{
     totalMs: number;
     groqMs: number;
@@ -204,11 +428,26 @@ export default function Home() {
     createdAt: number;
   }>>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [lastRetryCount, setLastRetryCount] = useState(0);
+  const [footballForm, setFootballForm] = useState<FootballPromptForm>({
+    playerName: "",
+    club: "",
+    shirtName: "",
+    shirtNumber: "",
+    action: "mid-strike on goal",
+    stadium: "packed premier league stadium at night",
+    mood: "intense match-winning moment",
+  });
+  const [footballCardOpen, setFootballCardOpen] = useState(false);
   const optimizerRef = useRef<HTMLDivElement>(null);
   const copyTimeoutRef = useRef<number | null>(null);
 
   const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim();
   const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
+  const outputQuality = useMemo(() => {
+    if (!optimizedOutput || outputKind === "audit") return null;
+    return evaluateOptimizerQuality(promptInput, optimizedOutput);
+  }, [optimizedOutput, outputKind, promptInput]);
   const tryInProviders = [
     { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com/" },
     { id: "grok", label: "Grok (xAI)", url: "https://grok.com/" },
@@ -221,30 +460,36 @@ export default function Home() {
     { id: "deepseek", label: "DeepSeek", url: "https://chat.deepseek.com/" },
   ];
 
-  const handleOptimize = async () => {
+  const handleOptimize = async (forceImprove = false) => {
     if (!promptInput.trim()) return;
     setOptimizerError(null);
     setVpnWarning(false);
     setWarningMessage(null);
     setIsOptimizing(true);
+    const rawInput = promptInput.trim();
+    const improveSource =
+      forceImprove && mode === "optimize" && optimizedOutput.trim()
+        ? optimizedOutput.trim()
+        : "";
+    const promptForModel = improveSource || rawInput;
 
     try {
       const systemPrompt =
         mode === "audit" ? AUDITOR_SYSTEM_PROMPT : OPTIMIZER_SYSTEM_PROMPT;
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemPrompt,
-          prompt: promptInput.trim(),
-          context: extraContext.trim(),
-          images: attachedImages,
-          userEmail: user?.email || ""
-        }),
-      });
+      const submit = async (contextValue: string) =>
+        fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemPrompt,
+            prompt: promptForModel,
+            context: contextValue,
+            images: attachedImages,
+            userEmail: user?.email || "",
+          }),
+        });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
+      const applyResponseMeta = (data: any) => {
         if (typeof data?.remaining === "number") {
           setRemainingUses(data.remaining);
         }
@@ -258,11 +503,55 @@ export default function Home() {
           setVpnWarning(data.vpnWarning);
           setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
         }
-        throw new Error(data?.error || "Optimization failed.");
+      };
+
+      const formatInstruction = formatInstructionFor(outputFormat);
+      const baseContext = [
+        extraContext.trim(),
+        mode === "optimize" ? formatInstruction : "",
+        improveSource
+          ? [
+              "Improve pass: rewrite the provided draft into a stronger version.",
+              "Do not repeat sections verbatim.",
+              "Tighten structure and keep only one final polished prompt.",
+              `Original user goal: ${rawInput}`,
+            ].join("\n")
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+      let response = await submit(baseContext);
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        applyResponseMeta(data);
+        throw new Error(data?.error || `Optimization failed (${response.status}).`);
       }
 
-      const data = await response.json();
-      setOptimizedOutput(data?.output ?? "");
+      let data = await response.json();
+      let retryCount = 0;
+      if (mode !== "audit") {
+        const maxRetries = 2;
+        let quality = evaluateOptimizerQuality(rawInput, String(data?.output ?? ""));
+        while (quality.label === "Weak" && retryCount < maxRetries) {
+          retryCount += 1;
+          const retryContext = [
+            baseContext,
+            "Revision rules: fully rewrite; do not repeat user wording; preserve intent but improve clarity; include strong structure and practical output.",
+            formatInstruction,
+            `Retry pass ${retryCount}: prioritize usefulness over verbosity.`,
+          ]
+            .filter(Boolean)
+            .join("\n\n");
+          const retryResponse = await submit(retryContext);
+          if (!retryResponse.ok) break;
+          data = await retryResponse.json();
+          quality = evaluateOptimizerQuality(rawInput, String(data?.output ?? ""));
+        }
+      }
+
+      const finalOutput = String(data?.output ?? "");
+      setOptimizedOutput(finalOutput);
       if (data?.timing) {
         setTimingInfo(data.timing);
       } else {
@@ -271,29 +560,35 @@ export default function Home() {
       if (mode === "audit") {
         setLastAuditInput(promptInput.trim());
         setOutputKind("audit");
+        setLastRetryCount(0);
       } else {
         setOutputKind("optimize");
+        setLastRetryCount(retryCount);
       }
-      if (typeof data?.remaining === "number") {
-        setRemainingUses(data.remaining);
-      }
-      if (typeof data?.limit === "number") {
-        setDailyLimit(data.limit);
-      }
-      if (typeof data?.unlimited === "boolean") {
-        setIsUnlimited(data.unlimited);
-      }
-      if (typeof data?.vpnWarning === "boolean") {
-        setVpnWarning(data.vpnWarning);
-        setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
-      }
+      applyResponseMeta(data);
       void saveHistoryItem({
-        input: promptInput.trim(),
-        output: data?.output ?? "",
+        input: rawInput,
+        output: finalOutput,
         mode: mode === "audit" ? "audit" : "optimize",
       });
     } catch (error) {
-      setOptimizerError((error as Error).message);
+      const fallback = buildLocalFallbackPrompt({
+        raw: promptForModel,
+        context: improveSource ? `${extraContext}\n\nOriginal user goal: ${rawInput}` : extraContext,
+        outputFormat,
+        improveFrom: "",
+      });
+      if (mode === "optimize") {
+        setOptimizedOutput(fallback);
+        setOutputKind("optimize");
+        setLastRetryCount(0);
+      }
+      const message = `${(error as Error).message} Using local fallback.`;
+      setOptimizerError(
+        message.includes("(500)")
+          ? `${message} Hint: check backend model/API keys on the server.`
+          : message,
+      );
     } finally {
       setIsOptimizing(false);
     }
@@ -345,6 +640,54 @@ export default function Home() {
     setAttachedImages((prev) => Array.from(new Set([...prev, ...names])));
   };
 
+  const handlePromptDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setPromptDropActive(false);
+    const json = event.dataTransfer.getData("application/x-dunamis-prompt");
+    if (json) {
+      try {
+        const parsed = JSON.parse(json) as PromptDragPayload;
+        if (parsed?.content?.trim()) {
+          setPromptInput((prev) => (prev.trim() ? `${prev.trim()}\n\n${parsed.content.trim()}` : parsed.content.trim()));
+          setShowAdvancedOptions(true);
+          return;
+        }
+      } catch {
+        // fall through to plain text
+      }
+    }
+    const plain = event.dataTransfer.getData("text/plain");
+    if (plain?.trim()) {
+      setPromptInput((prev) => (prev.trim() ? `${prev.trim()}\n\n${plain.trim()}` : plain.trim()));
+      setShowAdvancedOptions(true);
+    }
+  };
+
+  const handleImageDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setImageDropActive(false);
+    const next: string[] = [];
+    const json = event.dataTransfer.getData("application/x-dunamis-image");
+    if (json) {
+      try {
+        const parsed = JSON.parse(json) as ImageDragPayload;
+        if (parsed?.url) next.push(parsed.url);
+        if (parsed?.title) next.push(parsed.title);
+      } catch {
+        // ignore malformed payload
+      }
+    }
+    const uri = event.dataTransfer.getData("text/uri-list");
+    if (uri?.trim()) next.push(uri.trim());
+    if (event.dataTransfer.files?.length) {
+      next.push(...Array.from(event.dataTransfer.files).map((file) => file.name));
+    }
+    if (next.length) {
+      setAttachedImages((prev) => Array.from(new Set([...prev, ...next])));
+      setShowAdvancedOptions(true);
+    }
+  };
+
   const handleClear = () => {
     setPromptInput("");
     setExtraContext("");
@@ -355,6 +698,7 @@ export default function Home() {
     setWarningMessage(null);
     setOutputKind(null);
     setLastAuditInput("");
+    setLastRetryCount(0);
     setFrameworkId("");
     setTimingInfo(null);
   };
@@ -491,10 +835,19 @@ export default function Home() {
 
   const handleTryIn = async (provider = tryInProvider) => {
     if (!optimizedOutput) return;
-    const copied = await copyToClipboard(optimizedOutput);
-    if (!copied) return;
-    showCopyFeedback(`Copied. Opening ${provider.label}...`);
-    window.open(provider.url, "_blank", "noopener,noreferrer");
+    const popup = window.open(provider.url, "_blank");
+    if (!popup) {
+      // If popup is blocked, continue in current tab.
+      window.location.assign(provider.url);
+      return;
+    }
+    void copyToClipboard(optimizedOutput);
+    showCopyFeedback(`Opening ${provider.label}. Prompt copied to clipboard.`);
+    try {
+      popup.focus();
+    } catch {
+      // no-op
+    }
   };
 
   const saveHistoryItem = async ({
@@ -608,22 +961,51 @@ export default function Home() {
     }
   };
 
+  const buildFootballDraft = () => {
+    const playerName = footballForm.playerName.trim();
+    const club = footballForm.club.trim();
+    const shirtName = footballForm.shirtName.trim();
+    const shirtNumber = footballForm.shirtNumber.trim();
+    const action = footballForm.action.trim() || "mid-strike on goal";
+    const stadium = footballForm.stadium.trim() || "packed football stadium";
+    const mood = footballForm.mood.trim() || "high-pressure decisive moment";
+    const identity = [playerName, shirtName, club].filter(Boolean).join(" / ");
+
+    if (!identity) {
+      setOptimizerError("Add at least player name, shirt name, or club in Football Prompt Form.");
+      return;
+    }
+
+    const draft = [
+      "Create a photoreal football image prompt.",
+      `Subject: ${playerName || "professional football player"} in ${club || "club kit"} ${shirtName ? `with shirt name "${shirtName}"` : ""}${shirtNumber ? ` and number ${shirtNumber}` : ""}.`,
+      `Scene: ${action}, ${stadium}.`,
+      `Mood: ${mood}.`,
+      "Style: ultra-realistic sports photography, dynamic motion blur on background crowd, sharp subject focus.",
+      "Lighting: stadium floodlights, cinematic contrast, realistic skin texture and fabric detail.",
+      "Composition: low-angle action shot, full-body framing, ball visible, goal and crowd depth in background.",
+      "Camera: 85mm sports lens look, fast shutter freeze on player, shallow depth of field.",
+      "Negative prompt: cartoon, illustration, extra limbs, distorted face, blurry player, watermark, text artifacts.",
+    ].join("\n");
+
+    setOutputFormat("image-prompt");
+    setMode("optimize");
+    setPromptInput(draft);
+    setOptimizerError(null);
+    setShowAdvancedOptions(true);
+    setCopyFeedback("Football prompt draft loaded into prompt box.");
+  };
+
   return (
     <div className="min-h-screen relative selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
       {/* Full Hero Background Image */}
-      <div 
-        className="fixed inset-0 z-0 w-full h-screen"
-        style={{
-          backgroundImage: `url(${baseUrl}dunamis-hero.webp)`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          backgroundAttachment: "fixed"
-        }}
-      >
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/70" />
-      </div>
+      <img
+        src={hackerImage}
+        alt=""
+        aria-hidden="true"
+        className="fixed inset-0 z-0 h-screen w-full object-cover"
+      />
+      <div className="fixed inset-0 z-0 bg-gradient-to-b from-black/40 via-black/50 to-black/70" />
 
       {/* Mouse Trail Canvas */}
       <TubesEffect />
@@ -632,10 +1014,6 @@ export default function Home() {
       <div className="relative z-20">
         {/* Hero Header Section - Full Screen Height */}
         <header className="min-h-screen relative flex flex-col items-center justify-center px-4 text-center overflow-hidden">
-          <div
-            className="absolute inset-0 z-0 bg-center bg-no-repeat bg-cover opacity-40"
-            style={{ backgroundImage: `url(${baseUrl}cyber_hacker.png)` }}
-          />
           <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
           <div className="absolute top-6 right-6 z-20 max-w-[calc(100vw-2rem)]">
             <div className="flex items-center justify-end gap-2 flex-wrap">
@@ -649,36 +1027,11 @@ export default function Home() {
                   Image Library
                 </Button>
               </Link>
-              <Link href="/frameworks">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Frameworks
-                </Button>
-              </Link>
-              <Link href="/json-prompt-architect">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  JSON Architect
-                </Button>
-              </Link>
-              <Link href="/toy-figure-studio">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Toy Figure Studio
-                </Button>
-              </Link>
-              <Link href="/submit">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Submit
-                </Button>
-              </Link>
               {user ? (
                 <>
                   <Link href="/profile">
                     <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
                       Profile
-                    </Button>
-                  </Link>
-                  <Link href="/admin/submissions">
-                    <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                      Moderation
                     </Button>
                   </Link>
                   <Button variant="ghost" onClick={logout} className="text-white hover:text-white">
@@ -691,10 +1044,13 @@ export default function Home() {
             </div>
           </div>
           <div className="relative z-10 max-w-5xl 2xl:max-w-6xl mx-auto space-y-8 px-2">
-            <h1 className="font-display text-7xl md:text-9xl 2xl:text-[11rem] font-light text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-300 to-orange-200 tracking-[0.08em] 2xl:tracking-[0.1em] leading-[0.95] drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]">
+            <h1
+              className="dunamis-title text-7xl md:text-9xl 2xl:text-[11rem] leading-[0.95]"
+              data-text="DUNAMIS"
+            >
               DUNAMIS
             </h1>
-            
+
             <div className="space-y-6">
               <p className="text-2xl md:text-3xl 2xl:text-4xl text-yellow-300 drop-shadow-lg italic font-light">
                 "Precision prompts, zero noise — built for creators who ship."
@@ -713,10 +1069,10 @@ export default function Home() {
             </div>
           </div>
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-yellow-200/80">
-            <div className="h-12 w-7 rounded-full border border-yellow-400/60 flex items-start justify-center">
-              <span className="mt-2 h-2 w-2 rounded-full bg-yellow-300 animate-bounce" />
+            <div className="scroll-mouse h-12 w-7 rounded-full border border-yellow-400/60 flex items-start justify-center">
+              <span className="scroll-dot mt-2 h-2 w-2 rounded-full bg-yellow-300" />
             </div>
-            <span className="text-[11px] tracking-[0.35em] uppercase">Scroll</span>
+            <span className="scroll-text text-[11px] tracking-[0.35em] uppercase">Scroll</span>
           </div>
         </header>
 
@@ -736,77 +1092,28 @@ export default function Home() {
                   Browse Image Library
                 </Button>
               </Link>
-              <Link href="/frameworks">
+              <Link href="/?focus=optimizer">
                 <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  View Frameworks
-                </Button>
-              </Link>
-              <Link href="/json-prompt-architect">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  JSON Architect
-                </Button>
-              </Link>
-              <Link href="/toy-figure-studio">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Toy Figure Studio
+                  Go to Optimizer
                 </Button>
               </Link>
             </div>
           </div>
-          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="space-y-2 max-w-3xl">
-                <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">New Tool</p>
-                <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
-                  JSON Prompt Architect
-                </h2>
-                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed break-words">
-                  Build image prompts with structured JSON to reduce AI drift and keep every detail
-                  consistent. Generate both JSON blueprint and a plain converted prompt in one click.
-                </p>
-              </div>
-              <Link href="/json-prompt-architect">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                  Open JSON Architect
-                </Button>
-              </Link>
+          <section className="rounded-xl border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg space-y-6">
+            <div className="space-y-2 max-w-4xl">
+              <p className="text-xs uppercase tracking-[0.25em] text-yellow-300/80">How Dunamis Works</p>
+              <h2 className="text-2xl md:text-3xl font-semibold text-yellow-200">Clear Prompts, Clear Results</h2>
+              <p className="text-sm text-gray-300">
+                We keep this simple: define your goal, strengthen the prompt, then run it in your preferred AI model.
+              </p>
             </div>
-          </section>
-          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="space-y-2 max-w-3xl">
-                <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">New Tool</p>
-                <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
-                  Toy Figure Studio
-                </h2>
-                <p className="text-sm 2xl:text-base text-gray-300 leading-relaxed break-words">
-                  Build collectible action-figure prompts from user photos with packaging specs,
-                  articulation controls, and copy-ready JSON for consistent high-quality generations.
-                </p>
-              </div>
-              <Link href="/toy-figure-studio">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                  Open Toy Figure Studio
-                </Button>
-              </Link>
-            </div>
-          </section>
-          <section className="rounded-lg border border-yellow-500/30 bg-black/70 p-6 lg:p-8 shadow-lg">
-            <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Frameworks</p>
-                <h2 className="text-2xl md:text-3xl 2xl:text-4xl font-semibold text-yellow-200">
-                  Practical Prompting Frameworks
-                </h2>
-                <p className="text-sm 2xl:text-base text-gray-300 max-w-3xl leading-relaxed">
-                  Clear templates that explain what each structure does, when to use it, and how to apply it fast.
-                </p>
-              </div>
-              <Link href="/frameworks">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                  Open Frameworks
-                </Button>
-              </Link>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {HOME_WORKFLOW_STEPS.map((step) => (
+                <div key={step.title} className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-2">
+                  <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/90">{step.title}</p>
+                  <p className="text-sm text-gray-300">{step.text}</p>
+                </div>
+              ))}
             </div>
           </section>
           <section id="optimizer" ref={optimizerRef} className="pt-12 space-y-6">
@@ -933,6 +1240,26 @@ export default function Home() {
                       : "Even a few words is enough — we’ll craft a perfect, production-ready prompt. More features coming soon."}
                   </p>
                 </div>
+                  <div className="rounded-md border border-yellow-500/30 bg-black/40 p-3 space-y-2">
+                    <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">Output format</p>
+                    <Select
+                      value={outputFormat}
+                      onValueChange={(value) => setOutputFormat(value as OptimizerOutputFormat)}
+                    >
+                      <SelectTrigger className="w-full border-yellow-500/40 bg-black/30 text-yellow-200">
+                        <SelectValue placeholder="Choose output format" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black/90 text-white border-yellow-500/30">
+                        <SelectItem value="general">General Prompt</SelectItem>
+                        <SelectItem value="json">JSON Output</SelectItem>
+                        <SelectItem value="image-prompt">Image Prompt</SelectItem>
+                        <SelectItem value="ad-copy">Ad Copy</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {mode === "audit" && (
+                      <p className="text-[11px] text-gray-400">Audit mode scores quality. Format selection is used in Optimize mode.</p>
+                    )}
+                  </div>
                   {simpleMode && (
                     <div className="rounded-md border border-yellow-500/30 bg-black/40 p-4 space-y-3">
                       <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">Starter Examples</p>
@@ -948,6 +1275,80 @@ export default function Home() {
                           </Button>
                         ))}
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setFootballCardOpen((prev) => !prev)}
+                        className={[
+                          "w-full rounded-md border px-3 py-3 text-left transition",
+                          footballCardOpen
+                            ? "border-yellow-300 bg-yellow-500/10"
+                            : "border-yellow-500/30 bg-black/30 hover:bg-yellow-500/10",
+                        ].join(" ")}
+                      >
+                        <p className="text-sm text-yellow-100 font-semibold">Football Image Prompt Card</p>
+                        <p className="text-[11px] text-gray-300">
+                          Click to {footballCardOpen ? "close" : "open"} a guided form for player, shirt, club, action, and stadium.
+                        </p>
+                      </button>
+                    </div>
+                  )}
+                  {simpleMode && footballCardOpen && (
+                    <div className="rounded-md border border-yellow-500/30 bg-black/40 p-4 space-y-3">
+                      <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">Football Prompt Form</p>
+                      <p className="text-[11px] text-gray-400">
+                        Fill the fields, then click Build Football Prompt.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Input
+                          value={footballForm.playerName}
+                          onChange={(event) => setFootballForm((prev) => ({ ...prev, playerName: event.target.value }))}
+                          className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
+                          placeholder="Player name (optional)"
+                        />
+                        <Input
+                          value={footballForm.club}
+                          onChange={(event) => setFootballForm((prev) => ({ ...prev, club: event.target.value }))}
+                          className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
+                          placeholder="Club"
+                        />
+                        <Input
+                          value={footballForm.shirtName}
+                          onChange={(event) => setFootballForm((prev) => ({ ...prev, shirtName: event.target.value }))}
+                          className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
+                          placeholder="Shirt name"
+                        />
+                        <Input
+                          value={footballForm.shirtNumber}
+                          onChange={(event) => setFootballForm((prev) => ({ ...prev, shirtNumber: event.target.value }))}
+                          className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
+                          placeholder="Shirt number"
+                        />
+                        <Input
+                          value={footballForm.action}
+                          onChange={(event) => setFootballForm((prev) => ({ ...prev, action: event.target.value }))}
+                          className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500 md:col-span-2"
+                          placeholder="Action (e.g. bicycle kick in the box)"
+                        />
+                        <Input
+                          value={footballForm.stadium}
+                          onChange={(event) => setFootballForm((prev) => ({ ...prev, stadium: event.target.value }))}
+                          className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
+                          placeholder="Stadium / environment"
+                        />
+                        <Input
+                          value={footballForm.mood}
+                          onChange={(event) => setFootballForm((prev) => ({ ...prev, mood: event.target.value }))}
+                          className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
+                          placeholder="Mood"
+                        />
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                        onClick={buildFootballDraft}
+                      >
+                        Build Football Prompt
+                      </Button>
                     </div>
                   )}
                   {(!simpleMode || showAdvancedOptions) && (
@@ -1024,6 +1425,22 @@ export default function Home() {
                     className="min-h-[200px] bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-400"
                     placeholder={simpleMode ? "Example: Write a friendly email to customers about our new weekend offer..." : "Write or paste your prompt here..."}
                   />
+                  <div
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      setPromptDropActive(true);
+                    }}
+                    onDragLeave={() => setPromptDropActive(false)}
+                    onDrop={handlePromptDrop}
+                    className={[
+                      "rounded-md border border-dashed p-3 text-xs transition",
+                      promptDropActive
+                        ? "border-yellow-300 bg-yellow-500/10 text-yellow-100"
+                        : "border-yellow-500/30 bg-black/30 text-gray-300",
+                    ].join(" ")}
+                  >
+                    Drag a prompt card from Prompt Library and drop it here.
+                  </div>
                   {(!simpleMode || showAdvancedOptions) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <label className="flex flex-col gap-2 text-xs text-gray-300">
@@ -1066,9 +1483,25 @@ export default function Home() {
                       Attached images: {attachedImages.join(", ")}
                     </div>
                   )}
+                  <div
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      setImageDropActive(true);
+                    }}
+                    onDragLeave={() => setImageDropActive(false)}
+                    onDrop={handleImageDrop}
+                    className={[
+                      "rounded-md border border-dashed p-3 text-xs transition",
+                      imageDropActive
+                        ? "border-yellow-300 bg-yellow-500/10 text-yellow-100"
+                        : "border-yellow-500/30 bg-black/30 text-gray-300",
+                    ].join(" ")}
+                  >
+                    Drag image cards from Image Library and drop here to add references.
+                  </div>
                   <Button
                     className="w-full bg-yellow-400 text-black hover:bg-yellow-300"
-                    onClick={handleOptimize}
+                    onClick={() => { void handleOptimize(); }}
                     disabled={isOptimizing || !promptInput.trim()}
                   >
                     {isOptimizing ? "Working..." : simpleMode ? "Make My Prompt Better" : mode === "audit" ? "Score It" : "Send"}
@@ -1108,6 +1541,26 @@ export default function Home() {
                         ? "Brutal score and critique appears here."
                         : "Your improved prompt appears here."}
                     </p>
+                    {outputQuality && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="text-[11px] text-gray-300">Draft quality:</span>
+                        <span
+                          className={[
+                            "text-[11px] px-2 py-0.5 rounded-full border",
+                            outputQuality.label === "Strong"
+                              ? "border-emerald-400/40 text-emerald-300"
+                              : outputQuality.label === "Good"
+                              ? "border-yellow-400/40 text-yellow-200"
+                              : "border-red-400/40 text-red-300",
+                          ].join(" ")}
+                        >
+                          {outputQuality.label} ({outputQuality.score}/100)
+                        </span>
+                        {lastRetryCount > 0 && (
+                          <span className="text-[11px] text-gray-400">after {lastRetryCount} retry{lastRetryCount > 1 ? "ies" : ""}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <Textarea
                     value={optimizedOutput}
@@ -1207,6 +1660,36 @@ export default function Home() {
                       </div>
                     </div>
                   )}
+                  {outputKind !== "audit" && (
+                    <Button
+                      variant="outline"
+                      className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                      onClick={() => { void handleOptimize(true); }}
+                      disabled={isOptimizing || !promptInput.trim()}
+                    >
+                      {isOptimizing ? "Improving..." : "Improve Again"}
+                    </Button>
+                  )}
+                  {outputQuality?.label === "Weak" && (
+                    <div className="rounded-md border border-red-400/30 bg-red-500/10 p-3 flex items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs text-red-200">
+                          Weak output detected. Regenerate for a stronger structured prompt.
+                        </p>
+                        {outputQuality.notes.slice(0, 2).map((note, idx) => (
+                          <p key={`${note}-${idx}`} className="text-[11px] text-red-100/90">- {note}</p>
+                        ))}
+                      </div>
+                      <Button
+                        size="sm"
+                        className="bg-yellow-400 text-black hover:bg-yellow-300"
+                        onClick={() => { void handleOptimize(true); }}
+                        disabled={isOptimizing}
+                      >
+                        {isOptimizing ? "Regenerating..." : "Regenerate Stronger"}
+                      </Button>
+                    </div>
+                  )}
                   <div className="text-[11px] text-gray-300 break-words">
                     {copyFeedback
                       ? copyFeedback
@@ -1278,65 +1761,6 @@ export default function Home() {
               </div>
             </div>
             )}
-          </section>
-
-          <section>
-            <ElectricFrame contentClassName="rounded-xl bg-black/75 p-6 lg:p-8 shadow-[0_0_40px_rgba(234,179,8,0.08)] space-y-6">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[10px] uppercase tracking-[0.28em] rounded-full border border-yellow-500/40 px-3 py-1 text-yellow-200">
-                Prompt Engineering Platform
-              </span>
-              <div className="h-px flex-1 bg-gradient-to-r from-yellow-400/70 via-yellow-300/30 to-transparent animate-pulse" />
-            </div>
-
-            <div className="space-y-2 max-w-4xl">
-              <h2 className="text-2xl md:text-3xl font-semibold text-yellow-200">How Dunamis Works</h2>
-              <p className="text-sm text-gray-300 break-words">
-                Dunamis is built to engineer and optimize prompts. It improves your prompt quality before you run it in tools
-                like ChatGPT, Gemini, Claude, Suno, and others.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/90">What This Site Is</p>
-                <p className="text-sm text-gray-300">
-                  A practical prompt-engineering workspace for creators, not a generic chatbot wrapper.
-                </p>
-              </div>
-              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/90">What It Does</p>
-                <p className="text-sm text-gray-300">
-                  Rewrites and structures rough ideas into cleaner, stronger prompts you can copy and use immediately.
-                </p>
-              </div>
-              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/90">What It Doesn’t Do (Yet)</p>
-                <p className="text-sm text-gray-300">
-                  <span className="font-semibold text-yellow-100">Dunamis does not generate images directly on-site right now.</span> You generate in your chosen AI platform.
-                </p>
-              </div>
-              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-yellow-200/90">How To Use</p>
-                <p className="text-sm text-gray-300">1. Describe what you want.</p>
-                <p className="text-sm text-gray-300">2. Generate an improved prompt in the optimizer.</p>
-                <p className="text-sm text-gray-300">3. Copy and run it in your AI tool.</p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Link href="/prompts">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Open Prompt Library
-                </Button>
-              </Link>
-              <Link href="/?focus=optimizer">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                  Go to Optimizer
-                </Button>
-              </Link>
-            </div>
-            </ElectricFrame>
           </section>
 
           <section>

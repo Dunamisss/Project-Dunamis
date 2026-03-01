@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -162,6 +162,18 @@ export default function ImageLibrary() {
     setLocation("/?focus=optimizer");
   };
 
+  const handleImageCardDrag = (event: DragEvent<HTMLDivElement>, image: ImageLibraryItem) => {
+    const payload = {
+      type: "image",
+      title: image.title,
+      url: image.full,
+      tags: image.tags,
+    };
+    event.dataTransfer.setData("application/x-dunamis-image", JSON.stringify(payload));
+    event.dataTransfer.setData("text/uri-list", image.full);
+    event.dataTransfer.effectAllowed = "copy";
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const imageId = params.get("image");
@@ -306,8 +318,10 @@ export default function ImageLibrary() {
             <div
               key={image.id}
               id={`image-${image.id}`}
+              draggable
+              onDragStart={(event) => handleImageCardDrag(event, image)}
               className={[
-                "rounded-lg border border-yellow-500/20 bg-black/60 p-4 shadow-lg space-y-4 transition",
+                "rounded-lg border border-yellow-500/20 bg-black/60 p-4 shadow-lg space-y-4 transition cursor-grab active:cursor-grabbing",
                 highlightId === image.id ? "ring-2 ring-yellow-400/80" : ""
               ].join(" ")}
             >

@@ -79,6 +79,8 @@ export default function TubesEffect({ className }: TubesEffectProps) {
       style={{
         transform: `scale(${sizing.scaleX}, ${sizing.scaleY})`,
         transformOrigin: "top left",
+        mixBlendMode: "screen",
+        opacity: 0.65,
       }}
     >
       <canvas 

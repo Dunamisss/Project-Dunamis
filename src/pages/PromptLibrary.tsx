@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,6 +126,18 @@ export default function PromptLibrary() {
     }
   };
 
+  const handlePromptCardDrag = (event: DragEvent<HTMLDivElement>, prompt: PromptLibraryItem) => {
+    const payload = {
+      type: "prompt",
+      title: prompt.title,
+      description: prompt.description,
+      content: prompt.content,
+    };
+    event.dataTransfer.setData("application/x-dunamis-prompt", JSON.stringify(payload));
+    event.dataTransfer.setData("text/plain", prompt.content);
+    event.dataTransfer.effectAllowed = "copy";
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const promptId = params.get("prompt");
@@ -210,8 +222,10 @@ export default function PromptLibrary() {
             <div
               key={prompt.id}
               id={`prompt-${prompt.id}`}
+              draggable
+              onDragStart={(event) => handlePromptCardDrag(event, prompt)}
               className={[
-                "rounded-lg border border-yellow-500/20 bg-black/60 p-5 shadow-lg space-y-4 transition",
+                "rounded-lg border border-yellow-500/20 bg-black/60 p-5 shadow-lg space-y-4 transition cursor-grab active:cursor-grabbing",
                 highlightId === prompt.id ? "ring-2 ring-yellow-400/80" : ""
               ].join(" ")}
             >

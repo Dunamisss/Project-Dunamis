@@ -657,19 +657,28 @@ app.post("/api/optimize", async (req, res) => {
   const requestStartedAt = Date.now();
   const apiKey = process.env.GROQ_API_KEY;
 
-  const { systemPrompt, prompt, context, images, userEmail } = req.body ?? {};
-  if (!prompt || typeof prompt !== "string") {
-    return res.status(400).json({ error: "Prompt is required." });
-  }
+  try {
+    const { systemPrompt, prompt, context, images, userEmail } = req.body ?? {};
+    if (!prompt || typeof prompt !== "string") {
+      return res.status(400).json({ error: "Prompt is required." });
+    }
+    const safeContext = typeof context === "string"
+      ? context
+      : context == null
+      ? ""
+      : String(context);
+    const safeImages = Array.isArray(images)
+      ? images.map((item) => String(item)).filter(Boolean).slice(0, 30)
+      : [];
 
-  const normalizedEmail = typeof userEmail === "string" ? userEmail.trim().toLowerCase() : "";
-  const clientIp = getClientIp(req);
-  const usageKey = normalizedEmail || (clientIp ? `ip:${clientIp}` : "anonymous");
-  let isAllowlisted = Boolean(normalizedEmail && allowList.includes(normalizedEmail));
+    const normalizedEmail = typeof userEmail === "string" ? userEmail.trim().toLowerCase() : "";
+    const clientIp = getClientIp(req);
+    const usageKey = normalizedEmail || (clientIp ? `ip:${clientIp}` : "anonymous");
+    let isAllowlisted = Boolean(normalizedEmail && allowList.includes(normalizedEmail));
 
-  if (!isAllowlisted && normalizedEmail && isDisposableEmail(normalizedEmail)) {
-    return res.status(400).json({ error: "Disposable email addresses are not allowed." });
-  }
+    if (!isAllowlisted && normalizedEmail && isDisposableEmail(normalizedEmail)) {
+      return res.status(400).json({ error: "Disposable email addresses are not allowed." });
+    }
 
   if (SUPABASE_ENABLED && normalizedEmail) {
     try {
@@ -748,9 +757,9 @@ app.post("/api/optimize", async (req, res) => {
   }
 
   const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
-  const contextBlock = context ? `\n\nAdditional context:\n${context}` : "";
-  const imageBlock = Array.isArray(images) && images.length
-    ? `\n\nImages attached (names only):\n${images.join(", ")}` 
+  const contextBlock = safeContext ? `\n\nAdditional context:\n${safeContext}` : "";
+  const imageBlock = safeImages.length
+    ? `\n\nImages attached (names only):\n${safeImages.join(", ")}` 
     : "";
   const vpnWarning = isLikelyVpnIp(clientIp);
   const warningMessage = vpnWarning
@@ -767,7 +776,12 @@ app.post("/api/optimize", async (req, res) => {
 
     try {
       const fallbackStartedAt = Date.now();
-      const fallback = await callOpenRouter({ systemPrompt, prompt, context, images });
+      const fallback = await callOpenRouter({
+        systemPrompt,
+        prompt,
+        context: safeContext,
+        images: safeImages,
+      });
       const fallbackMs = Date.now() - fallbackStartedAt;
       if (!fallback || !fallback.output) {
         return res.status(503).json({ error: `${reason}. Backup model unavailable.` });
@@ -853,6 +867,11 @@ app.post("/api/optimize", async (req, res) => {
     });
   } catch (error) {
     return tryOpenRouterFallback("Groq request failed");
+  }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unexpected optimizer error.";
+    console.error("Unhandled /api/optimize error:", error);
+    return res.status(500).json({ error: `Optimizer server error: ${message}` });
   }
 });
 
