@@ -784,7 +784,9 @@ app.post("/api/optimize", async (req, res) => {
       });
       const fallbackMs = Date.now() - fallbackStartedAt;
       if (!fallback || !fallback.output) {
-        return res.status(503).json({ error: `${reason}. Backup model unavailable.` });
+        return res.status(503).json({
+          error: `${reason}. Backup model unavailable. Set OPENROUTER_API_KEY for fallback.`,
+        });
       }
       if (!isAllowlisted) {
         fallbackRecord.count += 1;
@@ -838,12 +840,20 @@ app.post("/api/optimize", async (req, res) => {
     if (!response.ok) {
       const totalMs = Date.now() - requestStartedAt;
       const groqMs = groqFinishedAt - groqStartedAt;
+      const groqErrorText = await response.text().catch(() => "");
       console.warn("Groq error", {
         status: response.status,
         totalMs,
         groqMs,
         model,
+        error: groqErrorText.slice(0, 300),
       });
+      if (response.status === 401) {
+        return res.status(401).json({
+          error:
+            "Groq authentication failed (401). Check GROQ_API_KEY in server .env and restart npm run dev:api.",
+        });
+      }
       return tryOpenRouterFallback(`Groq error ${response.status}`);
     }
 
