@@ -1,6 +1,6 @@
 # DUNAMIS
 
-Modern, elegant website inspired by The Prompt Index: black background, large “DUNAMIS” title, quote beneath, clean typography and responsive layout.
+Modern, elegant website black background, large “DUNAMIS” title, quote beneath, clean typography and responsive layout.
 
 ---
 
