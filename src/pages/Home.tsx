@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { ChevronDown, Sparkles, Wand2, Wrench } from "lucide-react";
 import AppShell from "@/components/AppShell";
+import TubesEffect from "@/components/TubesEffect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { JSON_PROMPT_CARDS, type JsonPromptCard } from "@/data/jsonPromptCards";
+import hackerImage from "@/assets/hacker.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -317,6 +319,56 @@ export default function Home() {
         </>
       }
     >
+      <section className="relative mb-8 overflow-hidden rounded-[32px] border border-yellow-500/20 bg-black/55 shadow-[0_35px_110px_rgba(0,0,0,0.45)]">
+        <div className="absolute inset-0">
+          <img src={hackerImage} alt="" aria-hidden="true" className="h-full w-full object-cover object-center opacity-35" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.96)_0%,rgba(5,5,5,0.82)_48%,rgba(5,5,5,0.58)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(245,192,74,0.18),transparent_28%),radial-gradient(circle_at_80%_25%,rgba(245,192,74,0.12),transparent_22%)]" />
+        </div>
+        <TubesEffect className="opacity-45" />
+
+        <div className="relative z-10 grid gap-6 p-6 lg:grid-cols-[1.1fr_0.9fr] lg:p-8">
+          <div className="max-w-2xl space-y-5">
+            <div className="inline-flex rounded-full border border-yellow-500/30 bg-yellow-500/8 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-yellow-200/85">
+              Dunamis signal restored
+            </div>
+            <div className="space-y-3">
+              <h2 className="max-w-xl text-3xl font-semibold leading-tight text-white lg:text-5xl">
+                Stronger visual identity, without the old homepage chaos
+              </h2>
+              <p className="max-w-xl text-sm leading-7 text-zinc-300 lg:text-base">
+                The structure stays simple, but the atmosphere comes back: darker mood, gold energy, sharper contrast, and a more deliberate entry point into the workspace.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={() => selectedCard && buildDraft()}>
+                Build from current starter
+              </Button>
+              <Link href="/prompt-boxes">
+                <Button variant="outline" className="border-yellow-500/40 bg-black/20 text-yellow-100 hover:bg-yellow-500/10">
+                  Open advanced tools
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-3 self-end sm:grid-cols-3 lg:grid-cols-1">
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-4 backdrop-blur-sm">
+              <p className="mb-1 text-[11px] uppercase tracking-[0.28em] text-yellow-300/70">Identity</p>
+              <p className="text-sm leading-6 text-zinc-200">Gold motion and dark contrast are back, but used with restraint.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-4 backdrop-blur-sm">
+              <p className="mb-1 text-[11px] uppercase tracking-[0.28em] text-yellow-300/70">Flow</p>
+              <p className="text-sm leading-6 text-zinc-200">The main path stays simple: choose, fill, build, copy.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-4 backdrop-blur-sm">
+              <p className="mb-1 text-[11px] uppercase tracking-[0.28em] text-yellow-300/70">Next</p>
+              <p className="text-sm leading-6 text-zinc-200">After this, the libraries get the same polish and restraint.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="mb-8 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
         <div className="rounded-[24px] border border-yellow-500/15 bg-black/45 p-6">
           <p className="mb-3 text-[11px] uppercase tracking-[0.35em] text-yellow-300/70">Best flow</p>
