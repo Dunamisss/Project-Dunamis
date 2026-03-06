@@ -1,5 +1,6 @@
 import { type DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
+import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -241,54 +242,32 @@ export default function ImageLibrary() {
   }, [autoLoad, filteredByTag.length]);
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden">
-      <div className="fixed inset-0 z-0 w-full h-screen bg-gradient-to-b from-black via-black/90 to-black" />
-      <div className="relative z-10 px-4 py-10 max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis</p>
-            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Image Library</h1>
-            <p className="text-sm text-gray-300 max-w-2xl">
-              Original visual creations. Use reverse engineering to start in optimizer, then copy and run in your image tool.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {user ? (
-              <Button
-                variant="outline"
-                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                onClick={() => {
-                  void logout();
-                }}
-              >
-                Sign Out
+    <AppShell
+      eyebrow="Library"
+      title="Image Library"
+      description="Original visual references collected in one place. When you want to study or recreate a look, start in the optimizer from here."
+      actions={
+        user ? (
+          <Button
+            variant="outline"
+            className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10"
+            onClick={() => {
+              void logout();
+            }}
+          >
+            Sign Out
+          </Button>
+        ) : (
+          <AuthModal
+            trigger={
+              <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+                Sign In
               </Button>
-            ) : (
-              <AuthModal
-                trigger={
-                  <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                    Sign In
-                  </Button>
-                }
-              />
-            )}
-            <Link href="/prompts">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Prompt Library
-              </Button>
-            </Link>
-            <Link href="/images">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Image Library
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Back to Homepage
-              </Button>
-            </Link>
-          </div>
-        </div>
+            }
+          />
+        )
+      }
+    >
 
         <div className="rounded-lg border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
           <div className="rounded-md border border-yellow-500/20 bg-black/50 p-4 text-sm text-gray-300">
@@ -437,7 +416,6 @@ export default function ImageLibrary() {
           </div>
         )}
         <div ref={loadMoreRef} />
-      </div>
       {showBackToTop && (
         <button
           type="button"
@@ -467,6 +445,6 @@ export default function ImageLibrary() {
           <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold">↑</span>
         </button>
       )}
-    </div>
+    </AppShell>
   );
 }

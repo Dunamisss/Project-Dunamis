@@ -1,5 +1,6 @@
 import { type DragEvent, useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
+import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -309,39 +310,11 @@ export default function PromptLibrary() {
   }, []);
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden">
-      <div className="fixed inset-0 z-0 w-full h-screen bg-gradient-to-b from-black via-black/90 to-black" />
-      <div className="relative z-10 px-4 py-10 max-w-7xl mx-auto space-y-8">
-        <div className="rounded-lg border border-amber-400/50 bg-amber-500/10 p-4 text-amber-100">
-          <p className="text-xs uppercase tracking-[0.22em]">Under Construction</p>
-          <p className="text-sm">This site is actively being built. Features and prompt behavior can change while we improve it.</p>
-        </div>
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.35em] text-yellow-300/80">Dunamis</p>
-            <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Prompt Library</h1>
-            <p className="text-sm text-gray-300 max-w-2xl">
-              Curated prompts. Click any prompt to open it on Homepage starter mode with prefill.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/prompts">
-              <Button variant="outline" className="w-full sm:w-auto border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Prompt Library
-              </Button>
-            </Link>
-            <Link href="/images">
-              <Button variant="outline" className="w-full sm:w-auto border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Image Library
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline" className="w-full sm:w-auto border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Back to Homepage
-              </Button>
-            </Link>
-          </div>
-        </div>
+    <AppShell
+      eyebrow="Library"
+      title="Prompt Library"
+      description="Curated prompts for fast starts. Open any prompt on the homepage when you want to turn it into a cleaner, more structured draft."
+    >
 
         <div className="rounded-lg border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -740,7 +713,6 @@ export default function PromptLibrary() {
         {sortedPrompts.length === 0 && (
           <div className="text-sm text-gray-400">No prompts matched your search.</div>
         )}
-      </div>
-    </div>
+    </AppShell>
   );
 }

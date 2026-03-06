@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import hackerImage from "@/assets/hacker.png";
-import TubesEffect from "@/components/TubesEffect";
+import { ChevronDown, Sparkles, Wand2, Wrench } from "lucide-react";
+import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
 
 const ADVANCED_CARD_IDS = new Set([
   "mirror-selfie-2000s",
@@ -181,9 +180,7 @@ export default function Home() {
   const filteredCards = useMemo(() => {
     const q = cardSearch.trim().toLowerCase();
     if (!q) return BASIC_PROMPT_CARDS;
-    return BASIC_PROMPT_CARDS.filter((card) =>
-      `${card.label} ${card.description}`.toLowerCase().includes(q),
-    );
+    return BASIC_PROMPT_CARDS.filter((card) => `${card.label} ${card.description}`.toLowerCase().includes(q));
   }, [cardSearch]);
 
   const selectCard = (card: JsonPromptCard) => {
@@ -296,242 +293,280 @@ export default function Home() {
       setDraft(JSON.stringify(draftPayload, null, 2));
       setCopyFeedback(`Loaded "${payload.title || "prompt"}" into starter mode.`);
     } catch {
-      // Non-blocking if payload is malformed.
+      // ignore malformed payload
     }
   }, []);
 
   return (
-    <div className="min-h-screen relative selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
-      <img src={hackerImage} alt="" aria-hidden="true" className="fixed inset-0 z-0 h-screen w-full object-cover" />
-      <div className="fixed inset-0 z-0 bg-gradient-to-b from-black/40 via-black/55 to-black/80" />
-      <TubesEffect />
-
-      <div className="relative z-10 min-h-screen text-white">
-        <header className="max-w-7xl mx-auto px-4 xl:px-8 py-6 flex items-center justify-between gap-3 flex-wrap">
-          <h1 className="text-2xl font-semibold tracking-wide">DUNAMIS</h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link href="/prompt-repair"><Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">Prompt Repair</Button></Link>
-            <Link href="/prompt-boxes"><Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">Prompt Boxes</Button></Link>
-            <Link href="/prompts"><Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">Prompt Library</Button></Link>
-            <Link href="/images"><Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">Image Library</Button></Link>
-            <Link href="/tutorials"><Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">Tutorials</Button></Link>
-          </div>
-        </header>
-
-        <main className="w-full max-w-7xl mx-auto px-4 xl:px-8 pb-16 space-y-6">
-          <div className="rounded-lg border border-amber-400/50 bg-amber-500/10 px-5 py-4 text-amber-100">
-            <p className="text-xs uppercase tracking-[0.22em]">Under Construction</p>
-            <p className="text-sm">This site is still being built. Some features may change or be incomplete while updates roll out.</p>
-          </div>
-          <div className="rounded-lg border border-yellow-500/40 bg-black/70 px-5 py-4 text-center text-base md:text-lg font-semibold text-yellow-200 shadow-lg">
-            Start Here: pick a prompt type, fill the boxes, and copy your ready JSON.
-          </div>
-          <div className="rounded-lg border border-yellow-500/30 bg-black/65 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div>
-              <p className="text-sm text-yellow-100 font-semibold">Need to clean up a messy prompt first?</p>
-              <p className="text-xs text-gray-300">Use Prompt Boxes Lab to paste rough prompts, extract fields, and rebuild clean JSON before using the starter cards here.</p>
+    <AppShell
+      eyebrow="Start Here"
+      title="One clear place to build your next prompt"
+      description="This homepage now does one job: help you choose a prompt type, fill a few fields, and leave with a clean JSON draft. Everything else stays available, but out of the way."
+      actions={
+        <>
+          <Link href="/prompts">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Browse Prompt Library
+            </Button>
+          </Link>
+          <Link href="/images">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Browse Image Library
+            </Button>
+          </Link>
+        </>
+      }
+    >
+      <section className="mb-8 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="rounded-[24px] border border-yellow-500/15 bg-black/45 p-6">
+          <p className="mb-3 text-[11px] uppercase tracking-[0.35em] text-yellow-300/70">Best flow</p>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+              <p className="mb-2 text-sm font-semibold text-white">1. Choose a starter</p>
+              <p className="text-sm leading-6 text-zinc-300">Pick a simple card that matches what you want to make. No blank-page feeling.</p>
             </div>
-            <Link href="/prompt-boxes">
-              <Button className="bg-yellow-400 text-black hover:bg-yellow-300">Open Prompt Boxes</Button>
-            </Link>
-          </div>
-          <div className="rounded-lg border border-yellow-500/30 bg-black/65 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div>
-              <p className="text-sm text-yellow-100 font-semibold">Prompt weak, vague, or contradictory?</p>
-              <p className="text-xs text-gray-300">Run it through Prompt Repair first to see defect findings, then copy a stronger prompt back into your normal workflow.</p>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+              <p className="mb-2 text-sm font-semibold text-white">2. Fill the boxes</p>
+              <p className="text-sm leading-6 text-zinc-300">Use everyday words for subject, style, mood, constraints, and output.</p>
             </div>
-            <Link href="/prompt-repair">
-              <Button className="bg-yellow-400 text-black hover:bg-yellow-300">Open Prompt Repair</Button>
-            </Link>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+              <p className="mb-2 text-sm font-semibold text-white">3. Copy and run</p>
+              <p className="text-sm leading-6 text-zinc-300">Build the JSON draft, copy it, and paste it into your AI tool of choice.</p>
+            </div>
           </div>
-          {importedPromptTitle && (
-            <div className="rounded-lg border border-yellow-500/30 bg-black/65 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <p className="text-sm text-yellow-100">
-                Loaded from Prompt Library: <span className="font-semibold">{importedPromptTitle}</span>
+        </div>
+
+        <div className="rounded-[24px] border border-yellow-500/15 bg-[linear-gradient(180deg,rgba(245,192,74,0.08),rgba(255,255,255,0.02))] p-6">
+          <p className="mb-3 text-[11px] uppercase tracking-[0.35em] text-yellow-300/70">Use only if needed</p>
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-yellow-500/15 bg-black/35 p-4">
+              <div className="mb-2 flex items-center gap-2 text-yellow-100">
+                <Wrench className="h-4 w-4" />
+                <p className="text-sm font-semibold">Prompt Repair</p>
+              </div>
+              <p className="mb-3 text-sm leading-6 text-zinc-300">For prompts that feel weak, messy, vague, or contradictory.</p>
+              <Link href="/prompt-repair">
+                <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+                  Open Repair
+                </Button>
+              </Link>
+            </div>
+            <div className="rounded-2xl border border-yellow-500/15 bg-black/35 p-4">
+              <div className="mb-2 flex items-center gap-2 text-yellow-100">
+                <Sparkles className="h-4 w-4" />
+                <p className="text-sm font-semibold">Prompt Boxes</p>
+              </div>
+              <p className="mb-3 text-sm leading-6 text-zinc-300">For rough prompts that need extracting, rebuilding, or boxing into structure.</p>
+              <Link href="/prompt-boxes">
+                <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+                  Open Boxes
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {importedPromptTitle && (
+        <section className="mb-8 rounded-[24px] border border-yellow-500/25 bg-yellow-500/8 p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p className="text-sm text-yellow-100">
+              Loaded from Prompt Library: <span className="font-semibold">{importedPromptTitle}</span>
+            </p>
+            <Button
+              variant="outline"
+              className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10"
+              onClick={clearImportedPrompt}
+            >
+              Clear imported prompt
+            </Button>
+          </div>
+        </section>
+      )}
+
+      <section className="mb-8 rounded-[28px] border border-yellow-500/15 bg-black/40 p-6">
+        <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.35em] text-yellow-300/70">Starter cards</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Pick the closest prompt type</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
+              Keep it simple. Choose the card that feels closest, even if it is not perfect.
+            </p>
+          </div>
+          <Input
+            value={cardSearch}
+            onChange={(event) => setCardSearch(event.target.value)}
+            className="max-w-sm border-white/10 bg-white/[0.04] text-white placeholder:text-zinc-500"
+            placeholder="Search prompt types..."
+          />
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {filteredCards.map((card) => (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => selectCard(card)}
+              className={[
+                "rounded-2xl border p-4 text-left transition",
+                selectedCardId === card.id
+                  ? "border-yellow-400/45 bg-yellow-500/10 shadow-[0_20px_40px_rgba(0,0,0,0.25)]"
+                  : "border-white/8 bg-white/[0.03] hover:border-yellow-400/25 hover:bg-white/[0.05]",
+              ].join(" ")}
+            >
+              <p className="mb-2 text-sm font-semibold text-white">{card.label}</p>
+              <p className="text-sm leading-6 text-zinc-300">{card.description}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
+        <div className="rounded-[28px] border border-yellow-500/15 bg-black/45 p-6">
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.35em] text-yellow-300/70">Build panel</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">{selectedCard?.label || "Choose a prompt type"}</h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">
+                Fill only the fields you know. You can leave the rest blank and improve later.
               </p>
-              <Button
-                variant="outline"
-                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                onClick={clearImportedPrompt}
-              >
-                Clear Imported Prompt
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10" onClick={fillDemoValues}>
+                Fill demo
+              </Button>
+              <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10" onClick={clearCurrentFields}>
+                Clear fields
               </Button>
             </div>
-          )}
-
-          <div className="rounded-lg border border-yellow-500/30 bg-black/65 p-4 space-y-3">
-            <p className="text-xs uppercase tracking-[0.25em] text-yellow-200">New here?</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-              <div className="rounded-md border border-yellow-500/20 bg-black/35 p-3">
-                <p className="text-yellow-100 font-semibold">1. Pick a Starter Card</p>
-                <p className="text-xs text-gray-300">Use a preset so you never start from blank.</p>
-              </div>
-              <div className="rounded-md border border-yellow-500/20 bg-black/35 p-3">
-                <p className="text-yellow-100 font-semibold">2. Fill Simple Boxes</p>
-                <p className="text-xs text-gray-300">Write plain words (colors, style, mood, setting).</p>
-              </div>
-              <div className="rounded-md border border-yellow-500/20 bg-black/35 p-3">
-                <p className="text-yellow-100 font-semibold">3. Copy and Run</p>
-                <p className="text-xs text-gray-300">Build JSON, copy it, then run it in your AI tool.</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {starterCards.map((card) => (
-                <Button
-                  key={`starter-${card.id}`}
-                  variant="outline"
-                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                  onClick={() => selectCard(card)}
-                >
-                  Try: {card.label}
-                </Button>
-              ))}
-            </div>
-            <p className="text-[11px] text-gray-300">Tip: press a starter button, then click Build JSON Prompt.</p>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-            <section className="xl:col-span-6 rounded-lg border border-yellow-500/30 bg-black/60 p-5 space-y-4">
-              <div>
-                <h2 className="text-xl font-semibold">Choose Prompt Type</h2>
-                <p className="text-xs text-gray-300">Pick one card below. You only need one to start.</p>
-              </div>
-              <Input
-                value={cardSearch}
-                onChange={(event) => setCardSearch(event.target.value)}
-                className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
-                placeholder="Search prompt type..."
-              />
-
-              <div className="grid grid-cols-1 gap-2">
-                {filteredCards.map((card) => (
-                  <button
-                    key={card.id}
-                    type="button"
+          {selectedCard && (
+            <>
+              <div className="mb-5 flex flex-wrap gap-2">
+                {starterCards.map((card) => (
+                  <Button
+                    key={`starter-${card.id}`}
+                    variant="outline"
+                    className="border-white/10 bg-white/[0.03] text-zinc-200 hover:bg-yellow-500/10 hover:text-yellow-100"
                     onClick={() => selectCard(card)}
-                    className={[
-                      "rounded-md border px-3 py-3 text-left transition",
-                      selectedCardId === card.id
-                        ? "border-yellow-300 bg-yellow-500/10"
-                        : "border-yellow-500/30 bg-black/30 hover:bg-yellow-500/10",
-                    ].join(" ")}
                   >
-                    <p className="text-sm text-yellow-100 font-semibold">{card.label}</p>
-                    <p className="text-[11px] text-gray-300">{card.description}</p>
-                  </button>
+                    {card.label}
+                  </Button>
                 ))}
               </div>
 
-              {selectedCard && (
-                <div className="space-y-3 rounded-md border border-yellow-500/25 bg-black/30 p-3">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-yellow-200/80">{selectedCard.label} Fields</p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                        onClick={fillDemoValues}
-                      >
-                        Fill Demo
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                        onClick={clearCurrentFields}
-                      >
-                        Clear Fields
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {selectedCard.fields.map((field) => (
-                      <label key={`${selectedCard.id}-${field.key}`} className="space-y-1 text-xs text-gray-300">
-                        <span>{field.label}</span>
-                        <Input
-                          value={cardValues[field.key] || ""}
-                          onChange={(event) =>
-                            setCardValues((prev) => ({
-                              ...prev,
-                              [field.key]: event.target.value,
-                            }))
-                          }
-                          className="bg-black/40 border-yellow-500/30 text-white placeholder:text-gray-500"
-                          placeholder={field.placeholder}
-                        />
-                      </label>
-                    ))}
-                  </div>
-                  <Button className="w-full bg-yellow-400 text-black hover:bg-yellow-300" onClick={buildDraft}>
-                    Build JSON Prompt
-                  </Button>
-                </div>
-              )}
-            </section>
+              <div className="grid gap-4 md:grid-cols-2">
+                {selectedCard.fields.map((field) => (
+                  <label key={`${selectedCard.id}-${field.key}`} className="space-y-2 text-sm text-zinc-300">
+                    <span className="block text-xs uppercase tracking-[0.2em] text-zinc-400">{field.label}</span>
+                    <Input
+                      value={cardValues[field.key] || ""}
+                      onChange={(event) =>
+                        setCardValues((prev) => ({
+                          ...prev,
+                          [field.key]: event.target.value,
+                        }))
+                      }
+                      className="border-white/10 bg-white/[0.04] text-white placeholder:text-zinc-500"
+                      placeholder={field.placeholder}
+                    />
+                  </label>
+                ))}
+              </div>
 
-            <section className="xl:col-span-6 rounded-lg border border-yellow-500/30 bg-black/60 p-5 space-y-4">
-              <div>
-                <h2 className="text-xl font-semibold">Your Ready JSON</h2>
-                <p className="text-xs text-gray-300">This is your final output from the boxes on the left.</p>
-              </div>
-              <Textarea
-                value={draft}
-                readOnly
-                className="min-h-[520px] bg-black/30 border-yellow-500/20 text-white placeholder:text-gray-500"
-                placeholder="Your generated JSON draft appears here..."
-              />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10" onClick={copyDraft} disabled={!draft}>
-                  Copy JSON Draft
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Button className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={buildDraft}>
+                  <Wand2 className="h-4 w-4" />
+                  Build JSON prompt
                 </Button>
-                <div className="w-full overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
-                  <Button
-                    variant="outline"
-                    className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
-                    onClick={() => handleTryIn(TRY_IN_PROVIDERS[0])}
-                    disabled={!draft}
-                  >
-                    <span className="truncate">Copy + Open {TRY_IN_PROVIDERS[0].label}</span>
+                <Link href="/prompts">
+                  <Button variant="outline" className="border-white/10 bg-transparent text-zinc-200 hover:bg-white/[0.05]">
+                    Need inspiration first
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
-                        aria-label="Choose a provider"
-                        disabled={!draft}
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      side="bottom"
-                      sideOffset={8}
-                      collisionPadding={12}
-                      className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
-                    >
-                      {TRY_IN_PROVIDERS.map((provider) => (
-                        <DropdownMenuItem
-                          key={provider.id}
-                          className="cursor-pointer focus:bg-yellow-500/20"
-                          onClick={() => handleTryIn(provider)}
-                        >
-                          Copy + Open {provider.label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                </Link>
               </div>
-              <p className="text-[11px] text-gray-300">
-                {copyFeedback || "Tip: for lists like background elements, separate items with commas."}
-              </p>
-            </section>
+            </>
+          )}
+        </div>
+
+        <div className="rounded-[28px] border border-yellow-500/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6">
+          <div className="mb-5">
+            <p className="text-[11px] uppercase tracking-[0.35em] text-yellow-300/70">Output</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Your ready JSON draft</h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-300">
+              Build the prompt, copy it, then open your AI tool. This keeps the workflow predictable.
+            </p>
           </div>
-        </main>
-      </div>
-    </div>
+
+          <Textarea
+            value={draft}
+            readOnly
+            className="min-h-[520px] border-white/10 bg-black/35 text-white placeholder:text-zinc-500"
+            placeholder="Your generated JSON draft appears here..."
+          />
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <Button
+              variant="outline"
+              className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10"
+              onClick={copyDraft}
+              disabled={!draft}
+            >
+              Copy JSON draft
+            </Button>
+
+            <div className="overflow-hidden rounded-md border border-yellow-500/40">
+              <div className="flex items-stretch">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-none border-0 bg-transparent text-yellow-100 hover:bg-yellow-500/10"
+                  onClick={() => handleTryIn(TRY_IN_PROVIDERS[0])}
+                  disabled={!draft}
+                >
+                  Copy + open {TRY_IN_PROVIDERS[0].label}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="rounded-none border-0 border-l border-yellow-500/40 bg-transparent px-3 text-yellow-100 hover:bg-yellow-500/10"
+                      aria-label="Choose a provider"
+                      disabled={!draft}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    side="bottom"
+                    sideOffset={8}
+                    collisionPadding={12}
+                    className="w-56 border-yellow-500/30 bg-black/90 text-white"
+                  >
+                    {TRY_IN_PROVIDERS.map((provider) => (
+                      <DropdownMenuItem
+                        key={provider.id}
+                        className="cursor-pointer focus:bg-yellow-500/20"
+                        onClick={() => handleTryIn(provider)}
+                      >
+                        Copy + Open {provider.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+            <p className="mb-2 text-sm font-semibold text-white">Quick note</p>
+            <p className="text-sm leading-6 text-zinc-300">
+              {copyFeedback || "If a field is a list, separate items with commas. If the result feels weak, use Prompt Repair before trying again."}
+            </p>
+          </div>
+        </div>
+      </section>
+    </AppShell>
   );
 }
