@@ -1,6 +1,0 @@
-# One prompt per line. Lines starting with # are ignored.
-Write a Facebook post for a family-run cafe announcing a weekend brunch offer.
-Turn this into a professional email: we are delayed but still shipping today.
-Create a YouTube video outline about beginner AI automation for small businesses.
-Rewrite a rough prompt so it gives short, direct, non-technical answers.
-Make a prompt template for generating product descriptions for an online store.

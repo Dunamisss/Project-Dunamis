@@ -1,46 +1,46 @@
-import { Route, Switch, Router } from "wouter";
-import { Toaster } from "@/components/ui/sonner";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { ChatProvider } from "@/contexts/ChatContext";
-import Home from "@/pages/Home";
-import PromptLibrary from "@/pages/PromptLibrary";
-import ImageLibrary from "@/pages/ImageLibrary";
-import PromptDetail from "@/pages/PromptDetail";
-import ImageDetail from "@/pages/ImageDetail";
-import Frameworks from "@/pages/Frameworks";
-import Profile from "@/pages/Profile";
-import SubmitPrompt from "@/pages/SubmitPrompt";
-import AdminSubmissions from "@/pages/AdminSubmissions";
-import JsonPromptArchitect from "@/pages/JsonPromptArchitect";
-import ToyFigureStudio from "@/pages/ToyFigureStudio";
+import { Suspense, lazy } from "react";
+import { ChatProvider } from "./contexts/ChatContext";
+import { Route, Router, Switch } from "wouter";
+
+const Home = lazy(() => import("./pages/Home"));
+const Optimizer = lazy(() => import("./pages/Optimizer"));
+const PromptLibrary = lazy(() => import("./pages/PromptLibrary"));
+const ImageLibrary = lazy(() => import("./pages/ImageLibrary"));
+const Tutorials = lazy(() => import("./pages/Tutorials"));
+const AuditJson = lazy(() => import("./pages/AuditJson"));
+const PromptBoxes = lazy(() => import("./pages/PromptBoxes"));
+const PromptRepair = lazy(() => import("./pages/PromptRepair"));
 
 function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
-        <ChatProvider>
-          <Toaster />
-          <Router base={(import.meta as any).env?.BASE_URL || "/"}>
-            <Switch>
-              <Route path="/" component={Home} />
-              <Route path="/prompts" component={PromptLibrary} />
-              <Route path="/library" component={PromptLibrary} />
-              <Route path="/prompt/:id" component={PromptDetail} />
-              <Route path="/images" component={ImageLibrary} />
-              <Route path="/gallery" component={ImageLibrary} />
-              <Route path="/image/:id" component={ImageDetail} />
-              <Route path="/frameworks" component={Frameworks} />
-              <Route path="/profile" component={Profile} />
-              <Route path="/submit" component={SubmitPrompt} />
-              <Route path="/admin/submissions" component={AdminSubmissions} />
-              <Route path="/json-prompt-architect" component={JsonPromptArchitect} />
-              <Route path="/toy-figure-studio" component={ToyFigureStudio} />
-            </Switch>
-          </Router>
-        </ChatProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <ChatProvider>
+      <Router>
+        <Suspense
+          fallback={
+            <div className="min-h-screen bg-black text-white">
+              <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 py-8">
+                <div className="rounded-lg border border-yellow-500/30 bg-black/70 px-5 py-4 text-sm text-yellow-100">
+                  Loading workspace...
+                </div>
+              </div>
+            </div>
+          }
+        >
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/optimizer" component={Optimizer} />
+            <Route path="/tutorials" component={Tutorials} />
+            <Route path="/frameworks" component={Tutorials} />
+            <Route path="/audit-json" component={AuditJson} />
+            <Route path="/prompt-boxes" component={PromptBoxes} />
+            <Route path="/prompt-repair" component={PromptRepair} />
+            <Route path="/prompts" component={PromptLibrary} />
+            <Route path="/images" component={ImageLibrary} />
+            <Route component={Home} />
+          </Switch>
+        </Suspense>
+      </Router>
+    </ChatProvider>
   );
 }
 

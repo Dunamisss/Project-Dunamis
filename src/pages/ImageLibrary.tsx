@@ -4,14 +4,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShareMenu from "@/components/ShareMenu";
+import { AuthModal } from "@/components/AuthModal";
 import { IMAGE_LIBRARY, type ImageLibraryItem } from "@/data/imageLibrary";
 import { PROMPT_LIBRARY } from "@/data/promptLibrary";
 import { useChat } from "@/contexts/ChatContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, orderBy, query as fsQuery } from "firebase/firestore";
 
 const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-simple");
 const PAGE_SIZE = 24;
+const LEGACY_CONTENT_TERMS = [
+  "suno",
+  "song machine",
+  "song architect",
+  "toy factory",
+  "toy figure",
+  "coloring studio",
+  "coloring page",
+];
+
+function isLegacyContentImage(item: Pick<ImageLibraryItem, "title" | "description" | "tags">): boolean {
+  const haystack = [
+    item.title,
+    item.description,
+    item.tags.join(" "),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return LEGACY_CONTENT_TERMS.some((term) => haystack.includes(term));
+}
+
 const normalizeTag = (tag: string) => tag.trim().replace(/\s+/g, " ");
 const STOP_WORDS = new Set([
   "a", "an", "and", "the", "of", "in", "on", "with", "for", "to", "from", "by", "at", "is", "are",
@@ -50,6 +73,7 @@ const deriveFallbackTagsFromTitle = (title: string) => {
 
 export default function ImageLibrary() {
   const [, setLocation] = useLocation();
+  const { user, logout } = useAuth();
   const { loadPrompt } = useChat();
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState("All");
@@ -92,6 +116,7 @@ export default function ImageLibrary() {
   const libraryImages = useMemo(() => {
     const map = new Map<string, ImageLibraryItem>();
     [...communityImages, ...IMAGE_LIBRARY].forEach((item) => {
+      if (isLegacyContentImage(item)) return;
       const cleaned = cleanTags(item.tags || []);
       map.set(item.id, {
         ...item,
@@ -159,7 +184,7 @@ export default function ImageLibrary() {
     if (!reverseEngineerPrompt) return;
     loadPrompt(reverseEngineerPrompt.content);
     showCopyFeedback("Reverse-engineer prompt loaded. Next: optimize, copy, and run in your image tool.");
-    setLocation("/?focus=optimizer");
+    setLocation("/optimizer");
   };
 
   const handleImageCardDrag = (event: DragEvent<HTMLDivElement>, image: ImageLibraryItem) => {
@@ -228,9 +253,33 @@ export default function ImageLibrary() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/submit">
+            {user ? (
+              <Button
+                variant="outline"
+                className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                onClick={() => {
+                  void logout();
+                }}
+              >
+                Sign Out
+              </Button>
+            ) : (
+              <AuthModal
+                trigger={
+                  <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                    Sign In
+                  </Button>
+                }
+              />
+            )}
+            <Link href="/prompts">
               <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                Submit Image
+                Prompt Library
+              </Button>
+            </Link>
+            <Link href="/images">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Image Library
               </Button>
             </Link>
             <Link href="/">
@@ -334,7 +383,7 @@ export default function ImageLibrary() {
                 />
               </a>
               <div className="space-y-2">
-                <Link href={`/image/${image.id}`}>
+                <Link href={`/images?image=${encodeURIComponent(image.id)}`}>
                   <h2 className="text-lg font-semibold text-yellow-100 hover:text-yellow-200 transition">
                     {image.title}
                   </h2>
@@ -365,7 +414,7 @@ export default function ImageLibrary() {
                 </Button>
                 <ShareMenu
                   title={image.title}
-                  url={`${window.location.origin}/image/${image.id}`}
+                  url={`${window.location.origin}/images?image=${encodeURIComponent(image.id)}`}
                   onCopy={showCopyFeedback}
                 />
               </div>

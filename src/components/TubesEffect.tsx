@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-// @ts-ignore
-import TubesCursor from "@/lib/tubes-cursor.js";
 
 interface TubesEffectProps {
   className?: string;
 }
+
+const importRuntimeModule = new Function("path", "return import(path)") as (path: string) => Promise<any>;
 
 export default function TubesEffect({ className }: TubesEffectProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -35,32 +35,38 @@ export default function TubesEffect({ className }: TubesEffectProps) {
     if (!canvasRef.current || !wrapperRef.current) return;
     if (!sizing.safeW || !sizing.safeH) return;
 
-    try {
-      wrapperRef.current.style.width = `${sizing.safeW}px`;
-      wrapperRef.current.style.height = `${sizing.safeH}px`;
+    let isDisposed = false;
 
-      // Initialize Tubes Cursor
-      // Dunamis Theme: Gold, Black, Architectural
-      const app = TubesCursor(canvasRef.current, {
-        tubes: {
-          // Gold variations: Metallic Gold, Dark Gold, Pale Gold
-          colors: ["#D4AF37", "#B8860B", "#FFD700", "#AA8020"],
-          lights: {
-            intensity: 200,
-            // Lights: White, Bright Gold, Warm Orange
-            colors: ["#FFFFFF", "#FFD700", "#FFA500"]
-          }
-        }
-      });
+    const loadEffect = async () => {
+      try {
+        wrapperRef.current!.style.width = `${sizing.safeW}px`;
+        wrapperRef.current!.style.height = `${sizing.safeH}px`;
 
-      instanceRef.current = app;
-      console.log("TubesEffect initialized", app);
-    } catch (error) {
-      console.error("Error initializing TubesEffect:", error);
-    }
+        const module = await importRuntimeModule("/vendor/tubes-cursor.js");
+        if (isDisposed) return;
+
+        const TubesCursor = module.default;
+        const app = TubesCursor(canvasRef.current!, {
+          tubes: {
+            colors: ["#D4AF37", "#B8860B", "#FFD700", "#AA8020"],
+            lights: {
+              intensity: 200,
+              colors: ["#FFFFFF", "#FFD700", "#FFA500"],
+            },
+          },
+        });
+
+        instanceRef.current = app;
+      } catch (error) {
+        console.error("Error initializing TubesEffect:", error);
+      }
+    };
+
+    void loadEffect();
 
     // Cleanup
     return () => {
+      isDisposed = true;
       if (instanceRef.current && typeof instanceRef.current.dispose === 'function') {
         instanceRef.current.dispose();
       }

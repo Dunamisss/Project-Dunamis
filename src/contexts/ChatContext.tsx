@@ -1,5 +1,19 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import type { ReactNode } from "react";
+import { httpsCallable } from "firebase/functions";
+import { getFunctions } from "firebase/functions";
+import { app } from "../lib/firebase";
+
+const functions = getFunctions(app);
+
+export interface HistoryItem {
+  id: string;
+  mode: "optimizer" | "json-architect" | "toy-figure";
+  input: string;
+  result: any;
+  createdAt: number;
+}
+
 
 interface ChatContextType {
   promptToLoad: string | null;
@@ -13,6 +27,10 @@ interface ChatContextType {
   chatOpen: boolean;
   openChat: () => void;
   closeChat: () => void;
+  // History and cloud functions
+  history: HistoryItem[];
+  addToHistory: (item: HistoryItem) => void;
+  callCloudFunction: (functionName: string, data: Record<string, unknown>) => Promise<unknown>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -21,6 +39,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [promptToLoad, setPromptToLoad] = useState<string | null>(null);
   const [modelToLoad, setModelToLoad] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const loadPrompt = useCallback((prompt: string) => {
     setPromptToLoad(prompt);
@@ -41,6 +60,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const openChat = useCallback(() => setChatOpen(true), []);
   const closeChat = useCallback(() => setChatOpen(false), []);
 
+  const addToHistory = useCallback((item: HistoryItem) => {
+    setHistory((prev) => [item, ...prev]);
+  }, []);
+
+  const callCloudFunction = useCallback(async (functionName: string, data: Record<string, unknown>) => {
+    const callable = httpsCallable(functions, functionName);
+    const result = await callable(data);
+    return result.data;
+  }, []);
+
   return (
     <ChatContext.Provider value={{
       promptToLoad,
@@ -52,6 +81,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       chatOpen,
       openChat,
       closeChat,
+      history,
+      addToHistory,
+      callCloudFunction,
     }}>
       {children}
     </ChatContext.Provider>

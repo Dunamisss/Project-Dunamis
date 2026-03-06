@@ -1,3 +1,5 @@
+import nanobananaData from "@/data/nanobanana_prompts.json";
+
 export interface PromptLibraryItem {
   id: string;
   title: string;
@@ -8,7 +10,7 @@ export interface PromptLibraryItem {
   createdAt: number;
 }
 
-export const PROMPT_LIBRARY: PromptLibraryItem[] = [
+const RAW_PROMPT_LIBRARY: PromptLibraryItem[] = [
   {
     id: "suno-v5",
     title: "Suno V5 Song Blueprint",
@@ -230,7 +232,7 @@ Users will provide one or more images, optionally accompanied by minimal guidanc
     category: "Development",
     description: "Generates a full Python GitHub search script plus beginner setup guide.",
     tags: ["github", "python", "script", "tutorial"],
-    content: `Here’s a **copy-pasteable prompt template** you can drop straight into *any* AI chatbot (ChatGPT, Grok, Claude, etc.). It’s self-contained and engineered to force a **complete, beginner-friendly, no-excuses output**.
+    content: `Here’s a **copy-pasteable prompt template** you can drop straight into *any* AI chatbot (ChatGPT, Gemini, Claude, etc.). It’s self-contained and engineered to force a **complete, beginner-friendly, no-excuses output**.
 
 You don’t need to tweak anything unless you want to.
 
@@ -1147,3 +1149,89 @@ sits on Tom\'s shoulder",
     createdAt: 1771439568,
   },
 ];
+
+const LEGACY_CONTENT_TERMS = [
+  "suno",
+  "song machine",
+  "song architect",
+  "toy factory",
+  "toy figure",
+  "coloring studio",
+  "coloring page",
+];
+
+function isLegacyPrompt(item: PromptLibraryItem): boolean {
+  const haystack = [
+    item.title,
+    item.description,
+    item.content,
+    item.tags.join(" "),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return LEGACY_CONTENT_TERMS.some((term) => haystack.includes(term));
+}
+
+type NanoBananaPromptRecord = {
+  id: string;
+  title: string;
+  prompt: string;
+  heading?: string;
+  source_urls?: string[];
+};
+
+function inferCategoryFromNanoBanana(item: NanoBananaPromptRecord): PromptLibraryItem["category"] {
+  const text = `${item.title} ${item.heading || ""}`.toLowerCase();
+  if (/\bmarketing\b|e-commerce|social media|advertisement|ad\b/.test(text)) return "Marketing";
+  if (/\bworkplace\b|productivity|business|headshot|professional/.test(text)) return "Business";
+  if (/\beducation\b|knowledge|infographic|diagram/.test(text)) return "Productivity";
+  if (/\bcoding\b|code\b|development/.test(text)) return "Development";
+  if (/\bcreative\b|story|poster|diorama|anime|illustration|photoreal|portrait|selfie/.test(text)) return "Art";
+  return "Other";
+}
+
+function inferTagsFromNanoBanana(item: NanoBananaPromptRecord): string[] {
+  const base = `${item.title} ${item.heading || ""}`.toLowerCase();
+  const bag: string[] = [];
+  const push = (tag: string, test: RegExp) => {
+    if (test.test(base)) bag.push(tag);
+  };
+  push("selfie", /\bselfie\b/);
+  push("portrait", /\bportrait\b/);
+  push("cinematic", /\bcinematic\b/);
+  push("studio", /\bstudio\b/);
+  push("anime", /\banime\b/);
+  push("json", /```json|\bjson\b/);
+  push("product", /\bproduct\b/);
+  push("marketing", /\bmarketing\b|advertis/);
+  push("design", /\bdesign\b|interior|architecture/);
+  push("tutorial", /\bhow to\b|guide|workflow/);
+  return bag.length ? Array.from(new Set(bag)) : ["nanobanana"];
+}
+
+const NANO_BANANA_PROMPT_LIBRARY: PromptLibraryItem[] = (nanobananaData.prompts as NanoBananaPromptRecord[]).map((item, index) => ({
+  id: `nanobanana-${item.id || index}`,
+  title: item.title?.trim() || `Nano Banana Prompt ${index + 1}`,
+  category: inferCategoryFromNanoBanana(item),
+  description: "Imported from curated Nano Banana prompt repositories.",
+  tags: inferTagsFromNanoBanana(item),
+  content: item.prompt?.trim() || "",
+  createdAt: 1760000000 + index,
+}));
+
+function dedupePromptLibrary(items: PromptLibraryItem[]): PromptLibraryItem[] {
+  const seen = new Set<string>();
+  const output: PromptLibraryItem[] = [];
+  for (const item of items) {
+    const key = `${item.title.trim().toLowerCase()}|${item.content.trim().toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(item);
+  }
+  return output;
+}
+
+export const PROMPT_LIBRARY: PromptLibraryItem[] = dedupePromptLibrary([
+  ...RAW_PROMPT_LIBRARY,
+  ...NANO_BANANA_PROMPT_LIBRARY,
+]).filter((item) => !isLegacyPrompt(item));

@@ -16,7 +16,6 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const USAGE_LIMIT = Number.parseInt(process.env.DAILY_LIMIT || "5", 10);
-const OPENROUTER_DAILY_LIMIT = Number.parseInt(process.env.OPENROUTER_FREE_DAILY_LIMIT || "1", 10);
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
@@ -35,8 +34,8 @@ const VPN_IPV4_URL =
   "https://raw.githubusercontent.com/X4BNet/lists_vpn/refs/heads/main/output/vpn/ipv4.txt";
 
 const usageByKey = new Map();
-const openRouterUsageByKey = new Map();
 const contactSubmissionsByIp = new Map();
+const promptRepairRequestsByIp = new Map();
 let disposableBlocklist = new Set();
 let disposableAllowlist = new Set();
 let vpnIpv4Cidrs = [];
@@ -56,20 +55,6 @@ function getUsageRecord(key) {
   return existing;
 }
 
-function getDateKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getOpenRouterUsageRecord(key) {
-  const dateKey = getDateKey();
-  const existing = openRouterUsageByKey.get(key);
-  if (!existing || existing.date !== dateKey) {
-    const record = { date: dateKey, count: 0 };
-    openRouterUsageByKey.set(key, record);
-    return record;
-  }
-  return existing;
-}
 
 function getSupabaseHeaders(extra = {}) {
   return {
@@ -245,6 +230,27 @@ function isContactRateLimited(ip) {
   const last = contactSubmissionsByIp.get(ip) || 0;
   if (now - last < windowMs) return true;
   contactSubmissionsByIp.set(ip, now);
+  return false;
+}
+
+function isPromptRepairRateLimited(ip) {
+  if (!ip) return false;
+  const now = Date.now();
+  const windowMs = Number.parseInt(process.env.PROMPT_REPAIR_WINDOW_MS || "60000", 10);
+  const limit = Number.parseInt(process.env.PROMPT_REPAIR_MAX_PER_WINDOW || "12", 10);
+  const record = promptRepairRequestsByIp.get(ip) || { count: 0, startedAt: now };
+
+  if (now - record.startedAt >= windowMs) {
+    promptRepairRequestsByIp.set(ip, { count: 1, startedAt: now });
+    return false;
+  }
+
+  if (record.count >= limit) {
+    return true;
+  }
+
+  record.count += 1;
+  promptRepairRequestsByIp.set(ip, record);
   return false;
 }
 
@@ -426,6 +432,303 @@ async function callOpenRouter({ systemPrompt, prompt, context, images }) {
   return { output, model };
 }
 
+async function callOllama({ systemPrompt, prompt, context, images }) {
+  const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
+  const model = process.env.OLLAMA_MODEL || "qwen2.5:7b-instruct";
+  const keepAlive = process.env.OLLAMA_KEEP_ALIVE || "5m";
+  const contextBlock = context ? `\n\nAdditional context:\n${context}` : "";
+  const imageBlock = Array.isArray(images) && images.length
+    ? `\n\nImages attached (names only):\n${images.join(", ")}`
+    : "";
+
+  const response = await fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      stream: false,
+      keep_alive: keepAlive,
+      options: {
+        temperature: 0.2,
+      },
+      messages: [
+        { role: "system", content: systemPrompt || "" },
+        { role: "user", content: `${prompt}${contextBlock}${imageBlock}` },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(errText || `Ollama API error (${response.status}).`);
+  }
+
+  const data = await response.json();
+  const output = data?.message?.content ?? "";
+  return { output, model };
+}
+
+function normalizePromptInput(value) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function redactSensitiveText(value) {
+  return String(value || "")
+    .replace(/\b(sk-[A-Za-z0-9_-]{12,})\b/g, "[REDACTED_API_KEY]")
+    .replace(/\b(Bearer\s+[A-Za-z0-9._-]{12,})\b/gi, "[REDACTED_BEARER_TOKEN]");
+}
+
+function splitPromptClauses(value) {
+  return normalizePromptInput(value)
+    .split(/[\n.!?;]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function extractEvidenceSnippet(value, matcher) {
+  const match = value.match(matcher);
+  if (!match) return null;
+  return match[0].trim().slice(0, 160);
+}
+
+function buildRuleScan(rawPrompt, outputType) {
+  const text = normalizePromptInput(rawPrompt);
+  const lower = text.toLowerCase();
+  const clauses = splitPromptClauses(text);
+  const issues = [];
+
+  const addIssue = (code, severity, message, evidence = []) => {
+    if (issues.some((issue) => issue.code === code)) return;
+    issues.push({ code, severity, message, evidence: evidence.filter(Boolean).slice(0, 2) });
+  };
+
+  const actionVerbRegex = /\b(write|create|generate|draft|summarize|extract|analyze|brainstorm|plan|explain|convert|rewrite|compare|list|design)\b/i;
+  const hasObjective = clauses.some((clause, index) => index < 3 && actionVerbRegex.test(clause));
+  const hasRole = /\b(you are|act as|behave as|role:)\b/i.test(text);
+  const hasContext =
+    /\b(audience|context|background|using|based on|from the following|target audience|purpose|for (?:an?|the|my|our|this)\b)\b/i.test(text);
+  const hasOutputSpec =
+    /\b(json|markdown|html|table|csv|bullet|bullets|list|steps|schema|format|response format|output)\b/i.test(text) ||
+    outputType === "json";
+  const ambiguityHits = [
+    ...lower.matchAll(/\b(better|good|nice|improve|optimize|strong|high quality|professional|clean up|fix this)\b/g),
+  ].map((match) => match[0]);
+  const conciseSignal = /\b(short|brief|concise|one sentence|under \d+ words|max \d+ words)\b/i.test(text);
+  const detailSignal = /\b(detailed|comprehensive|in depth|thorough|step by step)\b/i.test(text);
+  const singleSentenceSignal = /\b(one sentence|single sentence)\b/i.test(text);
+  const listSignal = /\b(bullet|bullets|list|steps)\b/i.test(text);
+  const missingInputNeeded =
+    /\b(summarize|analyze|extract|rewrite|improve this|based on the text|from the article)\b/i.test(text) &&
+    !/\b(text:|article:|input:|context:|data:|notes:|transcript:|below|following)\b/i.test(text);
+  const likelyAudienceTask = /\b(email|post|ad|headline|landing page|tweet|caption|proposal)\b/i.test(text);
+  const hasAudience =
+    /\b(audience|target audience|for (?:customers|clients|beginners|developers|founders|students|marketers|creators|parents|kids|teams))\b/i.test(text);
+
+  if (!hasObjective) {
+    addIssue("missing_objective", "high", "The prompt does not clearly state the task to perform.", [
+      clauses[0]?.slice(0, 160) || "No clear action statement found.",
+    ]);
+  }
+
+  if (!hasContext) {
+    addIssue("missing_context", "medium", "The prompt lacks useful context such as audience, source material, or purpose.", [
+      clauses[0]?.slice(0, 160) || "No context markers found.",
+    ]);
+  }
+
+  if (!hasOutputSpec) {
+    addIssue("missing_output_spec", "high", "The prompt does not say what shape the answer should take.", [
+      extractEvidenceSnippet(text, /^.{1,160}/s) || "No output format or response boundary found.",
+    ]);
+  }
+
+  if (ambiguityHits.length >= 2) {
+    addIssue("ambiguous_terms", "medium", "The prompt uses vague quality words without measurable meaning.", ambiguityHits.slice(0, 2));
+  }
+
+  if ((conciseSignal && detailSignal) || (singleSentenceSignal && listSignal)) {
+    addIssue("conflicting_instructions", "high", "The prompt contains instructions that pull in incompatible directions.", [
+      conciseSignal && detailSignal ? "Contains both concise and detailed requirements." : "Contains both single-sentence and list-style requirements.",
+    ]);
+  }
+
+  if (!/\b(do not|avoid|never|must|only|without|under \d+ words|max \d+ words)\b/i.test(text) && ambiguityHits.length > 0) {
+    addIssue("vague_constraints", "medium", "The prompt asks for quality improvements but gives weak or missing constraints.", ambiguityHits.slice(0, 2));
+  }
+
+  if ((text.length > 650 && clauses.length > 8) || /\bplease can you|i was wondering if you could|if possible|kind of|sort of\b/i.test(text)) {
+    addIssue("verbosity_noise", "low", "The prompt includes filler or low-signal phrasing that can be tightened.", [
+      extractEvidenceSnippet(text, /\b(please can you|i was wondering if you could|if possible|kind of|sort of)\b[\s\S]{0,80}/i) ||
+        `${text.length} characters across ${clauses.length} clauses.`,
+    ]);
+  }
+
+  if (likelyAudienceTask && !hasAudience) {
+    addIssue("underspecified_audience", "medium", "The task implies an audience, but the audience is not stated clearly.", [
+      extractEvidenceSnippet(text, /\b(email|post|ad|headline|landing page|tweet|caption|proposal)\b[\s\S]{0,80}/i) || "Audience is missing.",
+    ]);
+  }
+
+  if (missingInputNeeded) {
+    addIssue("underspecified_input_material", "medium", "The task refers to source material without providing the actual material.", [
+      extractEvidenceSnippet(text, /\b(summarize|analyze|extract|rewrite|improve this)\b[\s\S]{0,90}/i) || "Source material not supplied.",
+    ]);
+  }
+
+  const highCount = issues.filter((issue) => issue.severity === "high").length;
+  const mediumCount = issues.filter((issue) => issue.severity === "medium").length;
+  const lowCount = issues.filter((issue) => issue.severity === "low").length;
+  const score = Math.max(0, 100 - highCount * 24 - mediumCount * 12 - lowCount * 5 + (hasRole ? 4 : 0) + (hasOutputSpec ? 4 : 0));
+  const rewriteNeeded =
+    highCount > 0 ||
+    score < 70 ||
+    issues.some((issue) => issue.code === "missing_objective" || issue.code === "missing_output_spec");
+
+  const recommendations = [];
+  if (issues.some((issue) => issue.code === "missing_objective")) recommendations.push("State the exact job in one sentence.");
+  if (issues.some((issue) => issue.code === "missing_context")) recommendations.push("Add audience, domain, or source context.");
+  if (issues.some((issue) => issue.code === "missing_output_spec")) recommendations.push("Specify the output shape or format.");
+  if (issues.some((issue) => issue.code === "conflicting_instructions")) recommendations.push("Remove contradictions and keep only one direction.");
+  if (issues.some((issue) => issue.code === "verbosity_noise")) recommendations.push("Strip filler and keep only instructions that change the result.");
+
+  return {
+    quality_score: score,
+    rewrite_needed: rewriteNeeded,
+    issues,
+    recommendations: recommendations.slice(0, 4),
+    normalized: {
+      text,
+      clauses,
+      signals: {
+        hasObjective,
+        hasRole,
+        hasContext,
+        hasOutputSpec,
+      },
+    },
+  };
+}
+
+function buildPromptSpec(text, outputType) {
+  const normalized = normalizePromptInput(text);
+  const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
+  const objective =
+    lines.find((line) => /\b(write|create|generate|draft|summarize|extract|analyze|brainstorm|plan|explain|convert|rewrite|compare|list|design)\b/i.test(line)) ||
+    lines[0] ||
+    "";
+  const roleMatch = normalized.match(/\b(?:you are|act as|behave as|role:)\s*([^\n.]{3,120})/i);
+  const outputInstructions = [];
+  const outputTypeValue = outputType === "json" ? "json" : "";
+  if (outputTypeValue) outputInstructions.push(`Return ${outputTypeValue} output.`);
+  const formatMatch = normalized.match(/\b(json|markdown|html|table|csv|bullet list|bullets|list|steps)\b/i);
+  if (formatMatch) outputInstructions.push(`Output format: ${formatMatch[1]}.`);
+
+  const constraints = lines.filter((line) => /\b(do not|avoid|never|must|only|without|under \d+ words|max \d+ words)\b/i.test(line)).slice(0, 6);
+  const context = lines
+    .filter((line) => /\b(for|audience|context|background|using|based on|target|from the following|purpose)\b/i.test(line))
+    .slice(0, 6);
+
+  return {
+    role: roleMatch?.[1]?.trim() || null,
+    objective: objective.trim(),
+    context,
+    constraints,
+    output_instructions: outputInstructions,
+    notes: [],
+  };
+}
+
+function buildRuleBasedFinalPrompt(spec) {
+  const lines = [];
+  if (spec.role) {
+    lines.push("### ROLE");
+    lines.push(spec.role);
+    lines.push("");
+  }
+  if (spec.objective) {
+    lines.push("### OBJECTIVE");
+    lines.push(spec.objective);
+    lines.push("");
+  }
+  if (spec.context.length) {
+    lines.push("### CONTEXT");
+    spec.context.forEach((item) => lines.push(`- ${item}`));
+    lines.push("");
+  }
+  if (spec.constraints.length) {
+    lines.push("### CONSTRAINTS");
+    spec.constraints.forEach((item) => lines.push(`- ${item}`));
+    lines.push("");
+  }
+  if (spec.output_instructions.length) {
+    lines.push("### OUTPUT");
+    spec.output_instructions.forEach((item) => lines.push(`- ${item}`));
+  }
+  return lines.join("\n").trim();
+}
+
+function parseJsonObjectFromText(text) {
+  if (!text || typeof text !== "string") return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    if (firstBrace < 0 || lastBrace <= firstBrace) return null;
+    try {
+      return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+    } catch {
+      return null;
+    }
+  }
+}
+
+function sanitizeRepairPayload(payload, fallbackFinalPrompt, fallbackSpec) {
+  const repairedPrompt =
+    payload && typeof payload.repaired_prompt === "string" && payload.repaired_prompt.trim()
+      ? payload.repaired_prompt.trim()
+      : null;
+  const finalPrompt =
+    payload && typeof payload.final_prompt === "string" && payload.final_prompt.trim()
+      ? payload.final_prompt.trim()
+      : repairedPrompt || fallbackFinalPrompt;
+  const changes = Array.isArray(payload?.changes)
+    ? payload.changes.map((item) => String(item).trim()).filter(Boolean).slice(0, 5)
+    : [];
+  const jsonOutput = payload?.json_output && typeof payload.json_output === "object"
+    ? {
+        role: payload.json_output.role ? String(payload.json_output.role) : fallbackSpec.role,
+        objective: String(payload.json_output.objective || fallbackSpec.objective || ""),
+        context: Array.isArray(payload.json_output.context)
+          ? payload.json_output.context.map((item) => String(item)).filter(Boolean).slice(0, 8)
+          : fallbackSpec.context,
+        constraints: Array.isArray(payload.json_output.constraints)
+          ? payload.json_output.constraints.map((item) => String(item)).filter(Boolean).slice(0, 8)
+          : fallbackSpec.constraints,
+        output_instructions: Array.isArray(payload.json_output.output_instructions)
+          ? payload.json_output.output_instructions.map((item) => String(item)).filter(Boolean).slice(0, 8)
+          : fallbackSpec.output_instructions,
+      }
+    : {
+        role: fallbackSpec.role,
+        objective: fallbackSpec.objective,
+        context: fallbackSpec.context,
+        constraints: fallbackSpec.constraints,
+        output_instructions: fallbackSpec.output_instructions,
+      };
+
+  return {
+    repairedPrompt,
+    finalPrompt,
+    changes,
+    jsonOutput,
+  };
+}
+
 loadLists();
 setInterval(loadLists, 24 * 60 * 60 * 1000);
 
@@ -457,6 +760,178 @@ app.use((req, res, next) => {
 
 app.get("/api/health", (req, res) => {
   return res.json({ ok: true, service: "dunamis-api" });
+});
+
+app.post("/api/prompt-repair", async (req, res) => {
+  const startedAt = Date.now();
+  const rawPrompt = typeof req.body?.raw_prompt === "string" ? req.body.raw_prompt : "";
+  const targetModel = typeof req.body?.target_model === "string" ? req.body.target_model.trim() : "";
+  const outputType = req.body?.output_type === "json" ? "json" : "text";
+  const includeJson = Boolean(req.body?.include_json);
+  const clientIp = getClientIp(req);
+
+  if (!rawPrompt.trim()) {
+    return res.status(400).json({ error: "raw_prompt is required." });
+  }
+  if (rawPrompt.length > 8000) {
+    return res.status(413).json({ error: "Prompt too large. Maximum size is 8000 characters." });
+  }
+  if (isPromptRepairRateLimited(clientIp)) {
+    return res.status(429).json({ error: "Too many repair requests. Please wait a moment and try again." });
+  }
+
+  let ruleScan;
+  try {
+    ruleScan = buildRuleScan(rawPrompt, outputType);
+  } catch {
+    ruleScan = {
+      quality_score: 35,
+      rewrite_needed: true,
+      issues: [
+        {
+          code: "missing_objective",
+          severity: "high",
+          message: "The prompt could not be analyzed cleanly, so a manual repair is recommended.",
+          evidence: ["Analyzer fallback activated."],
+        },
+      ],
+      recommendations: ["State the exact job and desired output format."],
+      normalized: {
+        text: normalizePromptInput(rawPrompt),
+        clauses: splitPromptClauses(rawPrompt),
+        signals: {
+          hasObjective: false,
+          hasRole: false,
+          hasContext: false,
+          hasOutputSpec: false,
+        },
+      },
+    };
+  }
+
+  const normalizedSpec = buildPromptSpec(rawPrompt, outputType);
+  const fallbackFinalPrompt = buildRuleBasedFinalPrompt(normalizedSpec) || normalizePromptInput(rawPrompt);
+  let repairedPrompt = null;
+  let finalPrompt = fallbackFinalPrompt;
+  let changes = [];
+  let provider = null;
+  let model = targetModel || null;
+  let rewriteUsed = false;
+  let fallbackMessage = null;
+  let structuredJson = null;
+
+  if (ruleScan.rewrite_needed) {
+    const systemPrompt =
+      "ROLE:\n" +
+      "You repair weak prompts into clear, production-ready prompts.\n\n" +
+      "TASK:\n" +
+      "Given a raw user prompt, rule-based issue findings, and a normalized prompt spec, return strict JSON only.\n\n" +
+      "RULES:\n" +
+      "- Preserve the user's intent.\n" +
+      "- Resolve contradictions where possible.\n" +
+      "- Do not invent domain facts.\n" +
+      "- Keep the result direct and copy-ready.\n" +
+      "- Return plain text prompts, not markdown fences.\n" +
+      "- Output valid JSON only using this schema:\n" +
+      '{ "repaired_prompt": "string", "final_prompt": "string", "changes": ["string"], "json_output": { "role": "string|null", "objective": "string", "context": ["string"], "constraints": ["string"], "output_instructions": ["string"] } }';
+
+    const providerPrompt = JSON.stringify(
+      {
+        raw_prompt: redactSensitiveText(rawPrompt),
+        target_model: targetModel || null,
+        output_type: outputType,
+        issues: ruleScan.issues,
+        recommendations: ruleScan.recommendations,
+        normalized_spec: normalizedSpec,
+      },
+      null,
+      2,
+    );
+
+    const optimizerProvider = (process.env.OPTIMIZER_PROVIDER || "ollama").trim().toLowerCase();
+    const primaryProvider = optimizerProvider === "openrouter" ? "openrouter" : "ollama";
+    const fallbackProvider = primaryProvider === "ollama" && process.env.OPENROUTER_API_KEY ? "openrouter" : null;
+    const runProvider = async (selectedProvider) => {
+      const result =
+        selectedProvider === "ollama"
+          ? await callOllama({ systemPrompt, prompt: providerPrompt, context: "", images: [] })
+          : await callOpenRouter({ systemPrompt, prompt: providerPrompt, context: "", images: [] });
+      return result;
+    };
+
+    try {
+      const result = await runProvider(primaryProvider);
+      const parsed = parseJsonObjectFromText(result?.output || "");
+      const sanitized = sanitizeRepairPayload(parsed || {}, fallbackFinalPrompt, normalizedSpec);
+      repairedPrompt = sanitized.repairedPrompt;
+      finalPrompt = sanitized.finalPrompt;
+      changes = sanitized.changes;
+      structuredJson = sanitized.jsonOutput;
+      provider = primaryProvider;
+      model = result?.model || model;
+      rewriteUsed = Boolean(repairedPrompt || (parsed && typeof parsed === "object"));
+    } catch (primaryError) {
+      if (fallbackProvider) {
+        try {
+          const result = await runProvider(fallbackProvider);
+          const parsed = parseJsonObjectFromText(result?.output || "");
+          const sanitized = sanitizeRepairPayload(parsed || {}, fallbackFinalPrompt, normalizedSpec);
+          repairedPrompt = sanitized.repairedPrompt;
+          finalPrompt = sanitized.finalPrompt;
+          changes = sanitized.changes;
+          structuredJson = sanitized.jsonOutput;
+          provider = fallbackProvider;
+          model = result?.model || model;
+          rewriteUsed = Boolean(repairedPrompt || (parsed && typeof parsed === "object"));
+          fallbackMessage = `Primary provider failed. Used ${fallbackProvider} instead.`;
+        } catch {
+          fallbackMessage = "Rewrite unavailable; showing rule-based repair guidance only.";
+        }
+      } else {
+        fallbackMessage = "Rewrite unavailable; showing rule-based repair guidance only.";
+      }
+      if (!fallbackMessage && primaryError) {
+        fallbackMessage = "Rewrite unavailable; showing rule-based repair guidance only.";
+      }
+    }
+  }
+
+  const finalSpec = buildPromptSpec(finalPrompt, outputType);
+  const jsonOutput = includeJson
+    ? structuredJson || {
+        role: finalSpec.role,
+        objective: finalSpec.objective,
+        context: finalSpec.context,
+        constraints: finalSpec.constraints,
+        output_instructions: finalSpec.output_instructions,
+      }
+    : null;
+
+  return res.json({
+    request_id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    normalized_input: {
+      raw_prompt: normalizePromptInput(rawPrompt),
+      target_model: targetModel || null,
+      output_type: outputType,
+    },
+    rule_scan: {
+      quality_score: ruleScan.quality_score,
+      rewrite_needed: ruleScan.rewrite_needed,
+      issues: ruleScan.issues,
+      recommendations: ruleScan.recommendations,
+    },
+    repaired_prompt: repairedPrompt,
+    final_prompt: finalPrompt,
+    changes,
+    json_output: jsonOutput,
+    processing: {
+      rewrite_used: rewriteUsed,
+      provider,
+      model,
+      fallback_message: fallbackMessage,
+      duration_ms: Date.now() - startedAt,
+    },
+  });
 });
 
 app.post("/api/turnstile-verify", async (req, res) => {
@@ -655,30 +1130,22 @@ app.post("/api/coloring/outline", upload.single("image"), async (req, res) => {
 
 app.post("/api/optimize", async (req, res) => {
   const requestStartedAt = Date.now();
-  const apiKey = process.env.GROQ_API_KEY;
+  const optimizerProvider = (process.env.OPTIMIZER_PROVIDER || "ollama").trim().toLowerCase();
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 
-  try {
-    const { systemPrompt, prompt, context, images, userEmail } = req.body ?? {};
-    if (!prompt || typeof prompt !== "string") {
-      return res.status(400).json({ error: "Prompt is required." });
-    }
-    const safeContext = typeof context === "string"
-      ? context
-      : context == null
-      ? ""
-      : String(context);
-    const safeImages = Array.isArray(images)
-      ? images.map((item) => String(item)).filter(Boolean).slice(0, 30)
-      : [];
+  const { systemPrompt, prompt, context, images, userEmail } = req.body ?? {};
+  if (!prompt || typeof prompt !== "string") {
+    return res.status(400).json({ error: "Prompt is required." });
+  }
 
-    const normalizedEmail = typeof userEmail === "string" ? userEmail.trim().toLowerCase() : "";
-    const clientIp = getClientIp(req);
-    const usageKey = normalizedEmail || (clientIp ? `ip:${clientIp}` : "anonymous");
-    let isAllowlisted = Boolean(normalizedEmail && allowList.includes(normalizedEmail));
+  const normalizedEmail = typeof userEmail === "string" ? userEmail.trim().toLowerCase() : "";
+  const clientIp = getClientIp(req);
+  const usageKey = normalizedEmail || (clientIp ? `ip:${clientIp}` : "anonymous");
+  let isAllowlisted = Boolean(normalizedEmail && allowList.includes(normalizedEmail));
 
-    if (!isAllowlisted && normalizedEmail && isDisposableEmail(normalizedEmail)) {
-      return res.status(400).json({ error: "Disposable email addresses are not allowed." });
-    }
+  if (!isAllowlisted && normalizedEmail && isDisposableEmail(normalizedEmail)) {
+    return res.status(400).json({ error: "Disposable email addresses are not allowed." });
+  }
 
   if (SUPABASE_ENABLED && normalizedEmail) {
     try {
@@ -756,113 +1223,33 @@ app.post("/api/optimize", async (req, res) => {
     }
   }
 
-  const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
-  const contextBlock = safeContext ? `\n\nAdditional context:\n${safeContext}` : "";
-  const imageBlock = safeImages.length
-    ? `\n\nImages attached (names only):\n${safeImages.join(", ")}` 
-    : "";
   const vpnWarning = isLikelyVpnIp(clientIp);
   const warningMessage = vpnWarning
     ? "We detected a VPN/proxy IP. Access is allowed, but this may trigger review."
     : null;
 
-  const tryOpenRouterFallback = async (reason = "Groq unavailable") => {
-    const fallbackRecord = getOpenRouterUsageRecord(usageKey);
-    if (fallbackRecord.count >= OPENROUTER_DAILY_LIMIT && !isAllowlisted) {
-      return res.status(503).json({
-        error: `${reason}. Free backup model already used today. Try again tomorrow.`,
-      });
-    }
-
-    try {
-      const fallbackStartedAt = Date.now();
-      const fallback = await callOpenRouter({
-        systemPrompt,
-        prompt,
-        context: safeContext,
-        images: safeImages,
-      });
-      const fallbackMs = Date.now() - fallbackStartedAt;
-      if (!fallback || !fallback.output) {
-        return res.status(503).json({
-          error: `${reason}. Backup model unavailable. Set OPENROUTER_API_KEY for fallback.`,
-        });
-      }
-      if (!isAllowlisted) {
-        fallbackRecord.count += 1;
-      }
-      const totalMs = Date.now() - requestStartedAt;
-      return res.json({
-        output: fallback.output,
-        remaining,
-        limit,
-        unlimited: isAllowlisted,
-        vpnWarning,
-        warningMessage,
-        fallbackUsed: true,
-        timing: {
-          totalMs,
-          fallbackMs,
-          model: fallback.model,
-          provider: "openrouter",
-        },
-      });
-    } catch (fallbackError) {
-      const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : "Backup model failed.";
-      return res.status(503).json({ error: `${reason}. Backup failed: ${fallbackMessage}` });
-    }
+  const runProvider = async (provider) => {
+    const providerStartedAt = Date.now();
+    const result =
+      provider === "ollama"
+        ? await callOllama({ systemPrompt, prompt, context, images })
+        : await callOpenRouter({ systemPrompt, prompt, context, images });
+    const providerMs = Date.now() - providerStartedAt;
+    return { result, providerMs };
   };
 
-  if (!apiKey) {
-    return tryOpenRouterFallback("Missing GROQ_API_KEY");
-  }
+  const primaryProvider = optimizerProvider === "openrouter" ? "openrouter" : "ollama";
+  const fallbackProvider =
+    primaryProvider === "ollama" && openRouterApiKey ? "openrouter" : null;
 
   try {
-    const groqStartedAt = Date.now();
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.2,
-        max_tokens: 800,
-        messages: [
-          { role: "system", content: systemPrompt || "" },
-          { role: "user", content: `${prompt}${contextBlock}${imageBlock}` },
-        ],
-      }),
-    });
-    const groqFinishedAt = Date.now();
-
-    if (!response.ok) {
-      const totalMs = Date.now() - requestStartedAt;
-      const groqMs = groqFinishedAt - groqStartedAt;
-      const groqErrorText = await response.text().catch(() => "");
-      console.warn("Groq error", {
-        status: response.status,
-        totalMs,
-        groqMs,
-        model,
-        error: groqErrorText.slice(0, 300),
-      });
-      if (response.status === 401) {
-        return res.status(401).json({
-          error:
-            "Groq authentication failed (401). Check GROQ_API_KEY in server .env and restart npm run dev:api.",
-        });
-      }
-      return tryOpenRouterFallback(`Groq error ${response.status}`);
+    const { result, providerMs } = await runProvider(primaryProvider);
+    if (!result || !result.output) {
+      throw new Error(`${primaryProvider} returned empty output.`);
     }
-
-    const data = await response.json();
-    const output = data?.choices?.[0]?.message?.content ?? "";
     const totalMs = Date.now() - requestStartedAt;
-    const groqMs = groqFinishedAt - groqStartedAt;
     return res.json({
-      output,
+      output: result.output,
       remaining,
       limit,
       unlimited: isAllowlisted,
@@ -870,18 +1257,43 @@ app.post("/api/optimize", async (req, res) => {
       warningMessage,
       timing: {
         totalMs,
-        groqMs,
-        model,
-        provider: "groq",
+        providerMs,
+        model: result.model,
+        provider: primaryProvider,
       },
     });
   } catch (error) {
-    return tryOpenRouterFallback("Groq request failed");
-  }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected optimizer error.";
-    console.error("Unhandled /api/optimize error:", error);
-    return res.status(500).json({ error: `Optimizer server error: ${message}` });
+    const primaryError = error instanceof Error ? error.message : `${primaryProvider} request failed.`;
+    if (fallbackProvider) {
+      try {
+        const { result, providerMs } = await runProvider(fallbackProvider);
+        if (!result || !result.output) {
+          throw new Error(`${fallbackProvider} returned empty output.`);
+        }
+        const totalMs = Date.now() - requestStartedAt;
+        return res.json({
+          output: result.output,
+          remaining,
+          limit,
+          unlimited: isAllowlisted,
+          vpnWarning,
+          warningMessage,
+          fallbackUsed: true,
+          timing: {
+            totalMs,
+            providerMs,
+            model: result.model,
+            provider: fallbackProvider,
+          },
+        });
+      } catch (fallbackError) {
+        const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : `${fallbackProvider} request failed.`;
+        return res.status(503).json({
+          error: `${primaryProvider} failed: ${primaryError} | ${fallbackProvider} failed: ${fallbackMessage}`,
+        });
+      }
+    }
+    return res.status(503).json({ error: primaryError });
   }
 });
 

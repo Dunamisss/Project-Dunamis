@@ -8,7 +8,7 @@ export interface ImageLibraryItem {
   createdAt: number;
 }
 
-export const IMAGE_LIBRARY: ImageLibraryItem[] = [
+const RAW_IMAGE_LIBRARY: ImageLibraryItem[] = [
   {
     "id": "100-a-dramatic-close-up-photograph-ba830b9b",
     "title": "100 a dramatic close up photograph ba830b9b",
@@ -1543,12 +1543,15 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
   },
   {
     "id": "glass-lion-2-8b22bb47",
-    "title": "glass lion 2 8b22bb47",
-    "description": "Original artwork: glass lion 2 8b22bb47.",
+    "title": "Crystal Lion In Abandoned Cathedral",
+    "description": "Cinematic glass lion mid-stride in a vast abandoned cathedral at dusk, with warm god rays, cool shadow contrast, and realistic crystal refraction.",
     "tags": [
       "glass",
       "lion",
-      "8b22bb47"
+      "crystal",
+      "cathedral",
+      "cinematic",
+      "dusk"
     ],
     "full": "/images/library/full/glass-lion-2-8b22bb47.webp",
     "thumb": "/images/library/thumbs/glass-lion-2-8b22bb47.webp",
@@ -2528,3 +2531,28 @@ export const IMAGE_LIBRARY: ImageLibraryItem[] = [
     "createdAt": 1770463222
   }
 ];
+
+const LEGACY_CONTENT_TERMS = [
+  "suno",
+  "song machine",
+  "song architect",
+  "toy factory",
+  "toy figure",
+  "coloring studio",
+  "coloring page",
+];
+
+function isLegacyImage(item: ImageLibraryItem): boolean {
+  const haystack = [
+    item.title,
+    item.description,
+    item.tags.join(" "),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return LEGACY_CONTENT_TERMS.some((term) => haystack.includes(term));
+}
+
+export const IMAGE_LIBRARY: ImageLibraryItem[] = RAW_IMAGE_LIBRARY.filter(
+  (item) => !isLegacyImage(item),
+);
