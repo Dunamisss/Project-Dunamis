@@ -1374,7 +1374,7 @@ export default function Optimizer() {
               <div className="rounded-lg border border-yellow-500/20 bg-black/50 px-4 py-3 text-xs text-gray-200">
                 <p className="text-yellow-200 font-semibold mb-1 uppercase tracking-[0.2em]">Quick Start</p>
                 <p>1. Paste or write your rough prompt.</p>
-                <p>2. Click Make My Prompt Better or switch to Audit mode.</p>
+                <p>2. Choose Simple or Advanced, then Optimize or Audit.</p>
                 <p>3. Copy the result, retry if needed, and save it to your history.</p>
               </div>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -1424,6 +1424,65 @@ export default function Optimizer() {
                   </Button>
                 </div>
               </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-lg border border-yellow-500/20 bg-black/45 p-4">
+                  <p className="text-[11px] uppercase tracking-[0.25em] text-yellow-200/75">Workspace Mode</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className={simpleMode ? "border-yellow-300 bg-yellow-500/10 text-yellow-100" : "border-yellow-500/30 text-yellow-200 hover:bg-yellow-500/10"}
+                      onClick={() => setSimpleMode(true)}
+                    >
+                      Simple
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className={!simpleMode ? "border-yellow-300 bg-yellow-500/10 text-yellow-100" : "border-yellow-500/30 text-yellow-200 hover:bg-yellow-500/10"}
+                      onClick={() => {
+                        setSimpleMode(false);
+                        setShowAdvancedOptions(true);
+                      }}
+                    >
+                      Advanced
+                    </Button>
+                  </div>
+                  <p className="mt-3 text-[11px] leading-5 text-gray-400">
+                    {simpleMode ? "Start with plain language and optional helper tools." : "Work directly with full controls, context uploads, and format tuning."}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-yellow-500/20 bg-black/45 p-4">
+                  <p className="text-[11px] uppercase tracking-[0.25em] text-yellow-200/75">Result Type</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className={mode !== "audit" ? "border-yellow-300 bg-yellow-500/10 text-yellow-100" : "border-yellow-500/30 text-yellow-200 hover:bg-yellow-500/10"}
+                      onClick={() => setMode("optimize")}
+                    >
+                      Optimize
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className={mode === "audit" ? "border-yellow-300 bg-yellow-500/10 text-yellow-100" : "border-yellow-500/30 text-yellow-200 hover:bg-yellow-500/10"}
+                      onClick={() => {
+                        setMode("audit");
+                        setSimpleMode(false);
+                      }}
+                    >
+                      Audit
+                    </Button>
+                  </div>
+                  <p className="mt-3 text-[11px] leading-5 text-gray-400">
+                    {mode === "audit" ? "Score and critique the prompt before deciding whether to fix it." : "Generate a cleaner production-ready prompt draft."}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-yellow-500/20 bg-black/45 p-4">
+                  <p className="text-[11px] uppercase tracking-[0.25em] text-yellow-200/75">Optional Helpers</p>
+                  <p className="mt-3 text-sm text-white">{showAdvancedOptions || !simpleMode ? "Expanded" : "Hidden"}</p>
+                  <p className="mt-1 text-[11px] leading-5 text-gray-400">
+                    Prompt cards, uploads, and extra context stay tucked away until you need them.
+                  </p>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                 <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg space-y-4 xl:col-span-5 min-w-0">
@@ -1459,29 +1518,33 @@ export default function Optimizer() {
                     )}
                   </div>
                   {simpleMode && (
-                    <div className="rounded-md border border-yellow-500/30 bg-black/40 p-4 space-y-3">
-                      <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">Starter Examples</p>
-                      <div className="grid grid-cols-1 gap-2">
+                    <details open className="rounded-md border border-yellow-500/30 bg-black/40 p-4">
+                      <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-yellow-200/90">
+                        Starter Examples
+                      </summary>
+                      <div className="mt-3 grid grid-cols-1 gap-2">
                         {SIMPLE_STARTER_EXAMPLES.map((example, idx) => (
                           <Button
                             key={`${idx}-${example.slice(0, 12)}`}
                             variant="outline"
-                            className="justify-start text-left h-auto whitespace-normal border-yellow-500/30 text-yellow-100 hover:bg-yellow-500/10"
+                            className="justify-start whitespace-normal border-yellow-500/30 text-left text-yellow-100 hover:bg-yellow-500/10"
                             onClick={() => applySimpleStarter(example)}
                           >
                             {example}
                           </Button>
                         ))}
                       </div>
-                    </div>
+                    </details>
                   )}
                   {simpleMode && (
-                    <div className="rounded-md border border-yellow-500/30 bg-black/40 p-4 space-y-3">
-                      <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">JSON Prompt Cards</p>
-                      <p className="text-[11px] text-gray-400">
+                    <details className="rounded-md border border-yellow-500/30 bg-black/40 p-4">
+                      <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-yellow-200/90">
+                        JSON Prompt Cards
+                      </summary>
+                      <p className="mt-3 text-[11px] text-gray-400">
                         Pick a card, fill field boxes, then build a strict JSON prompt draft.
                       </p>
-                      <div className="grid grid-cols-1 gap-2">
+                      <div className="mt-3 grid grid-cols-1 gap-2">
                         {JSON_PROMPT_CARDS.map((card) => (
                           <button
                             key={card.id}
@@ -1531,15 +1594,17 @@ export default function Optimizer() {
                           </Button>
                         </div>
                       )}
-                    </div>
+                    </details>
                   )}
                   {simpleMode && (
-                    <div className="rounded-md border border-yellow-500/30 bg-black/40 p-4 space-y-3">
-                      <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">Guided Prompt Builder</p>
-                      <p className="text-[11px] text-gray-400">
+                    <details className="rounded-md border border-yellow-500/30 bg-black/40 p-4">
+                      <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-yellow-200/90">
+                        Guided Prompt Builder
+                      </summary>
+                      <p className="mt-3 text-[11px] text-gray-400">
                         Choose your options, then build a structured draft into your prompt box.
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                         <label className="space-y-1 text-xs text-gray-300">
                           <span>Task type</span>
                           <select
@@ -1620,15 +1685,17 @@ export default function Optimizer() {
                       >
                         Build Draft Into Prompt Box
                       </Button>
-                    </div>
+                    </details>
                   )}
                   {simpleMode && (
-                    <div className="rounded-md border border-yellow-500/30 bg-black/40 p-4 space-y-3">
-                      <p className="text-xs text-yellow-200/90 font-semibold tracking-wide uppercase">Football Prompt Form</p>
-                      <p className="text-[11px] text-gray-400">
+                    <details className="rounded-md border border-yellow-500/30 bg-black/40 p-4">
+                      <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-yellow-200/90">
+                        Football Prompt Form
+                      </summary>
+                      <p className="mt-3 text-[11px] text-gray-400">
                         Fill this in like the site you showed: shirt name, number, club, scene details.
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                         <Input
                           value={footballPlayerName}
                           onChange={(event) => setFootballPlayerName(event.target.value)}
@@ -1679,7 +1746,7 @@ export default function Optimizer() {
                       >
                         Build Football Prompt
                       </Button>
-                    </div>
+                    </details>
                   )}
                   {(!simpleMode || showAdvancedOptions) && (
                     <div className="rounded-md border border-yellow-500/25 bg-black/35 p-3">
