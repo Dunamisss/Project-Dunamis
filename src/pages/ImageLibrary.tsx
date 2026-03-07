@@ -12,6 +12,7 @@ import { useChat } from "@/contexts/ChatContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, orderBy, query as fsQuery } from "firebase/firestore";
+import { Eye, Image as ImageIcon, WandSparkles } from "lucide-react";
 
 const reverseEngineerPrompt = PROMPT_LIBRARY.find((prompt) => prompt.id === "reverse-engineer-simple");
 const PAGE_SIZE = 24;
@@ -268,8 +269,23 @@ export default function ImageLibrary() {
         )
       }
     >
+        <div className="mb-6 grid gap-4 lg:grid-cols-3">
+          <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+            <div className="mb-2 flex items-center gap-2 text-yellow-100"><ImageIcon className="h-4 w-4" /><span className="text-sm font-semibold">Visible images</span></div>
+            <p className="text-3xl font-semibold text-white">{filteredByTag.length}</p>
+            <p className="mt-1 text-sm text-zinc-400">After your current search and tag filters.</p>
+          </div>
+          <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+            <div className="mb-2 flex items-center gap-2 text-yellow-100"><WandSparkles className="h-4 w-4" /><span className="text-sm font-semibold">Best use</span></div>
+            <p className="text-sm leading-6 text-zinc-300">Open the image, study the look, then start in optimizer when you want to reverse-engineer the prompt behind it.</p>
+          </div>
+          <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+            <div className="mb-2 flex items-center gap-2 text-yellow-100"><Eye className="h-4 w-4" /><span className="text-sm font-semibold">Current mode</span></div>
+            <p className="text-sm leading-6 text-zinc-300">{autoLoad ? "Auto-load is on, so more images appear while you scroll." : "Auto-load is off, so you control the pace with Load more."}</p>
+          </div>
+        </div>
 
-        <div className="rounded-lg border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
+        <div className="rounded-2xl border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
           <div className="rounded-md border border-yellow-500/20 bg-black/50 p-4 text-sm text-gray-300">
             <p className="font-semibold text-yellow-200">How to recreate an image</p>
             <p className="mt-2 text-xs text-gray-300">
@@ -349,16 +365,16 @@ export default function ImageLibrary() {
               draggable
               onDragStart={(event) => handleImageCardDrag(event, image)}
               className={[
-                "rounded-lg border border-yellow-500/20 bg-black/60 p-4 shadow-lg space-y-4 transition cursor-grab active:cursor-grabbing",
+                "rounded-[24px] border border-yellow-500/20 bg-black/60 p-4 shadow-lg space-y-4 transition cursor-grab active:cursor-grabbing hover:border-yellow-400/35 hover:bg-black/70",
                 highlightId === image.id ? "ring-2 ring-yellow-400/80" : ""
               ].join(" ")}
             >
-              <a href={image.full} target="_blank" rel="noopener noreferrer" className="block">
+              <a href={image.full} target="_blank" rel="noopener noreferrer" className="group block overflow-hidden rounded-xl">
                 <img
                   src={image.thumb}
                   alt={image.title}
                   loading="lazy"
-                  className="h-56 w-full object-cover rounded-md border border-yellow-500/20"
+                  className="h-56 w-full rounded-xl border border-yellow-500/20 object-cover transition duration-500 group-hover:scale-[1.03]"
                 />
               </a>
               <div className="space-y-2">
@@ -376,7 +392,7 @@ export default function ImageLibrary() {
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="space-y-3">
                 <Button
                   className="bg-yellow-400 text-black hover:bg-yellow-300"
                   onClick={handleReverseEngineer}
@@ -384,18 +400,20 @@ export default function ImageLibrary() {
                 >
                   Start in Optimizer
                 </Button>
-                <Button
-                  variant="outline"
-                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                  onClick={() => window.open(image.full, "_blank", "noopener,noreferrer")}
-                >
-                  View Full
-                </Button>
-                <ShareMenu
-                  title={image.title}
-                  url={`${window.location.origin}/images?image=${encodeURIComponent(image.id)}`}
-                  onCopy={showCopyFeedback}
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                    onClick={() => window.open(image.full, "_blank", "noopener,noreferrer")}
+                  >
+                    View Full
+                  </Button>
+                  <ShareMenu
+                    title={image.title}
+                    url={`${window.location.origin}/images?image=${encodeURIComponent(image.id)}`}
+                    onCopy={showCopyFeedback}
+                  />
+                </div>
               </div>
             </div>
           ))}

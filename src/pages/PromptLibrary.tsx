@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, FileText, Layers3, SlidersHorizontal } from "lucide-react";
 import { PROMPT_LIBRARY, type PromptLibraryItem } from "@/data/promptLibrary";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, orderBy, query as fsQuery } from "firebase/firestore";
@@ -315,8 +315,24 @@ export default function PromptLibrary() {
       title="Prompt Library"
       description="Curated prompts for fast starts. Open any prompt on the homepage when you want to turn it into a cleaner, more structured draft."
     >
+        <div className="mb-6 grid gap-4 lg:grid-cols-3">
+          <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+            <div className="mb-2 flex items-center gap-2 text-yellow-100"><FileText className="h-4 w-4" /><span className="text-sm font-semibold">Total prompts</span></div>
+            <p className="text-3xl font-semibold text-white">{sortedPrompts.length}</p>
+            <p className="mt-1 text-sm text-zinc-400">Visible with your current filters.</p>
+          </div>
+          <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+            <div className="mb-2 flex items-center gap-2 text-yellow-100"><Layers3 className="h-4 w-4" /><span className="text-sm font-semibold">Editable templates</span></div>
+            <p className="text-3xl font-semibold text-white">{editablePromptTemplates.length}</p>
+            <p className="mt-1 text-sm text-zinc-400">Best when you want structure and fast customization.</p>
+          </div>
+          <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+            <div className="mb-2 flex items-center gap-2 text-yellow-100"><SlidersHorizontal className="h-4 w-4" /><span className="text-sm font-semibold">How to use</span></div>
+            <p className="text-sm leading-6 text-zinc-300">Filter first, open the closest prompt, then use “Start on Homepage” only when you want a simpler guided build flow.</p>
+          </div>
+        </div>
 
-        <div className="rounded-lg border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
+        <div className="rounded-2xl border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={sourceFilter === "all" ? "default" : "outline"}
@@ -385,7 +401,7 @@ export default function PromptLibrary() {
           <div className="space-y-3">
             <div className="space-y-1">
               <h2 className="text-2xl font-semibold text-yellow-100">Editable JSON Templates</h2>
-              <p className="text-xs text-gray-300">Fill boxes, then copy rendered prompt or JSON payload.</p>
+              <p className="text-xs text-gray-300">These are the most useful prompts for structured work. Fill a few fields, then copy the rendered prompt or JSON.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {editablePromptTemplates.map(({ prompt, tokens, mode }) => {
@@ -404,7 +420,7 @@ export default function PromptLibrary() {
                       highlightId === prompt.id ? "ring-2 ring-yellow-400/80" : ""
                     ].join(" ")}
                   >
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <p className="text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">{prompt.category}</p>
                       <h3 className="text-xl font-semibold text-yellow-100 break-words">{prompt.title}</h3>
                       <p className="text-sm text-gray-300 break-words">{prompt.description}</p>
@@ -480,81 +496,86 @@ export default function PromptLibrary() {
                       className="min-h-[140px] bg-black/30 border-yellow-500/20 text-[11px] text-gray-300"
                     />
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        className="bg-yellow-400 text-black hover:bg-yellow-300"
-                        onClick={() => handleStartOnHome({ ...prompt, content: renderedPrompt })}
-                      >
-                        Start on Homepage
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                        onClick={() => handleCopy(renderedPrompt)}
-                      >
-                        Copy Prompt
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                        onClick={() => handleCopy(jsonPayload)}
-                      >
-                        Copy JSON
-                      </Button>
-                      <AddToPackDialog
-                        promptText={renderedPrompt}
-                        suggestedTitle={prompt.title}
-                        onDone={showCopyFeedback}
-                        trigger={
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          className="bg-yellow-400 text-black hover:bg-yellow-300"
+                          onClick={() => handleStartOnHome({ ...prompt, content: renderedPrompt })}
+                        >
+                          Start on Homepage
+                        </Button>
+                        <div className="w-full sm:w-auto overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
                           <Button
                             variant="outline"
-                            className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                            className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
+                            onClick={() => handleTryIn(renderedPrompt, tryInProviders[0])}
                           >
-                            Add to Pack
+                            <span className="truncate">Copy + Open {tryInProviders[0].label}</span>
                           </Button>
-                        }
-                      />
-                      <ShareMenu
-                        title={prompt.title}
-                        url={`${window.location.origin}/prompts?prompt=${encodeURIComponent(prompt.id)}`}
-                        onCopy={showCopyFeedback}
-                      />
-                      <div className="w-full sm:w-auto sm:ml-auto overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
+                                aria-label="Choose a provider"
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              side="bottom"
+                              sideOffset={8}
+                              collisionPadding={12}
+                              className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
+                            >
+                              {tryInProviders.map((provider) => (
+                                <DropdownMenuItem
+                                  key={provider.id}
+                                  className="cursor-pointer focus:bg-yellow-500/20"
+                                  onClick={() => handleTryIn(renderedPrompt, provider)}
+                                >
+                                  Copy + Open {provider.label}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           variant="outline"
-                          className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
-                          onClick={() => handleTryIn(renderedPrompt, tryInProviders[0])}
+                          className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                          onClick={() => handleCopy(renderedPrompt)}
                         >
-                          <span className="truncate">Copy + Open {tryInProviders[0].label}</span>
+                          Copy Prompt
                         </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                          onClick={() => handleCopy(jsonPayload)}
+                        >
+                          Copy JSON
+                        </Button>
+                        <AddToPackDialog
+                          promptText={renderedPrompt}
+                          suggestedTitle={prompt.title}
+                          onDone={showCopyFeedback}
+                          trigger={
                             <Button
                               variant="outline"
-                              className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
-                              aria-label="Choose a provider"
+                              className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
                             >
-                              <ChevronDown className="h-4 w-4" />
+                              Add to Pack
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            side="bottom"
-                            sideOffset={8}
-                            collisionPadding={12}
-                            className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
-                          >
-                            {tryInProviders.map((provider) => (
-                              <DropdownMenuItem
-                                key={provider.id}
-                                className="cursor-pointer focus:bg-yellow-500/20"
-                                onClick={() => handleTryIn(renderedPrompt, provider)}
-                              >
-                                Copy + Open {provider.label}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          }
+                        />
+                        <ShareMenu
+                          title={prompt.title}
+                          url={`${window.location.origin}/prompts?prompt=${encodeURIComponent(prompt.id)}`}
+                          onCopy={showCopyFeedback}
+                        />
                       </div>
                     </div>
                   </div>
@@ -567,7 +588,7 @@ export default function PromptLibrary() {
         <div className="space-y-3">
           <div className="space-y-1">
             <h2 className="text-2xl font-semibold text-yellow-100">Fixed Prompts</h2>
-            <p className="text-xs text-gray-300">These are non-template prompts kept separate from editable cards.</p>
+            <p className="text-xs text-gray-300">These are ready-to-use prompts. Fewer controls, quicker decisions.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {fixedPrompts.map(({ prompt, tokens, mode }) => (
@@ -635,74 +656,79 @@ export default function PromptLibrary() {
               <div className="rounded-md border border-yellow-500/20 bg-black/40 p-3 text-xs text-gray-300 whitespace-pre-wrap break-words max-h-40 overflow-y-auto overflow-x-auto">
                 {prompt.content}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  className="bg-yellow-400 text-black hover:bg-yellow-300"
-                  onClick={() => handleStartOnHome(prompt)}
-                >
-                  Start on Homepage
-                </Button>
-                <AddToPackDialog
-                  promptText={prompt.content}
-                  suggestedTitle={prompt.title}
-                  onDone={showCopyFeedback}
-                  trigger={
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    className="bg-yellow-400 text-black hover:bg-yellow-300"
+                    onClick={() => handleStartOnHome(prompt)}
+                  >
+                    Start on Homepage
+                  </Button>
+                  <div className="w-full sm:w-auto overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
                     <Button
                       variant="outline"
-                      className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                      className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
+                      onClick={() => handleTryIn(prompt.content, tryInProviders[0])}
                     >
-                      Add to Pack
+                      <span className="truncate">Copy + Open {tryInProviders[0].label}</span>
                     </Button>
-                  }
-                />
-                <Button
-                  variant="outline"
-                  className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
-                  onClick={() => handleCopy(prompt.content)}
-                >
-                  Copy
-                </Button>
-                <ShareMenu
-                  title={prompt.title}
-                  url={`${window.location.origin}/prompts?prompt=${encodeURIComponent(prompt.id)}`}
-                  onCopy={showCopyFeedback}
-                />
-                <div className="w-full sm:w-auto sm:ml-auto overflow-hidden rounded-md border border-yellow-500/40 flex items-stretch">
-                  <Button
-                    variant="outline"
-                    className="flex-1 min-w-0 rounded-none border-0 text-yellow-200 hover:bg-yellow-500/10"
-                    onClick={() => handleTryIn(prompt.content, tryInProviders[0])}
-                  >
-                    <span className="truncate">Copy + Open {tryInProviders[0].label}</span>
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
+                          aria-label="Choose a provider"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        side="bottom"
+                        sideOffset={8}
+                        collisionPadding={12}
+                        className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
+                      >
+                        {tryInProviders.map((provider) => (
+                          <DropdownMenuItem
+                            key={provider.id}
+                            className="cursor-pointer focus:bg-yellow-500/20"
+                            onClick={() => handleTryIn(prompt.content, provider)}
+                          >
+                            Copy + Open {provider.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <AddToPackDialog
+                    promptText={prompt.content}
+                    suggestedTitle={prompt.title}
+                    onDone={showCopyFeedback}
+                    trigger={
                       <Button
                         variant="outline"
-                        className="rounded-none border-0 border-l border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10 px-3"
-                        aria-label="Choose a provider"
+                        className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
                       >
-                        <ChevronDown className="h-4 w-4" />
+                        Add to Pack
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      side="bottom"
-                      sideOffset={8}
-                      collisionPadding={12}
-                      className="bg-black/90 text-white border-yellow-500/30 z-50 w-56"
-                    >
-                      {tryInProviders.map((provider) => (
-                        <DropdownMenuItem
-                          key={provider.id}
-                          className="cursor-pointer focus:bg-yellow-500/20"
-                          onClick={() => handleTryIn(prompt.content, provider)}
-                        >
-                          Copy + Open {provider.label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    }
+                  />
+                  <Button
+                    variant="outline"
+                    className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"
+                    onClick={() => handleCopy(prompt.content)}
+                  >
+                    Copy
+                  </Button>
+                  <ShareMenu
+                    title={prompt.title}
+                    url={`${window.location.origin}/prompts?prompt=${encodeURIComponent(prompt.id)}`}
+                    onCopy={showCopyFeedback}
+                  />
                 </div>
               </div>
             </div>
