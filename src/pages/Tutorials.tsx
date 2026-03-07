@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import AppShell from "@/components/AppShell";
 
 const FRAMEWORKS = [
   {
@@ -46,47 +47,46 @@ const JSON_FLOW_STEPS = [
 
 export default function Tutorials() {
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 space-y-8">
-        <header className="rounded-xl border border-yellow-500/30 bg-black/70 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.25em] text-yellow-300/80">Tutorials</p>
-              <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Frameworks And JSON Workflows</h1>
-              <p className="text-sm text-gray-300 max-w-3xl">
-                This page holds framework guidance so the homepage stays focused on building and running prompts.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Back Home
-                </Button>
-              </Link>
-              <Link href="/prompt-boxes">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Prompt Boxes
-                </Button>
-              </Link>
-              <Link href="/prompt-repair">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Prompt Repair
-                </Button>
-              </Link>
-              <Link href="/audit-json">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Audit + JSON
-                </Button>
-              </Link>
-              <Link href="/optimizer">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                  Open Optimizer
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </header>
+    <AppShell
+      eyebrow="Guides"
+      title="Tutorials"
+      description="Reference material for when you need a framework, a workflow reminder, or the right tool for the next step."
+      actions={
+        <>
+          <Link href="/prompt-boxes">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Prompt Boxes
+            </Button>
+          </Link>
+          <Link href="/prompt-repair">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Prompt Repair
+            </Button>
+          </Link>
+          <Link href="/audit-json">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Audit + JSON
+            </Button>
+          </Link>
+        </>
+      }
+    >
+      <section className="mb-8 grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">Frameworks</p>
+          <p className="text-sm leading-6 text-zinc-300">Choose the structure that matches the kind of output you need.</p>
+        </div>
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">Workflows</p>
+          <p className="text-sm leading-6 text-zinc-300">Use this page when you need process guidance, not another editor.</p>
+        </div>
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">Next Step</p>
+          <p className="text-sm leading-6 text-zinc-300">Once the structure is clear, move back into the active tools and build.</p>
+        </div>
+      </section>
 
+      <section className="rounded-[28px] border border-yellow-500/20 bg-black/55 p-6 shadow-[0_35px_110px_rgba(0,0,0,0.35)] space-y-8">
         <section className="rounded-xl border border-yellow-500/30 bg-black/70 p-6 space-y-4">
           <h2 className="text-xl md:text-2xl font-semibold text-yellow-200">When To Use Prompt Boxes Lab</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -137,7 +137,7 @@ export default function Tutorials() {
             Browsers cannot force-paste into external sites. Dunamis copies your prompt to clipboard and opens the target provider in a new tab.
           </p>
         </section>
-      </div>
-    </div>
+      </section>
+    </AppShell>
   );
 }

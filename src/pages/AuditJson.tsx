@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import AppShell from "@/components/AppShell";
 
 type ParsedAudit = {
   score: number | null;
@@ -95,6 +96,8 @@ export default function AuditJson() {
   const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim();
   const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
   const parsedAudit = parseAudit(auditOutput);
+  const scoreLabel =
+    parsedAudit.score === null ? "Not run yet" : parsedAudit.score >= 80 ? "Strong" : parsedAudit.score >= 60 ? "Needs work" : "Weak";
 
   const requestJsonConversion = async (prompt: string, auditContext?: string) => {
     const context = auditContext?.trim()
@@ -185,33 +188,42 @@ export default function AuditJson() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 space-y-6">
-        <header className="rounded-xl border border-yellow-500/30 bg-black/70 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.25em] text-yellow-300/80">Precision Lab</p>
-              <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Audit And Convert To JSON</h1>
-              <p className="text-sm text-gray-300 max-w-3xl">
-                Model-based scoring and JSON conversion using your backend optimizer endpoint.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link href="/">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Home
-                </Button>
-              </Link>
-              <Link href="/tutorials">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Tutorials
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </header>
+    <AppShell
+      eyebrow="Precision Lab"
+      title="Audit And Convert To JSON"
+      description="Score a prompt, inspect the flaws, and turn it into a stricter JSON structure without leaving the main workspace."
+      actions={
+        <>
+          <Link href="/tutorials">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Tutorials
+            </Button>
+          </Link>
+          <Link href="/optimizer">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Optimizer
+            </Button>
+          </Link>
+        </>
+      }
+    >
+      <section className="mb-6 grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">Audit</p>
+          <p className="text-sm leading-6 text-zinc-300">Run the backend scorer first so you can see whether the prompt is structurally weak.</p>
+        </div>
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">Score</p>
+          <p className="text-2xl font-semibold text-white">{parsedAudit.score !== null ? `${parsedAudit.score}/100` : "Not run"}</p>
+          <p className="mt-1 text-sm text-zinc-400">{scoreLabel}</p>
+        </div>
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">Convert</p>
+          <p className="text-sm leading-6 text-zinc-300">Turn the same prompt into a stricter JSON payload once the audit is visible.</p>
+        </div>
+      </section>
 
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="rounded-xl border border-yellow-500/30 bg-black/70 p-5 space-y-4">
             <h2 className="text-xl font-semibold text-yellow-200">1) Prompt Input</h2>
             <Textarea
@@ -269,9 +281,9 @@ export default function AuditJson() {
               placeholder="Raw AI audit output will appear here..."
             />
           </div>
-        </section>
+      </section>
 
-        <section className="rounded-xl border border-yellow-500/30 bg-black/70 p-5 space-y-4">
+      <section className="mt-6 rounded-xl border border-yellow-500/30 bg-black/70 p-5 space-y-4">
           <h2 className="text-xl font-semibold text-yellow-200">3) JSON Output</h2>
           <Textarea
             value={jsonOutput}
@@ -297,8 +309,7 @@ export default function AuditJson() {
               </Button>
             </Link>
           </div>
-        </section>
-      </div>
-    </div>
+      </section>
+    </AppShell>
   );
 }
