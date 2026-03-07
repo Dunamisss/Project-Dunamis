@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { JSON_PROMPT_CARDS, type JsonPromptCard } from "@/data/jsonPromptCards";
-import hackerImage from "@/assets/hacker.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -321,9 +320,8 @@ export default function Home() {
     >
       <section className="relative mb-8 overflow-hidden rounded-[32px] border border-yellow-500/20 bg-black/55 shadow-[0_35px_110px_rgba(0,0,0,0.45)]">
         <div className="absolute inset-0">
-          <img src={hackerImage} alt="" aria-hidden="true" className="h-full w-full object-cover object-center opacity-35" />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.96)_0%,rgba(5,5,5,0.82)_48%,rgba(5,5,5,0.58)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(245,192,74,0.18),transparent_28%),radial-gradient(circle_at_80%_25%,rgba(245,192,74,0.12),transparent_22%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.98)_0%,rgba(5,5,5,0.92)_35%,rgba(5,5,5,0.84)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(245,192,74,0.18),transparent_28%),radial-gradient(circle_at_80%_25%,rgba(245,192,74,0.12),transparent_22%),linear-gradient(135deg,rgba(245,192,74,0.06),transparent_45%,rgba(245,192,74,0.04)_100%)]" />
         </div>
         <TubesEffect className="opacity-45" />
 
