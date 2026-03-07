@@ -69,6 +69,26 @@ export default function AppShell({
         </header>
 
         <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-10">
+          <section className="relative mb-8 overflow-hidden rounded-[32px] border border-yellow-500/18 bg-[linear-gradient(135deg,rgba(14,12,6,0.92),rgba(6,6,6,0.96))] px-6 py-8 shadow-[0_35px_110px_rgba(0,0,0,0.45)] lg:px-8 lg:py-10">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(245,192,74,0.18),transparent_24%),radial-gradient(circle_at_82%_24%,rgba(245,192,74,0.1),transparent_20%),linear-gradient(120deg,rgba(245,192,74,0.04),transparent_45%,rgba(255,255,255,0.02))]" />
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-4xl space-y-4">
+                <p className="text-[11px] uppercase tracking-[0.38em] text-yellow-300/70">Dunamis Protocol</p>
+                <div className="space-y-3">
+                  <h1 className="dunamis-title text-5xl leading-none sm:text-6xl lg:text-8xl" data-text="DUNAMIS">
+                    DUNAMIS
+                  </h1>
+                  <p className="text-lg italic text-yellow-200/90 lg:text-2xl">
+                    "Precision prompts, zero noise - built for creators who ship."
+                  </p>
+                </div>
+              </div>
+              <p className="max-w-xl text-sm leading-7 text-zinc-300 lg:text-base">
+                A cleaner creative workspace for building prompts, studying images, and tightening ideas without losing the identity of the project.
+              </p>
+            </div>
+          </section>
+
           {(title || description || actions) && (
             <section
               className={cn(

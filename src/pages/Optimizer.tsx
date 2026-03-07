@@ -2,8 +2,7 @@ import { type DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import hackerImage from "@/assets/hacker.png";
-import TubesEffect from "@/components/TubesEffect";
+import AppShell from "@/components/AppShell";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChat } from "@/contexts/ChatContext";
 import { AuthModal } from "@/components/AuthModal";
@@ -1284,119 +1283,73 @@ export default function Optimizer() {
   };
 
   return (
-    <div className="min-h-screen relative selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
-      {/* Full Hero Background Image */}
-      <img
-        src={hackerImage}
-        alt=""
-        aria-hidden="true"
-        className="fixed inset-0 z-0 h-screen w-full object-cover"
-      />
-      <div className="fixed inset-0 z-0 bg-gradient-to-b from-black/40 via-black/50 to-black/70" />
-
-      {/* Mouse Trail Canvas */}
-      <TubesEffect />
-
-      {/* Content Layer */}
-      <div className="relative z-20">
-        {/* Hero Header Section - Full Screen Height */}
-        <header className="min-h-screen relative flex flex-col items-center justify-center px-4 text-center overflow-hidden">
-          <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
-          <div className="absolute top-6 right-6 z-20 max-w-[calc(100vw-2rem)]">
-            <div className="flex items-center justify-end gap-2 flex-wrap">
-              <Link href="/prompts">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Prompt Library
-                </Button>
-              </Link>
-              <Link href="/images">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Image Library
-                </Button>
-              </Link>
-              <Link href="/tutorials">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Tutorials
-                </Button>
-              </Link>
-              <Link href="/audit-json">
-                <Button variant="ghost" className="text-yellow-200 hover:text-yellow-100">
-                  Audit JSON
-                </Button>
-              </Link>
-              {user ? (
-                <>
-                  <Button variant="ghost" onClick={logout} className="text-white hover:text-white">
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <AuthModal />
-              )}
-            </div>
-          </div>
-          <div className="relative z-10 max-w-5xl 2xl:max-w-6xl mx-auto space-y-8 px-2">
-            <h1
-              className="dunamis-title text-7xl md:text-9xl 2xl:text-[11rem] leading-[0.95]"
-              data-text="DUNAMIS"
+    <AppShell
+      eyebrow="Workspace"
+      title="Advanced Optimizer"
+      description="Draft, audit, and refine prompts in one deeper workspace. The brand stays fixed at the top, while this page focuses on structured output, retries, and history."
+      actions={
+        <>
+          <Link href="/prompts">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Prompt Library
+            </Button>
+          </Link>
+          <Link href="/images">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Image Library
+            </Button>
+          </Link>
+          <Link href="/audit-json">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Audit JSON
+            </Button>
+          </Link>
+          {user ? (
+            <Button
+              variant="outline"
+              className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10"
+              onClick={() => {
+                void logout();
+              }}
             >
-              DUNAMIS
-            </h1>
-
-            <div className="space-y-6">
-              <p className="text-2xl md:text-3xl 2xl:text-4xl text-yellow-300 drop-shadow-lg italic font-light">
-                "Precision prompts, zero noise — built for creators who ship."
-              </p>
-              
-              <p className="max-w-4xl mx-auto text-base md:text-lg 2xl:text-xl text-gray-100 drop-shadow-md leading-relaxed 2xl:leading-9">
-                Run powerful language models directly in your browser.<br/>
-                No servers, no data collection, no compromises.
-              </p>
-              
-              <div className="pt-6 border-t border-white/30">
-                <p className="text-sm md:text-base 2xl:text-lg text-yellow-400 drop-shadow-md font-semibold tracking-widest uppercase">
-                  Community-Driven Prompt Engineering
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-yellow-200/80">
-            <div className="scroll-mouse h-12 w-7 rounded-full border border-yellow-400/60 flex items-start justify-center">
-              <span className="scroll-dot mt-2 h-2 w-2 rounded-full bg-yellow-300" />
-            </div>
-            <span className="scroll-text text-[11px] tracking-[0.35em] uppercase">Scroll</span>
-          </div>
-        </header>
-
-        <main className="w-full max-w-7xl 2xl:max-w-[1700px] mx-auto px-4 xl:px-8 space-y-16 pb-20 bg-gradient-to-b from-black/80 to-black">
-          <div className="pt-10">
-            <div className="rounded-lg border border-yellow-500/40 bg-black/70 px-5 py-4 text-center text-base md:text-lg 2xl:text-xl font-semibold text-yellow-200 shadow-lg max-w-5xl mx-auto">
+              Sign Out
+            </Button>
+          ) : (
+            <AuthModal
+              trigger={
+                <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+                  Sign In
+                </Button>
+              }
+            />
+          )}
+        </>
+      }
+    >
+      <div className="space-y-16 pb-20 selection:bg-primary selection:text-primary-foreground">
+        <div>
+          <div className="rounded-lg border border-yellow-500/40 bg-black/70 px-5 py-4 text-center text-base font-semibold text-yellow-200 shadow-lg lg:text-lg 2xl:text-xl">
               Advanced Optimizer: draft, audit, and refine prompts with strict output controls.
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/prompts">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Browse Prompt Library
-                </Button>
-              </Link>
-              <Link href="/images">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Browse Image Library
-                </Button>
-              </Link>
-              <Link href="/tutorials">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Open Tutorials
-                </Button>
-              </Link>
-              <Link href="/audit-json">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Audit + JSON
-                </Button>
-              </Link>
-            </div>
           </div>
-          <section id="optimizer" ref={optimizerRef} className="pt-12 space-y-6">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/prompts">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Browse Prompt Library
+              </Button>
+            </Link>
+            <Link href="/images">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Browse Image Library
+              </Button>
+            </Link>
+            <Link href="/tutorials">
+              <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
+                Open Tutorials
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <section id="optimizer" ref={optimizerRef} className="space-y-6">
             {!user && (
               <div className="rounded-lg border border-yellow-500/40 bg-black/80 p-6 text-center shadow-lg">
                 <h2 className="text-xl md:text-2xl font-semibold text-white">Sign in to use the Prompt Optimizer</h2>
@@ -2078,16 +2031,15 @@ export default function Optimizer() {
               </div>
             </div>
             )}
-          </section>
+        </section>
 
-          <section>
-            <div className="bg-black/60 backdrop-blur rounded-lg p-6 border border-yellow-500/30 shadow-lg">
-              <ContactSection />
-            </div>
-          </section>
-        </main>
+        <section>
+          <div className="rounded-lg border border-yellow-500/30 bg-black/60 p-6 shadow-lg backdrop-blur">
+            <ContactSection />
+          </div>
+        </section>
       </div>
-    </div>
+    </AppShell>
   );
 }
                                                                                                                                                               
