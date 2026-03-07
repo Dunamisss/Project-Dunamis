@@ -135,6 +135,7 @@ function buildTemplateJsonPayload(
 
 export default function PromptLibrary() {
   const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState<"editable" | "fixed">("editable");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof categories)[number]>("All");
   const [sourceFilter, setSourceFilter] = useState<"all" | "nanobanana" | "core">("all");
@@ -333,6 +334,22 @@ export default function PromptLibrary() {
         </div>
 
         <div className="rounded-2xl border border-yellow-500/30 bg-black/70 p-4 md:p-6 shadow-lg space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={activeTab === "editable" ? "default" : "outline"}
+              className={activeTab === "editable" ? "bg-yellow-400 text-black hover:bg-yellow-300" : "border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"}
+              onClick={() => setActiveTab("editable")}
+            >
+              Editable Templates
+            </Button>
+            <Button
+              variant={activeTab === "fixed" ? "default" : "outline"}
+              className={activeTab === "fixed" ? "bg-yellow-400 text-black hover:bg-yellow-300" : "border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"}
+              onClick={() => setActiveTab("fixed")}
+            >
+              Fixed Prompts
+            </Button>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={sourceFilter === "all" ? "default" : "outline"}
@@ -397,7 +414,7 @@ export default function PromptLibrary() {
           )}
         </div>
 
-        {editablePromptTemplates.length > 0 && (
+        {activeTab === "editable" && editablePromptTemplates.length > 0 && (
           <div className="space-y-3">
             <div className="space-y-1">
               <h2 className="text-2xl font-semibold text-yellow-100">Editable JSON Templates</h2>
@@ -585,6 +602,7 @@ export default function PromptLibrary() {
           </div>
         )}
 
+        {activeTab === "fixed" && (
         <div className="space-y-3">
           <div className="space-y-1">
             <h2 className="text-2xl font-semibold text-yellow-100">Fixed Prompts</h2>
@@ -735,7 +753,14 @@ export default function PromptLibrary() {
             ))}
           </div>
         </div>
+        )}
 
+        {activeTab === "editable" && editablePromptTemplates.length === 0 && sortedPrompts.length > 0 && (
+          <div className="text-sm text-gray-400">No editable templates matched your search.</div>
+        )}
+        {activeTab === "fixed" && fixedPrompts.length === 0 && sortedPrompts.length > 0 && (
+          <div className="text-sm text-gray-400">No fixed prompts matched your search.</div>
+        )}
         {sortedPrompts.length === 0 && (
           <div className="text-sm text-gray-400">No prompts matched your search.</div>
         )}
