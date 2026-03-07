@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
+import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,6 +57,15 @@ export default function PromptBoxes() {
   const missingQuestions = useMemo(() => getMissingQuestions(template, fields), [fields, template]);
   const fieldEntries = useMemo(() => Object.entries(fields).sort(([a], [b]) => a.localeCompare(b)), [fields]);
   const templateFields = useMemo(() => (template === "custom" ? [] : TEMPLATE_FIELDS[template]), [template]);
+  const statusSummary = useMemo(() => {
+    return Object.values(fieldStatus).reduce(
+      (acc, status) => {
+        acc[status] += 1;
+        return acc;
+      },
+      { confident: 0, review: 0, missing: 0 },
+    );
+  }, [fieldStatus]);
 
   function setField(key: string, value: string) {
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -132,67 +142,93 @@ export default function PromptBoxes() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 space-y-6">
-        <header className="rounded-xl border border-yellow-500/30 bg-black/70 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.25em] text-yellow-300/80">Prompt Boxes Lab</p>
-              <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Paste A Rough Prompt, Turn It Into Structure</h1>
-              <p className="text-sm text-gray-300 max-w-3xl">
-                This page is for cleanup work: paste a messy prompt, extract reusable fields, review gaps, then copy clean JSON or a cleaned prompt draft.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link href="/">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Home
-                </Button>
-              </Link>
-              <Link href="/optimizer">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Optimizer
-                </Button>
-              </Link>
-              <Link href="/tutorials">
-                <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
-                  Tutorials
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </header>
+    <AppShell
+      eyebrow="Cleanup Lab"
+      title="Prompt Boxes"
+      description="Paste a rough prompt, pull structure out of it, fill the missing gaps, and leave with both clean JSON and a usable draft."
+      actions={
+        <>
+          <Link href="/optimizer">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Optimizer
+            </Button>
+          </Link>
+          <Link href="/tutorials">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Tutorials
+            </Button>
+          </Link>
+        </>
+      }
+    >
+      <section className="mb-6 grid gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">1. Paste</p>
+          <p className="text-sm leading-6 text-zinc-300">Drop in the messy prompt, notes, or partial JSON you already have.</p>
+        </div>
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">2. Extract</p>
+          <p className="text-sm leading-6 text-zinc-300">Auto-fill reusable fields, then correct anything that needs review.</p>
+        </div>
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">3. Copy</p>
+          <p className="text-sm leading-6 text-zinc-300">Take the clean JSON doc or the plain-language prompt draft into the next tool.</p>
+        </div>
+      </section>
 
-        <section className="rounded-xl border border-yellow-500/30 bg-black/70 p-5 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold text-yellow-200">Workspace</h2>
-              <p className="text-xs text-gray-300">Choose a template first, then paste your prompt and extract fields.</p>
-            </div>
-            <label className="space-y-2 text-xs text-gray-300">
-              <span>Template</span>
-              <select
-                value={template}
-                onChange={(event) => setTemplate(event.target.value as PromptTemplateId)}
-                className="h-10 rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white"
-              >
-                <option value="universal">Universal</option>
-                <option value="chat">Chat</option>
-                <option value="image">Image</option>
-                <option value="custom">Custom</option>
-              </select>
-            </label>
+      <section className="rounded-[28px] border border-yellow-500/20 bg-black/55 p-5 shadow-[0_35px_110px_rgba(0,0,0,0.35)] space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-yellow-200">Workspace</h2>
+            <p className="text-xs text-gray-300">Choose a template, paste the rough version, then work left to right.</p>
           </div>
+          <label className="space-y-2 text-xs text-gray-300">
+            <span>Template</span>
+            <select
+              value={template}
+              onChange={(event) => setTemplate(event.target.value as PromptTemplateId)}
+              className="h-10 rounded-md border border-yellow-500/30 bg-black/40 px-3 text-sm text-white"
+            >
+              <option value="universal">Universal</option>
+              <option value="chat">Chat</option>
+              <option value="image">Image</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+        </div>
 
-          {feedback && (
-            <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-100">
-              {feedback}
-            </div>
-          )}
+        <div className="grid gap-4 lg:grid-cols-4">
+          <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+            <p className="text-[11px] uppercase tracking-[0.28em] text-yellow-300/70">Template</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{template}</p>
+            <p className="mt-1 text-sm text-zinc-400">Current extraction shape.</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-500/15 bg-black/45 p-4">
+            <p className="text-[11px] uppercase tracking-[0.28em] text-emerald-300/70">Confident</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{statusSummary.confident}</p>
+            <p className="mt-1 text-sm text-zinc-400">Fields that look solid.</p>
+          </div>
+          <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+            <p className="text-[11px] uppercase tracking-[0.28em] text-yellow-300/70">Review</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{statusSummary.review}</p>
+            <p className="mt-1 text-sm text-zinc-400">Fields worth checking.</p>
+          </div>
+          <div className="rounded-2xl border border-red-500/15 bg-black/45 p-4">
+            <p className="text-[11px] uppercase tracking-[0.28em] text-red-300/70">Missing</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{statusSummary.missing}</p>
+            <p className="mt-1 text-sm text-zinc-400">Gaps still blocking a clean draft.</p>
+          </div>
+        </div>
+
+        {feedback && (
+          <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-100">
+            {feedback}
+          </div>
+        )}
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
             <section className="xl:col-span-5 space-y-4">
-              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-3">
+              <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <h3 className="text-lg font-semibold text-yellow-100">Raw Prompt</h3>
                   <div className="flex gap-2 flex-wrap">
@@ -235,7 +271,7 @@ export default function PromptBoxes() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-3">
+              <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-4 space-y-3">
                 <h3 className="text-lg font-semibold text-yellow-100">Import Existing JSON</h3>
                 <Textarea
                   ref={importRef}
@@ -247,7 +283,7 @@ export default function PromptBoxes() {
                 </Button>
               </div>
 
-              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-3">
+              <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-4 space-y-3">
                 <h3 className="text-lg font-semibold text-yellow-100">Quick Review</h3>
                 {missingQuestions.length === 0 ? (
                   <p className="text-sm text-gray-300">The core fields for this template are filled. Review anything marked for attention, then copy your output.</p>
@@ -264,7 +300,7 @@ export default function PromptBoxes() {
             </section>
 
             <section className="xl:col-span-7 space-y-4">
-              <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-4">
+              <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-4 space-y-4">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <h3 className="text-lg font-semibold text-yellow-100">Editable Fields</h3>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -283,7 +319,7 @@ export default function PromptBoxes() {
                   {fieldEntries.map(([key, value]) => {
                     const status = fieldStatus[key] ?? "missing";
                     return (
-                      <div key={key} className="rounded-md border border-yellow-500/20 bg-black/30 p-3 space-y-3">
+                      <div key={key} className="rounded-xl border border-yellow-500/20 bg-black/30 p-3 space-y-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="space-y-1">
                             <p className="text-sm font-semibold text-yellow-100">{key}</p>
@@ -313,7 +349,7 @@ export default function PromptBoxes() {
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-3">
+                <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <h3 className="text-lg font-semibold text-yellow-100">Prompt Doc JSON</h3>
                     <Button
@@ -331,7 +367,7 @@ export default function PromptBoxes() {
                   />
                 </div>
 
-                <div className="rounded-lg border border-yellow-500/20 bg-black/40 p-4 space-y-3">
+                <div className="rounded-2xl border border-yellow-500/20 bg-black/40 p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <h3 className="text-lg font-semibold text-yellow-100">Clean Prompt Draft</h3>
                     <Button
@@ -352,8 +388,7 @@ export default function PromptBoxes() {
               </div>
             </section>
           </div>
-        </section>
-      </div>
-    </div>
+      </section>
+    </AppShell>
   );
 }
