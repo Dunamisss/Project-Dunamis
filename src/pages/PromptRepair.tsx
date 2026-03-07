@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
+import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,6 +76,15 @@ export default function PromptRepair() {
     if (!result?.json_output) return "";
     return JSON.stringify(result.json_output, null, 2);
   }, [result]);
+  const issueCounts = useMemo(() => {
+    return (result?.rule_scan.issues || []).reduce(
+      (acc, issue) => {
+        acc[issue.severity] += 1;
+        return acc;
+      },
+      { high: 0, medium: 0, low: 0 },
+    );
+  }, [result]);
 
   const handleRepair = async () => {
     if (!rawPrompt.trim()) {
@@ -128,38 +138,48 @@ export default function PromptRepair() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 space-y-6">
-        <header className="rounded-xl border border-yellow-500/30 bg-black/70 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.25em] text-yellow-300/80">Prompt Repair</p>
-              <h1 className="text-3xl md:text-4xl font-semibold text-yellow-200">Detect Weaknesses, Then Rebuild The Prompt</h1>
-              <p className="text-sm text-gray-300 max-w-3xl">
-                Paste a weak prompt, get a deterministic defect scan first, then an optional repaired version and copy-ready final prompt.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link href="/">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Home
-                </Button>
-              </Link>
-              <Link href="/optimizer">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Optimizer
-                </Button>
-              </Link>
-              <Link href="/prompt-boxes">
-                <Button variant="outline" className="border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10">
-                  Prompt Boxes
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </header>
+    <AppShell
+      eyebrow="Repair Lab"
+      title="Prompt Repair"
+      description="Run a deterministic weakness scan first, then rebuild the prompt into something clearer, cleaner, and ready to copy."
+      actions={
+        <>
+          <Link href="/optimizer">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Optimizer
+            </Button>
+          </Link>
+          <Link href="/prompt-boxes">
+            <Button variant="outline" className="border-yellow-500/40 bg-transparent text-yellow-100 hover:bg-yellow-500/10">
+              Prompt Boxes
+            </Button>
+          </Link>
+        </>
+      }
+    >
+      <section className="mb-6 grid gap-4 lg:grid-cols-4">
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">1. Scan</p>
+          <p className="text-sm leading-6 text-zinc-300">Check the prompt for structural defects before rewriting anything.</p>
+        </div>
+        <div className="rounded-2xl border border-red-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-red-300/70">High</p>
+          <p className="text-2xl font-semibold text-white">{issueCounts.high}</p>
+          <p className="mt-1 text-sm text-zinc-400">Severe issues found.</p>
+        </div>
+        <div className="rounded-2xl border border-yellow-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-yellow-300/70">Medium</p>
+          <p className="text-2xl font-semibold text-white">{issueCounts.medium}</p>
+          <p className="mt-1 text-sm text-zinc-400">Issues that still weaken the output.</p>
+        </div>
+        <div className="rounded-2xl border border-sky-500/15 bg-black/45 p-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-sky-300/70">Low</p>
+          <p className="text-2xl font-semibold text-white">{issueCounts.low}</p>
+          <p className="mt-1 text-sm text-zinc-400">Minor issues or cleanup items.</p>
+        </div>
+      </section>
 
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="rounded-xl border border-yellow-500/30 bg-black/70 p-5 space-y-4">
             <div className="space-y-1">
               <h2 className="text-xl font-semibold text-yellow-200">Input</h2>
@@ -270,9 +290,9 @@ export default function PromptRepair() {
               </div>
             )}
           </div>
-        </section>
+      </section>
 
-        <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
           <div className="rounded-xl border border-yellow-500/30 bg-black/70 p-5 space-y-4 xl:col-span-1">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-xl font-semibold text-yellow-200">Repaired Prompt</h2>
@@ -355,8 +375,7 @@ export default function PromptRepair() {
               </div>
             )}
           </div>
-        </section>
-      </div>
-    </div>
+      </section>
+    </AppShell>
   );
 }
