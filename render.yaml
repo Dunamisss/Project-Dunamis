@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: dunamis-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: OPTIMIZER_PROVIDER
+        value: openrouter
+      - key: OPENROUTER_MODEL
+        value: qwen/qwen-2.5-72b-instruct:free
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: DAILY_LIMIT
+        value: 5
+      - key: OPENROUTER_API_KEY
+        sync: false
