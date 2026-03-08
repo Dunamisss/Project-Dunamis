@@ -45,6 +45,25 @@ const EDGE_KERNEL = {
   kernel: [-1, -1, -1, -1, 8, -1, -1, -1, -1],
 };
 
+function getPreferredOptimizerProvider() {
+  const configured = (process.env.OPTIMIZER_PROVIDER || "").trim().toLowerCase();
+  if (configured === "openrouter" || configured === "ollama") {
+    return configured;
+  }
+  return process.env.OPENROUTER_API_KEY?.trim() ? "openrouter" : "ollama";
+}
+
+function getOpenRouterModel() {
+  return (process.env.OPENROUTER_MODEL || "openrouter/free").trim();
+}
+
+function formatOpenRouterError(status, errText) {
+  if (status === 401) {
+    return `OpenRouter rejected the API key (401 Unauthorized). Re-save OPENROUTER_API_KEY in Render. ${errText}`.trim();
+  }
+  return errText || `OpenRouter API error (${status}).`;
+}
+
 function getUsageRecord(key) {
   const existing = usageByKey.get(key);
   if (!existing) {
@@ -392,12 +411,12 @@ async function loadLists() {
 }
 
 async function callOpenRouter({ systemPrompt, prompt, context, images }) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
-    return null;
+    throw new Error("OpenRouter API key is missing.");
   }
 
-  const model = process.env.OPENROUTER_MODEL || "qwen/qwen-2.5-72b-instruct:free";
+  const model = getOpenRouterModel();
   const contextBlock = context ? `\n\nAdditional context:\n${context}` : "";
   const imageBlock = Array.isArray(images) && images.length
     ? `\n\nImages attached (names only):\n${images.join(", ")}`
@@ -424,7 +443,7 @@ async function callOpenRouter({ systemPrompt, prompt, context, images }) {
 
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
-    throw new Error(errText || `OpenRouter API error (${response.status}).`);
+    throw new Error(formatOpenRouterError(response.status, errText));
   }
 
   const data = await response.json();
@@ -848,9 +867,9 @@ app.post("/api/prompt-repair", async (req, res) => {
       2,
     );
 
-    const optimizerProvider = (process.env.OPTIMIZER_PROVIDER || "ollama").trim().toLowerCase();
+    const optimizerProvider = getPreferredOptimizerProvider();
     const primaryProvider = optimizerProvider === "openrouter" ? "openrouter" : "ollama";
-    const fallbackProvider = primaryProvider === "ollama" && process.env.OPENROUTER_API_KEY ? "openrouter" : null;
+    const fallbackProvider = primaryProvider === "ollama" && process.env.OPENROUTER_API_KEY?.trim() ? "openrouter" : null;
     const runProvider = async (selectedProvider) => {
       const result =
         selectedProvider === "ollama"
@@ -1130,8 +1149,8 @@ app.post("/api/coloring/outline", upload.single("image"), async (req, res) => {
 
 app.post("/api/optimize", async (req, res) => {
   const requestStartedAt = Date.now();
-  const optimizerProvider = (process.env.OPTIMIZER_PROVIDER || "ollama").trim().toLowerCase();
-  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+  const optimizerProvider = getPreferredOptimizerProvider();
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY?.trim();
 
   const { systemPrompt, prompt, context, images, userEmail } = req.body ?? {};
   if (!prompt || typeof prompt !== "string") {

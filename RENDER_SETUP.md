@@ -21,7 +21,7 @@ What `render.yaml` already sets for you:
 - free plan
 - health check path
 - `OPTIMIZER_PROVIDER=openrouter`
-- `OPENROUTER_MODEL=qwen/qwen-2.5-72b-instruct:free`
+- `OPENROUTER_MODEL=openrouter/free`
 - `CORS_ORIGIN=*`
 
 When Render finishes, copy the backend URL. It will look something like:

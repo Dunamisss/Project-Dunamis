@@ -13,7 +13,7 @@ services:
       - key: OPTIMIZER_PROVIDER
         value: openrouter
       - key: OPENROUTER_MODEL
-        value: qwen/qwen-2.5-72b-instruct:free
+        value: openrouter/free
       - key: CORS_ORIGIN
         value: "*"
       - key: DAILY_LIMIT
