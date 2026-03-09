@@ -417,6 +417,50 @@ async function loadLists() {
   }
 }
 
+function toTextContent(value) {
+  if (typeof value === "string") return value.trim();
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          if (typeof item.text === "string") return item.text;
+          if (typeof item.content === "string") return item.content;
+          if (typeof item.value === "string") return item.value;
+        }
+        return "";
+      })
+      .join("\n")
+      .trim();
+  }
+
+  if (value && typeof value === "object") {
+    if (typeof value.text === "string") return value.text.trim();
+    if (typeof value.content === "string") return value.content.trim();
+    if (typeof value.value === "string") return value.value.trim();
+  }
+
+  return "";
+}
+
+function extractOpenRouterOutput(payload) {
+  const choice = Array.isArray(payload?.choices) ? payload.choices[0] : null;
+  const candidates = [
+    choice?.message?.content,
+    choice?.text,
+    payload?.output_text,
+    payload?.content,
+  ];
+
+  for (const candidate of candidates) {
+    const text = toTextContent(candidate);
+    if (text) return text;
+  }
+
+  return "";
+}
+
 async function callOpenRouter({ systemPrompt, prompt, context, images }) {
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
@@ -428,34 +472,47 @@ async function callOpenRouter({ systemPrompt, prompt, context, images }) {
   const imageBlock = Array.isArray(images) && images.length
     ? `\n\nImages attached (names only):\n${images.join(", ")}`
     : "";
+  const requestBody = {
+    model,
+    temperature: 0.2,
+    max_tokens: 800,
+    messages: [
+      { role: "system", content: systemPrompt || "" },
+      { role: "user", content: `${prompt}${contextBlock}${imageBlock}` },
+    ],
+  };
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "https://dunamiss.xyz",
-      "X-Title": process.env.OPENROUTER_SITE_NAME || "Project Dunamis",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      max_tokens: 800,
-      messages: [
-        { role: "system", content: systemPrompt || "" },
-        { role: "user", content: `${prompt}${contextBlock}${imageBlock}` },
-      ],
-    }),
-  });
+  let lastFinishReason = "";
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "https://dunamiss.xyz",
+        "X-Title": process.env.OPENROUTER_SITE_NAME || "Project Dunamis",
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-  if (!response.ok) {
-    const errText = await response.text().catch(() => "");
-    throw new Error(formatOpenRouterError(response.status, errText));
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(formatOpenRouterError(response.status, errText));
+    }
+
+    const data = await response.json();
+    const output = extractOpenRouterOutput(data);
+    lastFinishReason = String(data?.choices?.[0]?.finish_reason || "");
+    if (output) {
+      return { output, model };
+    }
   }
 
-  const data = await response.json();
-  const output = data?.choices?.[0]?.message?.content ?? "";
-  return { output, model };
+  throw new Error(
+    lastFinishReason
+      ? `OpenRouter returned empty output (finish_reason: ${lastFinishReason}).`
+      : "OpenRouter returned empty output."
+  );
 }
 
 async function callOllama({ systemPrompt, prompt, context, images }) {
@@ -1482,12 +1539,13 @@ app.post("/api/optimize", async (req, res) => {
 
   try {
     const { result, providerMs } = await runProvider(primaryProvider);
-    if (!result || !result.output) {
+    const output = typeof result?.output === "string" ? result.output.trim() : "";
+    if (!output) {
       throw new Error(`${primaryProvider} returned empty output.`);
     }
     const totalMs = Date.now() - requestStartedAt;
     return res.json({
-      output: result.output,
+      output,
       remaining,
       limit,
       unlimited: isAllowlisted,
@@ -1505,12 +1563,13 @@ app.post("/api/optimize", async (req, res) => {
     if (fallbackProvider) {
       try {
         const { result, providerMs } = await runProvider(fallbackProvider);
-        if (!result || !result.output) {
+        const output = typeof result?.output === "string" ? result.output.trim() : "";
+        if (!output) {
           throw new Error(`${fallbackProvider} returned empty output.`);
         }
         const totalMs = Date.now() - requestStartedAt;
         return res.json({
-          output: result.output,
+          output,
           remaining,
           limit,
           unlimited: isAllowlisted,

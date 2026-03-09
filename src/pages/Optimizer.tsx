@@ -440,7 +440,9 @@ export default function Optimizer() {
   const copyTimeoutRef = useRef<number | null>(null);
 
   const apiBase = (((import.meta as any).env?.VITE_API_BASE ?? "") as string).trim();
-  const apiUrl = apiBase ? `${apiBase.replace(/\/+$/, "")}/api/optimize` : "/api/optimize";
+  const apiRoot = apiBase ? apiBase.replace(/\/+$/, "") : "";
+  const apiUrl = apiRoot ? `${apiRoot}/api/optimize` : "/api/optimize";
+  const accountStatusUrl = apiRoot ? `${apiRoot}/api/account-status` : "/api/account-status";
   const outputQuality = useMemo(() => {
     if (!optimizedOutput || outputKind === "audit") return null;
     return evaluateOptimizerQuality(promptInput, optimizedOutput);
@@ -597,6 +599,44 @@ export default function Optimizer() {
       setIsOptimizing(false);
     }
   };
+
+  useEffect(() => {
+    const email = user?.email?.trim().toLowerCase();
+    if (!email) {
+      setIsUnlimited(false);
+      return;
+    }
+
+    let cancelled = false;
+    const loadAccountStatus = async () => {
+      try {
+        const response = await fetch(accountStatusUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userEmail: email }),
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        if (typeof data?.unlimited === "boolean") {
+          setIsUnlimited(data.unlimited);
+        }
+        if (typeof data?.remaining === "number") {
+          setRemainingUses(data.remaining);
+        }
+        if (typeof data?.limit === "number") {
+          setDailyLimit(data.limit);
+        }
+      } catch {
+        // Ignore transient account-status errors; optimize flow still reports limits.
+      }
+    };
+
+    void loadAccountStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountStatusUrl, user?.email]);
 
   useEffect(() => {
     if (!promptToLoad) return;

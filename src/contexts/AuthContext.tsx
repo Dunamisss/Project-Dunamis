@@ -35,7 +35,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    let resolved = false;
+    const timeoutId = window.setTimeout(() => {
+      if (resolved) return;
+      console.warn("Auth state check timed out. Continuing without blocking UI.");
+      setIsLoading(false);
+    }, 7000);
+
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+      resolved = true;
+      window.clearTimeout(timeoutId);
       setUser(nextUser);
       setIsLoading(false);
       if (!nextUser) return;
@@ -60,9 +69,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.warn("Failed to sync auth user profile.", error);
       }
+    }, (error) => {
+      resolved = true;
+      window.clearTimeout(timeoutId);
+      console.warn("Auth state listener failed. Continuing without signed-in user.", error);
+      setUser(null);
+      setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      window.clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, []);
 
   const login = async (provider: string, email?: string, password?: string) => {
