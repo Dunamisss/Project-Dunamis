@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
+import { AuthModal } from "@/components/AuthModal";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -17,6 +20,7 @@ type AppShellProps = {
   children: ReactNode;
   actions?: ReactNode;
   accent?: "gold" | "slate";
+  requireAuth?: boolean;
 };
 
 export default function AppShell({
@@ -26,8 +30,21 @@ export default function AppShell({
   children,
   actions,
   accent = "gold",
+  requireAuth = true,
 }: AppShellProps) {
   const [location] = useLocation();
+  const { user, logout, isLoading } = useAuth();
+  const identityLabel = user?.displayName?.trim() || user?.email?.trim() || "Signed in";
+  const isUnlocked = !requireAuth || Boolean(user);
+  const heroActions = isUnlocked ? actions : (
+    <AuthModal
+      trigger={
+        <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+          Sign In To Continue
+        </Button>
+      }
+    />
+  );
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white">
@@ -46,25 +63,58 @@ export default function AppShell({
               </Link>
             </div>
 
-            <nav className="flex flex-wrap gap-2">
-              {NAV_ITEMS.map((item) => {
-                const isActive = location === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-sm transition",
-                      isActive
-                        ? "border-yellow-400/50 bg-yellow-400/12 text-yellow-100"
-                        : "border-white/10 bg-white/[0.03] text-zinc-300 hover:border-yellow-400/30 hover:text-yellow-100",
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
+            <div className="flex flex-col gap-3 lg:items-end">
+              <nav className="flex flex-wrap gap-2">
+                {NAV_ITEMS.map((item) => {
+                  const isActive = location === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-sm transition",
+                        isActive
+                          ? "border-yellow-400/50 bg-yellow-400/12 text-yellow-100"
+                          : "border-white/10 bg-white/[0.03] text-zinc-300 hover:border-yellow-400/30 hover:text-yellow-100",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                {user ? (
+                  <>
+                    <div className="rounded-full border border-yellow-500/25 bg-white/[0.03] px-3 py-1.5 text-xs text-zinc-200">
+                      {identityLabel}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-yellow-500/35 bg-transparent text-yellow-100 hover:bg-yellow-500/10"
+                      onClick={() => {
+                        void logout();
+                      }}
+                    >
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <AuthModal
+                    trigger={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-yellow-500/35 bg-transparent text-yellow-100 hover:bg-yellow-500/10"
+                      >
+                        Sign In
+                      </Button>
+                    }
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </header>
 
@@ -89,7 +139,7 @@ export default function AppShell({
             </div>
           </section>
 
-          {(title || description || actions) && (
+          {(title || description || heroActions) && (
             <section
               className={cn(
                 "mb-8 rounded-[28px] border p-6 shadow-[0_30px_90px_rgba(0,0,0,0.35)] lg:p-8",
@@ -106,12 +156,38 @@ export default function AppShell({
                   {title && <h1 className="text-3xl font-semibold text-white lg:text-5xl">{title}</h1>}
                   {description && <p className="max-w-2xl text-sm leading-6 text-zinc-300 lg:text-base">{description}</p>}
                 </div>
-                {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+                {heroActions ? <div className="flex flex-wrap gap-3">{heroActions}</div> : null}
               </div>
             </section>
           )}
 
-          {children}
+          {isLoading ? (
+            <section className="rounded-[28px] border border-yellow-500/20 bg-black/50 p-8 text-center shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
+              <p className="text-[11px] uppercase tracking-[0.35em] text-yellow-300/70">Checking Session</p>
+              <p className="mt-3 text-lg text-zinc-200">Loading your workspace access...</p>
+            </section>
+          ) : isUnlocked ? (
+            children
+          ) : (
+            <section className="rounded-[28px] border border-yellow-500/20 bg-[linear-gradient(135deg,rgba(20,17,7,0.96),rgba(10,10,10,0.94))] p-8 shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
+              <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+                <p className="text-[11px] uppercase tracking-[0.35em] text-yellow-300/70">Protected Workspace</p>
+                <h2 className="mt-3 text-3xl font-semibold text-white">Sign in before using Dunamis</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-300 lg:text-base">
+                  Tools, libraries, optimizer flows, and saved work are now locked until you authenticate. Browse the brand shell if you want, but usage starts after sign-in.
+                </p>
+                <div className="mt-6">
+                  <AuthModal
+                    trigger={
+                      <Button className="bg-yellow-400 text-black hover:bg-yellow-300">
+                        Open Sign In
+                      </Button>
+                    }
+                  />
+                </div>
+              </div>
+            </section>
+          )}
         </main>
       </div>
     </div>

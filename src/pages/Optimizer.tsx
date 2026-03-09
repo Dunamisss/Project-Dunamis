@@ -410,6 +410,7 @@ export default function Optimizer() {
   const [lastAuditInput, setLastAuditInput] = useState("");
   const [vpnWarning, setVpnWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  const [serviceNotice, setServiceNotice] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [promptDropActive, setPromptDropActive] = useState(false);
   const [imageDropActive, setImageDropActive] = useState(false);
@@ -461,6 +462,7 @@ export default function Optimizer() {
     setOptimizerError(null);
     setVpnWarning(false);
     setWarningMessage(null);
+    setServiceNotice(null);
     setIsOptimizing(true);
 
     try {
@@ -499,6 +501,13 @@ export default function Optimizer() {
           setVpnWarning(data.vpnWarning);
           setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
         }
+        if (typeof data?.fallbackMessage === "string" && data.fallbackMessage.trim()) {
+          setServiceNotice(data.fallbackMessage);
+        } else if (data?.fallbackUsed) {
+          setServiceNotice("Provider unavailable. Used built-in fallback.");
+        } else {
+          setServiceNotice(null);
+        }
       };
 
       const formatInstruction = formatInstructionFor(outputFormat);
@@ -521,7 +530,7 @@ export default function Optimizer() {
 
       let data = await response.json();
       let retryCount = 0;
-      if (mode !== "audit") {
+      if (mode !== "audit" && !data?.fallbackUsed) {
         const maxRetries = 2;
         let quality = evaluateOptimizerQuality(rawPrompt, String(data?.output ?? ""));
         while (quality.label === "Weak" && retryCount < maxRetries) {
@@ -537,6 +546,9 @@ export default function Optimizer() {
           const retryResponse = await submit(retryContext);
           if (!retryResponse.ok) break;
           data = await retryResponse.json();
+          if (data?.fallbackUsed) {
+            break;
+          }
           quality = evaluateOptimizerQuality(rawPrompt, String(data?.output ?? ""));
         }
       }
@@ -574,6 +586,7 @@ export default function Optimizer() {
         setOutputKind("optimize");
         setLastRetryCount(0);
       }
+      setTimingInfo(null);
       const message = `${normalizeOptimizerErrorMessage((error as Error).message)} Using local fallback.`;
       setOptimizerError(
         message.includes("(500)")
@@ -596,6 +609,7 @@ export default function Optimizer() {
     setOptimizerError(null);
     setVpnWarning(false);
     setWarningMessage(null);
+    setServiceNotice(null);
     // When a prompt is loaded from library/detail pages, expose upload/context controls immediately.
     setShowAdvancedOptions(true);
     clearPromptToLoad();
@@ -686,6 +700,7 @@ export default function Optimizer() {
     setOptimizerError(null);
     setVpnWarning(false);
     setWarningMessage(null);
+    setServiceNotice(null);
     setOutputKind(null);
     setLastAuditInput("");
     setLastRetryCount(0);
@@ -697,6 +712,7 @@ export default function Optimizer() {
     setOptimizerError(null);
     setVpnWarning(false);
     setWarningMessage(null);
+    setServiceNotice(null);
     setIsOptimizing(true);
 
     try {
@@ -727,6 +743,13 @@ export default function Optimizer() {
           setVpnWarning(data.vpnWarning);
           setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
         }
+        if (typeof data?.fallbackMessage === "string" && data.fallbackMessage.trim()) {
+          setServiceNotice(data.fallbackMessage);
+        } else if (data?.fallbackUsed) {
+          setServiceNotice("Provider unavailable. Used built-in fallback.");
+        } else {
+          setServiceNotice(null);
+        }
         throw new Error(data?.error || "Optimization failed.");
       }
 
@@ -751,12 +774,20 @@ export default function Optimizer() {
         setVpnWarning(data.vpnWarning);
         setWarningMessage(typeof data?.warningMessage === "string" ? data.warningMessage : null);
       }
+      if (typeof data?.fallbackMessage === "string" && data.fallbackMessage.trim()) {
+        setServiceNotice(data.fallbackMessage);
+      } else if (data?.fallbackUsed) {
+        setServiceNotice("Provider unavailable. Used built-in fallback.");
+      } else {
+        setServiceNotice(null);
+      }
       void saveHistoryItem({
         input: lastAuditInput.trim(),
         output: data?.output ?? "",
         mode: "fix",
       });
     } catch (error) {
+      setTimingInfo(null);
       setOptimizerError((error as Error).message);
     } finally {
       setIsOptimizing(false);
@@ -1859,6 +1890,11 @@ export default function Optimizer() {
                   {vpnWarning && (
                     <div className="text-[11px] text-yellow-200/90 text-center">
                       {warningMessage ?? "VPN/proxy detected. Access allowed, but this may trigger review."}
+                    </div>
+                  )}
+                  {serviceNotice && (
+                    <div className="text-[11px] text-yellow-200/90 text-center">
+                      {serviceNotice}
                     </div>
                   )}
                   {optimizerError && (

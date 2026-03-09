@@ -690,6 +690,209 @@ function buildRuleBasedFinalPrompt(spec) {
   return lines.join("\n").trim();
 }
 
+function inferOptimizerOutputFormat({ systemPrompt, prompt, context }) {
+  const combined = `${systemPrompt || ""}\n${prompt || ""}\n${context || ""}`.toLowerCase();
+  if (/\bjson\b|valid json only|strict json/i.test(combined)) {
+    return "json";
+  }
+  if (/\bimage prompt\b|\bimage-generation\b|\bmidjourney\b|\blighting\b|\bcomposition\b|\bnegative prompt\b|\brender\b|\bphoto\b/i.test(combined)) {
+    return "image-prompt";
+  }
+  if (/\bad copy\b|\bheadline\b|\bhook\b|\bcta\b|\boffer\b|\bcampaign\b|\bconversion\b/i.test(combined)) {
+    return "ad-copy";
+  }
+  return "general";
+}
+
+function buildOptimizerFallbackOutput({ prompt, context, systemPrompt, images }) {
+  const cleanedPrompt = normalizePromptInput(prompt);
+  const cleanedContext = normalizePromptInput(context);
+  const outputFormat = inferOptimizerOutputFormat({ systemPrompt, prompt: cleanedPrompt, context: cleanedContext });
+  const goalType =
+    /\b(email|newsletter|subject line)\b/i.test(cleanedPrompt) ? "email-writing" :
+    /\b(ad|campaign|cta|conversion|offer)\b/i.test(cleanedPrompt) ? "marketing-copy" :
+    /\b(image|photo|render|midjourney|sora|scene|style)\b/i.test(cleanedPrompt) ? "image-prompting" :
+    /\b(code|script|function|api|sql|bug|refactor)\b/i.test(cleanedPrompt) ? "software-tasking" :
+    "general-tasking";
+  const formatHint =
+    outputFormat === "json"
+      ? "Return strict JSON only."
+      : outputFormat === "image-prompt"
+      ? "Return an image prompt with Subject, Style, Lighting, Composition, Negative Prompt."
+      : outputFormat === "ad-copy"
+      ? "Return ad copy with Headline, Hook, Body, Offer, CTA."
+      : "Return a production-ready prompt format.";
+  const imageNote = Array.isArray(images) && images.length
+    ? `Reference image names: ${images.join(", ")}`
+    : "No image references attached.";
+
+  return [
+    "### ROLE",
+    `You are a senior ${goalType} specialist and prompt executor.`,
+    "",
+    "### OBJECTIVE",
+    `Transform this request into a high-quality result: ${cleanedPrompt || "[ADD PRIMARY TASK]"}`,
+    "",
+    "### CONTEXT",
+    cleanedContext || "No extra context provided.",
+    imageNote,
+    "",
+    "### ASSUMPTIONS",
+    "- If user data is missing, use clear placeholders in brackets.",
+    "- Prioritize practical output over theory.",
+    "",
+    "### STEPS",
+    "1. Clarify intent and expected deliverable.",
+    "2. Apply structure, constraints, and quality checks.",
+    "3. Produce a concise, practical final output.",
+    "",
+    "### CONSTRAINTS",
+    "- Do not repeat the raw request verbatim.",
+    "- Keep output direct, useful, and non-fluffy.",
+    `- ${formatHint}`,
+    "- If uncertain, produce best-effort output with explicit placeholders.",
+    "",
+    "### OUTPUT FORMAT",
+    outputFormat === "json"
+      ? '{"result":"...","notes":["..."]}'
+      : outputFormat === "image-prompt"
+      ? "Subject: ...\nStyle: ...\nLighting: ...\nComposition: ...\nNegative Prompt: ..."
+      : outputFormat === "ad-copy"
+      ? "Headline: ...\nHook: ...\nBody: ...\nOffer: ...\nCTA: ..."
+      : "Final Prompt:\n- Role: ...\n- Objective: ...\n- Context: ...\n- Steps: ...\n- Constraints: ...\n- Output format: ...",
+    "",
+    "### FINAL PROMPT (PASTE INTO YOUR AI TOOL)",
+    [
+      "You are a high-skill assistant. Follow the instructions below exactly.",
+      "",
+      `Task: ${cleanedPrompt || "[ADD PRIMARY TASK]"}`,
+      cleanedContext ? `Context: ${cleanedContext}` : "Context: [ADD CONTEXT IF NEEDED]",
+      `Image references: ${imageNote.replace(/^Reference image names:\s*/, "")}`,
+      "Requirements:",
+      "- Clarify and structure before answering.",
+      "- Use concrete, actionable language.",
+      "- Avoid filler and repetition.",
+      `- ${formatHint}`,
+      "",
+      "Deliverable:",
+      outputFormat === "json"
+        ? "Return valid JSON only."
+        : outputFormat === "image-prompt"
+        ? "Return a polished image-generation prompt with a negative prompt block."
+        : outputFormat === "ad-copy"
+        ? "Return final copy ready to publish."
+        : "Return a final, polished response ready to use.",
+    ].join("\n"),
+  ].join("\n");
+}
+
+function buildAuditFallbackOutput(prompt) {
+  const normalized = normalizePromptInput(prompt);
+  const spec = buildPromptSpec(normalized, "text");
+  let score = 38;
+  if (spec.objective) score += 22;
+  if (spec.role) score += 10;
+  if (spec.context.length) score += 15;
+  if (spec.constraints.length) score += 15;
+  score = Math.max(18, Math.min(score, 92));
+
+  const verdict =
+    score < 80
+      ? "This prompt requires optimization to meet professional standards."
+      : "This prompt is usable but still benefits from tighter structure.";
+
+  const clarityFlaw = spec.objective
+    ? "The task is present, but the exact deliverable and success condition are still too loose."
+    : "The prompt does not state the exact deliverable or success condition.";
+  const constraintsFlaw = spec.constraints.length
+    ? "Some constraints exist, but they are not strict enough to prevent drift or vague answers."
+    : "There are no explicit constraints, limits, or exclusions to guide the model.";
+  const contextFlaw = spec.context.length
+    ? "Some context exists, but it is not specific enough to anchor audience, scope, or use-case."
+    : "Important background, audience, or use-case details are missing.";
+
+  return [
+    `1. Score: ${score}`,
+    `2. Verdict: ${verdict}`,
+    "3. Flaws:",
+    `- 🎯 Clarity: ${clarityFlaw}`,
+    `- 🧱 Constraints: ${constraintsFlaw}`,
+    `- 🧭 Context: ${contextFlaw}`,
+    "4. Ask:",
+    '"Shall I reconstruct this using advanced engineering techniques to maximize performance?"',
+  ].join("\n");
+}
+
+function buildRewriteFallbackOutput({ prompt, context, systemPrompt, images }) {
+  const finalPrompt = buildOptimizerFallbackOutput({ prompt, context, systemPrompt, images });
+  return [
+    "A) Technique: Rebuilt the request into explicit role, objective, constraints, and output requirements.",
+    "B) Reason: The original prompt is too open-ended for stable results. This version reduces ambiguity and gives the model a clearer execution path.",
+    "C) Final Draft:",
+    "```prompt",
+    finalPrompt,
+    "```",
+  ].join("\n");
+}
+
+function detectOptimizerRequestMode(systemPrompt) {
+  const promptText = String(systemPrompt || "");
+  if (/Evaluate a user-submitted prompt, score it/i.test(promptText) && /\b1\.\s*Score:/i.test(promptText)) {
+    return "audit";
+  }
+  if (/Rewrite the user-submitted prompt to professional standards/i.test(promptText) && /\bC\)\s*Final Draft:/i.test(promptText)) {
+    return "fix";
+  }
+  return "optimize";
+}
+
+function summarizeProviderError(message) {
+  const normalized = String(message || "").replace(/\s+/g, " ").trim();
+  return normalized ? normalized.slice(0, 280) : "Provider request failed.";
+}
+
+function buildOptimizerFallbackResponse({
+  systemPrompt,
+  prompt,
+  context,
+  images,
+  remaining,
+  limit,
+  isAllowlisted,
+  vpnWarning,
+  warningMessage,
+  requestStartedAt,
+  providerError,
+}) {
+  const mode = detectOptimizerRequestMode(systemPrompt);
+  const output =
+    mode === "audit"
+      ? buildAuditFallbackOutput(prompt)
+      : mode === "fix"
+      ? buildRewriteFallbackOutput({ prompt, context, systemPrompt, images })
+      : buildOptimizerFallbackOutput({ prompt, context, systemPrompt, images });
+  const summarizedError = summarizeProviderError(providerError);
+  const fallbackLabel =
+    mode === "audit" ? "built-in audit fallback" : mode === "fix" ? "built-in rewrite fallback" : "built-in optimizer fallback";
+
+  return {
+    output,
+    remaining,
+    limit,
+    unlimited: isAllowlisted,
+    vpnWarning,
+    warningMessage,
+    fallbackUsed: true,
+    fallbackMessage: `${summarizedError} Using ${fallbackLabel}.`,
+    timing: {
+      totalMs: Date.now() - requestStartedAt,
+      providerMs: 0,
+      model: "rule-based-fallback",
+      provider: "fallback",
+    },
+  };
+}
+
 function parseJsonObjectFromText(text) {
   if (!text || typeof text !== "string") return null;
   try {
@@ -1307,12 +1510,38 @@ app.post("/api/optimize", async (req, res) => {
         });
       } catch (fallbackError) {
         const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : `${fallbackProvider} request failed.`;
-        return res.status(503).json({
-          error: `${primaryProvider} failed: ${primaryError} | ${fallbackProvider} failed: ${fallbackMessage}`,
-        });
+        return res.json(
+          buildOptimizerFallbackResponse({
+            systemPrompt,
+            prompt,
+            context,
+            images,
+            remaining,
+            limit,
+            isAllowlisted,
+            vpnWarning,
+            warningMessage,
+            requestStartedAt,
+            providerError: `${primaryProvider} failed: ${primaryError} | ${fallbackProvider} failed: ${fallbackMessage}`,
+          }),
+        );
       }
     }
-    return res.status(503).json({ error: primaryError });
+    return res.json(
+      buildOptimizerFallbackResponse({
+        systemPrompt,
+        prompt,
+        context,
+        images,
+        remaining,
+        limit,
+        isAllowlisted,
+        vpnWarning,
+        warningMessage,
+        requestStartedAt,
+        providerError: primaryError,
+      }),
+    );
   }
 });
 
