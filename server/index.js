@@ -1,4 +1,5 @@
 import express from "express";
+import { createHash } from "node:crypto";
 import dotenv from "dotenv";
 import multer from "multer";
 import sharp from "sharp";
@@ -55,6 +56,12 @@ function getPreferredOptimizerProvider() {
 
 function getOpenRouterModel() {
   return (process.env.OPENROUTER_MODEL || "openrouter/free").trim();
+}
+
+function fingerprintSecret(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return null;
+  return createHash("sha256").update(normalized).digest("hex").slice(0, 12);
 }
 
 function formatOpenRouterError(status, errText) {
@@ -981,7 +988,16 @@ app.use((req, res, next) => {
 });
 
 app.get("/api/health", (req, res) => {
-  return res.json({ ok: true, service: "dunamis-api" });
+  return res.json({
+    ok: true,
+    service: "dunamis-api",
+    optimizerProvider: getPreferredOptimizerProvider(),
+    openrouterModel: getOpenRouterModel(),
+    openrouterKeyPresent: Boolean(process.env.OPENROUTER_API_KEY?.trim()),
+    openrouterKeyFingerprint: fingerprintSecret(process.env.OPENROUTER_API_KEY),
+    renderService: process.env.RENDER_SERVICE_NAME || null,
+    renderCommit: process.env.RENDER_GIT_COMMIT?.slice(0, 12) || null,
+  });
 });
 
 app.post("/api/prompt-repair", async (req, res) => {
