@@ -45,7 +45,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setPromptToLoad(prompt);
   }, []);
 
-  const clearPromptToLoad = useCallback(() => {
+  const clearPromptToLoad = useCallback(() => {                                                                                                                             
     setPromptToLoad(null);
   }, []);
 

@@ -10,6 +10,7 @@ const Tutorials = lazy(() => import("./pages/Tutorials"));
 const AuditJson = lazy(() => import("./pages/AuditJson"));
 const PromptBoxes = lazy(() => import("./pages/PromptBoxes"));
 const PromptRepair = lazy(() => import("./pages/PromptRepair"));
+const Privacy = lazy(() => import("./pages/Privacy"));
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
             <Route path="/prompt-repair" component={PromptRepair} />
             <Route path="/prompts" component={PromptLibrary} />
             <Route path="/images" component={ImageLibrary} />
+            <Route path="/privacy" component={Privacy} />
             <Route component={Home} />
           </Switch>
         </Suspense>

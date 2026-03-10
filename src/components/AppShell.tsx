@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/images", label: "Image Library" },
   { href: "/tutorials", label: "Tutorials" },
   { href: "/optimizer", label: "Optimizer" },
+  { href: "/privacy", label: "Privacy" },
 ];
 
 type AppShellProps = {
@@ -129,12 +130,12 @@ export default function AppShell({
                     DUNAMIS
                   </h1>
                   <p className="text-lg italic text-yellow-200/90 lg:text-2xl">
-                    "Precision prompts, zero noise - built for creators who ship."
+                    "Master the Art of the Prompt."
                   </p>
                 </div>
               </div>
               <p className="max-w-xl text-sm leading-7 text-zinc-300 lg:text-base">
-                A cleaner creative workspace for building prompts, studying images, and tightening ideas without losing the identity of the project.
+                Stop guessing. Start creating. Learn how to speak the language of AI and get results you actually want.
               </p>
             </div>
           </section>

@@ -301,8 +301,8 @@ export default function Home() {
   return (
     <AppShell
       eyebrow="Start Here"
-      title="One clear place to build your next prompt"
-      description="This homepage now does one job: help you choose a prompt type, fill a few fields, and leave with a clean JSON draft. Everything else stays available, but out of the way."
+      title="DUNAMIS: Master the Art of the Prompt."
+      description="Stop guessing. Start creating. We teach you how to speak the language of AI to get the results you actually want."
       actions={
         <>
           <Link href="/prompts">
@@ -364,6 +364,25 @@ export default function Home() {
               <p className="text-sm leading-6 text-zinc-200">After this, the libraries get the same polish and restraint.</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="mb-8 rounded-[28px] border border-yellow-500/15 bg-[linear-gradient(135deg,rgba(20,17,7,0.96),rgba(10,10,10,0.94))] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.35)] lg:p-8">
+        <div className="max-w-4xl space-y-4">
+          <p className="text-[11px] uppercase tracking-[0.35em] text-yellow-300/70">About Us</p>
+          <h2 className="text-3xl font-semibold text-white lg:text-4xl">Why Dunamis?</h2>
+          <p className="text-sm leading-7 text-zinc-300 lg:text-base">
+            In Greek, <span className="text-yellow-100">Dunamis</span> means power and potential. That is exactly what a great prompt unlocks.
+          </p>
+          <p className="text-sm leading-7 text-zinc-300 lg:text-base">
+            I am Dunamis, founder of Dunamis. I created this platform because most people use AI like a search engine, when they should be using it like a partner. I am not a coder. I am a prompt specialist who has spent countless hours mastering how to talk to these systems so you do not have to struggle with hallucinations or generic results.
+          </p>
+          <p className="text-sm leading-7 text-zinc-300 lg:text-base">
+            Whether you are a business owner, a creative, or just curious, Dunamis gives you clear frameworks to turn ideas into reality with AI.
+          </p>
+          <Link href="/privacy" className="inline-flex text-sm text-yellow-200 underline decoration-yellow-400/60 underline-offset-4 hover:text-yellow-100">
+            Read our Privacy Policy
+          </Link>
         </div>
       </section>
 
