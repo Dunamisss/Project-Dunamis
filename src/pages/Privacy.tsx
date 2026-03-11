@@ -26,7 +26,7 @@ export default function Privacy() {
     <AppShell
       requireAuth={false}
       eyebrow="Legal"
-      title="Privacy Policy for Dunamis.xyz"
+      title="Privacy Policy for Dunamiss.xyz"
       description={`Last Updated: ${LAST_UPDATED}`}
       accent="slate"
     >
