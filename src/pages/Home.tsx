@@ -27,6 +27,7 @@ const STARTER_CARD_IDS = [
   "product-ad-copy",
 ] as const;
 const HOME_PREFILL_KEY = "dunamis_home_prompt_prefill";
+const TRAIL_TOGGLE_KEY = "dunamis_gold_trail_enabled";
 const TRY_IN_PROVIDERS = [
   { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com/" },
   { id: "gemini", label: "Gemini", url: "https://gemini.google.com/" },
@@ -75,6 +76,41 @@ const DEMO_VALUES_BY_CARD: Record<string, Record<string, string>> = {
 
 function getDefaultCardId(): string {
   return STARTER_CARD_IDS[0] || BASIC_PROMPT_CARDS[0]?.id || "";
+}
+
+function isLikelySlowDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    connection?: { saveData?: boolean; effectiveType?: string };
+  };
+
+  const lowCpu = typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 4;
+  const lowMemory = typeof nav.deviceMemory === "number" && nav.deviceMemory <= 4;
+  const saveData = Boolean(nav.connection?.saveData);
+  const slowNetwork = typeof nav.connection?.effectiveType === "string" && /(2g|3g)/i.test(nav.connection.effectiveType);
+
+  return lowCpu || lowMemory || saveData || slowNetwork;
+}
+
+function getInitialTrailState(): boolean {
+  if (typeof window === "undefined") return true;
+
+  try {
+    const stored = localStorage.getItem(TRAIL_TOGGLE_KEY);
+    if (stored === "off") return false;
+    if (stored === "on") return true;
+  } catch {
+    // ignore storage errors
+  }
+
+  const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  if (prefersReducedMotion) return false;
+
+  if (isLikelySlowDevice()) return false;
+
+  return true;
 }
 
 function flattenObject(input: unknown, bucket: Record<string, string> = {}): Record<string, string> {
@@ -169,6 +205,7 @@ export default function Home() {
   const [draft, setDraft] = useState("");
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [importedPromptTitle, setImportedPromptTitle] = useState<string | null>(null);
+  const [trailEnabled, setTrailEnabled] = useState<boolean>(getInitialTrailState);
 
   const selectedCard = useMemo(
     () => BASIC_PROMPT_CARDS.find((card) => card.id === selectedCardId) || null,
@@ -298,6 +335,18 @@ export default function Home() {
     }
   }, []);
 
+  const toggleTrail = () => {
+    setTrailEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(TRAIL_TOGGLE_KEY, next ? "on" : "off");
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
+
   return (
     <AppShell
       eyebrow="Start Here"
@@ -319,11 +368,23 @@ export default function Home() {
       }
     >
       <section className="relative mb-8 overflow-hidden rounded-[32px] border border-yellow-500/20 bg-black/55 shadow-[0_35px_110px_rgba(0,0,0,0.45)]">
+        <div className="absolute right-4 top-4 z-20">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-yellow-500/35 bg-black/65 text-yellow-100 hover:bg-yellow-500/10"
+            onClick={toggleTrail}
+            aria-pressed={trailEnabled}
+            title="Toggle animated gold trail effect"
+          >
+            Gold Trail: {trailEnabled ? "On" : "Off"}
+          </Button>
+        </div>
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.98)_0%,rgba(5,5,5,0.92)_35%,rgba(5,5,5,0.84)_100%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(245,192,74,0.18),transparent_28%),radial-gradient(circle_at_80%_25%,rgba(245,192,74,0.12),transparent_22%),linear-gradient(135deg,rgba(245,192,74,0.06),transparent_45%,rgba(245,192,74,0.04)_100%)]" />
         </div>
-        <TubesEffect className="opacity-45" />
+        {trailEnabled ? <TubesEffect className="opacity-45" /> : null}
 
         <div className="relative z-10 grid gap-6 p-6 lg:grid-cols-[1.1fr_0.9fr] lg:p-8">
           <div className="max-w-2xl space-y-5">
